@@ -42,14 +42,21 @@ Route::middleware('auth')->group(function () {
             'destroy',
         ]);
 
-        // Leads Routes
-        Route::get('/leads', [LeadController::class, 'index'])
-            ->middleware('can:leads.access')
-            ->name('leads.index');
+        Route::get('/leads/create', [LeadController::class, 'create'])->name('leads.create');
+        Route::get('/leads', [LeadController::class, 'index'])->name('leads.index');
+        Route::get('/leads/{lead}', [LeadController::class, 'show'])->name('leads.show');
+        Route::get('/leads/{lead}/edit', [LeadController::class, 'edit'])->name('leads.edit');
+        Route::post('/leads', [LeadController::class, 'store'])->name('leads.store');
+        Route::patch('/leads/{lead}', [LeadController::class, 'update'])->name('leads.update');
+        Route::delete('/leads/{lead}', [LeadController::class, 'destroy'])->name('leads.destroy');
 
-        // Comapny Routes
-        Route::get('/companies/create', [CompanyController::class, 'create'])
-            ->middleware('can:companies.manage')
-            ->name('companies.create');
+        // Company Routes
+        Route::resource('companies', CompanyController::class)->only([
+            'index',
+            'store',
+            'show',
+            'update',
+            'destroy',
+        ]);
     });
 });

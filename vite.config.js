@@ -9,6 +9,7 @@ export default defineConfig({
                 'resources/css/app.css',
                 'resources/js/app.js',
                 'resources/js/agents.js',
+                'resources/js/companies.js',
                 'resources/js/dashboard.js',
             ],
             refresh: true,

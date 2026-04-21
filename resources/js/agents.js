@@ -217,6 +217,25 @@ function removeAgentRowById(id) {
     ensureEmptyStateRowVisible();
 }
 
+async function confirmDeleteAgent() {
+    if (typeof window.Swal === 'undefined') {
+        toastr.error('Confirmation dialog is unavailable. Please refresh and try again.');
+        return false;
+    }
+
+    const result = await window.Swal.fire({
+        title: 'Delete this agent?',
+        text: 'This action cannot be undone.',
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonText: 'Yes, delete',
+        cancelButtonText: 'Cancel',
+        confirmButtonColor: '#dc2626',
+    });
+
+    return Boolean(result.isConfirmed);
+}
+
 function applyAgentListFilter() {
     const q = (agentListFilterInput?.value ?? '').trim().toLowerCase();
     const rows = agentsIndexTable?.querySelectorAll('tbody tr[data-agent-id]') ?? [];
@@ -472,7 +491,8 @@ document.addEventListener('click', async (e) => {
         if (!id) {
             return;
         }
-        if (!confirm('Delete this agent? This cannot be undone.')) {
+        const confirmed = await confirmDeleteAgent();
+        if (!confirmed) {
             return;
         }
         try {

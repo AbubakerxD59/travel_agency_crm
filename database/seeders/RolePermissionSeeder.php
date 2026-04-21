@@ -25,6 +25,7 @@ class RolePermissionSeeder extends Seeder
             'agents.create',
             'agents.manage',
             'leads.access',
+            'companies.create',
             'companies.manage',
         ];
 
@@ -37,6 +38,8 @@ class RolePermissionSeeder extends Seeder
 
         $superAdmin->syncPermissions(Permission::all());
 
-        $agent->syncPermissions([]);
+        $agent->syncPermissions([
+            'leads.access',
+        ]);
     }
 }
