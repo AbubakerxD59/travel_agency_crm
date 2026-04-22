@@ -1,4 +1,4 @@
-@extends('layouts.admin')
+@extends($leadLayout ?? 'layouts.admin')
 
 @section('title', 'Edit lead')
 
@@ -9,25 +9,28 @@
                 <h1 class="text-2xl font-bold text-concierge-navy lg:text-3xl">Edit lead #{{ $lead->id }}</h1>
                 <p class="mt-1 text-sm text-concierge-muted">Update lead details.</p>
             </div>
-            <a href="{{ route('admin.leads.index') }}"
+            <a href="{{ route(($leadRoutePrefix ?? 'admin') . '.leads.index') }}"
                 class="inline-flex shrink-0 items-center justify-center rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-medium text-concierge-navy shadow-sm transition hover:bg-slate-50">
                 Back to leads
             </a>
         </div>
 
         <div class="mt-8 rounded-2xl border border-slate-200/80 bg-white p-6 shadow-sm sm:p-8">
-            <form id="lead-edit-form" method="POST" action="{{ route('admin.leads.update', $lead) }}" class="space-y-4">
+            <form id="lead-edit-form" method="POST"
+                action="{{ route(($leadRoutePrefix ?? 'admin') . '.leads.update', $lead) }}" class="space-y-4">
                 @csrf
                 @method('PATCH')
 
                 @if (session('error'))
-                    <div class="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-800" role="alert">
+                    <div class="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-800"
+                        role="alert">
                         {{ session('error') }}
                     </div>
                 @endif
 
                 @if ($errors->any())
-                    <div class="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-800" role="alert">
+                    <div class="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-800"
+                        role="alert">
                         <p class="font-medium">Please fix the following:</p>
                         <ul class="mt-2 list-inside list-disc">
                             @foreach ($errors->all() as $error)
@@ -38,43 +41,65 @@
                 @endif
 
                 @php
-                    $fieldClass = 'mt-1.5 w-full rounded-xl border border-slate-200 bg-slate-50/80 px-4 py-2.5 text-sm focus:border-concierge-accent focus:bg-white focus:outline-none focus:ring-2 focus:ring-concierge-accent/20';
-                    $itineraryRows = old('itineraries', $lead->itineraries->map(fn ($itinerary) => [
-                        'sr_no' => $itinerary->sr_no,
-                        'airline_code' => $itinerary->airline_code,
-                        'airline_number' => $itinerary->airline_number,
-                        'class' => $itinerary->class,
-                        'departure_date' => optional($itinerary->departure_date)->format('Y-m-d'),
-                        'departure_airport' => $itinerary->departure_airport,
-                        'arrival_airport' => $itinerary->arrival_airport,
-                        'departure_time' => $itinerary->departure_time,
-                        'arrival_time' => $itinerary->arrival_time,
-                        'arrival_date' => optional($itinerary->arrival_date)->format('Y-m-d'),
-                    ])->toArray());
-                    $passengerRows = old('passengers', $lead->passengers->map(fn ($passenger) => [
-                        'title' => $passenger->title,
-                        'first_name' => $passenger->first_name,
-                        'middle_name' => $passenger->middle_name,
-                        'last_name' => $passenger->last_name,
-                        'passenger_type' => $passenger->passenger_type,
-                        'email' => $passenger->email,
-                        'phone' => $passenger->phone,
-                        'date_of_birth' => optional($passenger->date_of_birth)->format('Y-m-d'),
-                        'passport_details' => $passenger->passport_details,
-                    ])->toArray());
-                    $packageCostRows = old('package_costs', $lead->packageCosts->map(fn ($cost) => [
-                        'ticket_no' => $cost->ticket_no,
-                        'ticket_date' => optional($cost->ticket_date)->format('Y-m-d'),
-                        'airline_from' => $cost->airline_from,
-                        'airline_to' => $cost->airline_to,
-                        'fare' => $cost->fare,
-                        'tax' => $cost->tax,
-                        'total_cost' => $cost->total_cost,
-                        'margin' => $cost->margin,
-                        'sell' => $cost->sell,
-                        'supplier' => $cost->supplier,
-                        'pnr' => $cost->pnr,
-                    ])->toArray());
+                    $fieldClass =
+                        'mt-1.5 w-full rounded-xl border border-slate-200 bg-slate-50/80 px-4 py-2.5 text-sm focus:border-concierge-accent focus:bg-white focus:outline-none focus:ring-2 focus:ring-concierge-accent/20';
+                    $itineraryRows = old(
+                        'itineraries',
+                        $lead->itineraries
+                            ->map(
+                                fn($itinerary) => [
+                                    'sr_no' => $itinerary->sr_no,
+                                    'airline_code' => $itinerary->airline_code,
+                                    'airline_number' => $itinerary->airline_number,
+                                    'class' => $itinerary->class,
+                                    'departure_date' => optional($itinerary->departure_date)->format('Y-m-d'),
+                                    'departure_airport' => $itinerary->departure_airport,
+                                    'arrival_airport' => $itinerary->arrival_airport,
+                                    'departure_time' => $itinerary->departure_time,
+                                    'arrival_time' => $itinerary->arrival_time,
+                                    'arrival_date' => optional($itinerary->arrival_date)->format('Y-m-d'),
+                                ],
+                            )
+                            ->toArray(),
+                    );
+                    $passengerRows = old(
+                        'passengers',
+                        $lead->passengers
+                            ->map(
+                                fn($passenger) => [
+                                    'title' => $passenger->title,
+                                    'first_name' => $passenger->first_name,
+                                    'middle_name' => $passenger->middle_name,
+                                    'last_name' => $passenger->last_name,
+                                    'passenger_type' => $passenger->passenger_type,
+                                    'email' => $passenger->email,
+                                    'phone' => $passenger->phone,
+                                    'date_of_birth' => optional($passenger->date_of_birth)->format('Y-m-d'),
+                                    'passport_details' => $passenger->passport_details,
+                                ],
+                            )
+                            ->toArray(),
+                    );
+                    $packageCostRows = old(
+                        'package_costs',
+                        $lead->packageCosts
+                            ->map(
+                                fn($cost) => [
+                                    'ticket_no' => $cost->ticket_no,
+                                    'ticket_date' => optional($cost->ticket_date)->format('Y-m-d'),
+                                    'airline_from' => $cost->airline_from,
+                                    'airline_to' => $cost->airline_to,
+                                    'fare' => $cost->fare,
+                                    'tax' => $cost->tax,
+                                    'total_cost' => $cost->total_cost,
+                                    'margin' => $cost->margin,
+                                    'sell' => $cost->sell,
+                                    'supplier' => $cost->supplier,
+                                    'pnr' => $cost->pnr,
+                                ],
+                            )
+                            ->toArray(),
+                    );
                     if (!is_array($itineraryRows) || count($itineraryRows) === 0) {
                         $itineraryRows = [[]];
                     }
@@ -86,72 +111,81 @@
                     }
                 @endphp
 
-                <div class="grid grid-cols-1 gap-4 lg:grid-cols-3">
+                <div class="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
                     <div class="min-w-0">
-                        <label for="lead_agent_id" class="block text-sm font-medium text-concierge-navy">Agent <span class="font-normal text-concierge-muted">(optional)</span></label>
-                        <select id="lead_agent_id" name="agent_id" class="{{ $fieldClass }}">
-                            <option value="">Unassigned</option>
-                            @foreach ($agents as $agent)
-                                <option value="{{ $agent->id }}" @selected(old('agent_id', $lead->agent_id) == $agent->id)>{{ $agent->name }}</option>
+                        <label for="lead_order_type" class="block text-sm font-medium text-concierge-navy"><span
+                                class="text-rose-600">*</span> Order type</label>
+                        <input id="lead_order_type" name="order_type" type="text" required
+                            value="{{ old('order_type', $lead->order_type) }}" class="{{ $fieldClass }}">
+                    </div>
+                    <div class="min-w-0">
+                        <label for="lead_vendor_reference" class="block text-sm font-medium text-concierge-navy">Vendor
+                            reference <span class="font-normal text-concierge-muted">(optional)</span></label>
+                        <input id="lead_vendor_reference" name="vendor_reference" type="text"
+                            value="{{ old('vendor_reference', $lead->vendor_reference) }}" class="{{ $fieldClass }}">
+                    </div>
+                    <div class="min-w-0">
+                        <label for="lead_company_id" class="block text-sm font-medium text-concierge-navy"><span
+                                class="text-rose-600">*</span> Company</label>
+                        <select id="lead_company_id" name="company_id" required class="{{ $fieldClass }}">
+                            @foreach ($companies as $company)
+                                <option value="{{ $company->id }}" @selected(old('company_id', $lead->company_id) == $company->id)>{{ $company->name }}
+                                    ({{ $company->country?->name ?? '—' }})
+                                </option>
                             @endforeach
                         </select>
                     </div>
                     <div class="min-w-0">
-                        <label for="lead_order_type" class="block text-sm font-medium text-concierge-navy"><span class="text-rose-600">*</span> Order type</label>
-                        <input id="lead_order_type" name="order_type" type="text" required value="{{ old('order_type', $lead->order_type) }}"
+                        <label for="lead_status" class="block text-sm font-medium text-concierge-navy"><span
+                                class="text-rose-600">*</span> Status</label>
+                        <select id="lead_status" name="status" required class="{{ $fieldClass }}">
+                            @foreach ($statuses as $value => $label)
+                                <option value="{{ $value }}" @selected(old('status', $lead->status) === $value)>{{ $label }}
+                                </option>
+                            @endforeach
+                        </select>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
+                    <div class="min-w-0">
+                        <label for="lead_destination_id" class="block text-sm font-medium text-concierge-navy"><span
+                                class="text-rose-600">*</span> Destination</label>
+                        <select id="lead_destination_id" name="destination_id" required class="{{ $fieldClass }}">
+                            @foreach ($destinations as $destination)
+                                <option value="{{ $destination->id }}" @selected(old('destination_id', $lead->destination_id) == $destination->id)>
+                                    {{ $destination->name }}</option>
+                            @endforeach
+                        </select>
+                    </div>
+                    <div class="min-w-0">
+                        <label for="lead_travel_date" class="block text-sm font-medium text-concierge-navy"><span
+                                class="text-rose-600">*</span> Travel date</label>
+                        <input id="lead_travel_date" name="travel_date" type="date" required
+                            value="{{ old('travel_date', optional($lead->travel_date)->format('Y-m-d')) }}"
                             class="{{ $fieldClass }}">
                     </div>
                     <div class="min-w-0">
-                        <label for="lead_vendor_reference" class="block text-sm font-medium text-concierge-navy">Vendor reference <span class="font-normal text-concierge-muted">(optional)</span></label>
-                        <input id="lead_vendor_reference" name="vendor_reference" type="text" value="{{ old('vendor_reference', $lead->vendor_reference) }}" class="{{ $fieldClass }}">
-                    </div>
-                </div>
-
-                <div class="grid grid-cols-1 gap-4 lg:grid-cols-3">
-                    <div class="min-w-0">
-                        <label for="lead_company_id" class="block text-sm font-medium text-concierge-navy"><span class="text-rose-600">*</span> Company</label>
-                        <select id="lead_company_id" name="company_id" required class="{{ $fieldClass }}">
-                            @foreach ($companies as $company)
-                                <option value="{{ $company->id }}" @selected(old('company_id', $lead->company_id) == $company->id)>{{ $company->name }} ({{ $company->country?->name ?? '—' }})</option>
-                            @endforeach
-                        </select>
-                    </div>
-                    <div class="min-w-0">
-                        <label for="lead_status" class="block text-sm font-medium text-concierge-navy"><span class="text-rose-600">*</span> Status</label>
-                        <select id="lead_status" name="status" required class="{{ $fieldClass }}">
-                            @foreach ($statuses as $value => $label)
-                                <option value="{{ $value }}" @selected(old('status', $lead->status) === $value)>{{ $label }}</option>
-                            @endforeach
-                        </select>
-                    </div>
-                    <div class="min-w-0">
-                        <label for="lead_destination_id" class="block text-sm font-medium text-concierge-navy"><span class="text-rose-600">*</span> Destination</label>
-                        <select id="lead_destination_id" name="destination_id" required class="{{ $fieldClass }}">
-                            @foreach ($destinations as $destination)
-                                <option value="{{ $destination->id }}" @selected(old('destination_id', $lead->destination_id) == $destination->id)>{{ $destination->name }}</option>
-                            @endforeach
-                        </select>
-                    </div>
-                </div>
-
-                <div class="grid grid-cols-1 gap-4 lg:grid-cols-3">
-                    <div class="min-w-0">
-                        <label for="lead_travel_date" class="block text-sm font-medium text-concierge-navy"><span class="text-rose-600">*</span> Travel date</label>
-                        <input id="lead_travel_date" name="travel_date" type="date" required value="{{ old('travel_date', optional($lead->travel_date)->format('Y-m-d')) }}" class="{{ $fieldClass }}">
-                    </div>
-                    <div class="min-w-0">
-                        <label for="lead_balance_due_date" class="block text-sm font-medium text-concierge-navy">Balance due date <span class="font-normal text-concierge-muted">(optional)</span></label>
-                        <input id="lead_balance_due_date" name="balance_due_date" type="date" value="{{ old('balance_due_date', optional($lead->balance_due_date)->format('Y-m-d')) }}" class="{{ $fieldClass }}">
+                        <label for="lead_balance_due_date" class="block text-sm font-medium text-concierge-navy">Balance due
+                            date <span class="font-normal text-concierge-muted">(optional)</span></label>
+                        <input id="lead_balance_due_date" name="balance_due_date" type="date"
+                            value="{{ old('balance_due_date', optional($lead->balance_due_date)->format('Y-m-d')) }}"
+                            class="{{ $fieldClass }}">
                     </div>
                     <div class="min-w-0">
                         <span class="block text-sm font-medium text-concierge-navy">Ziarat</span>
-                        <div class="mt-1.5 flex min-h-[2.625rem] flex-row flex-nowrap items-center gap-6 rounded-xl border border-slate-200/80 bg-slate-50/50 px-4 py-2.5">
+                        <div
+                            class="mt-1.5 flex min-h-[2.625rem] flex-row flex-nowrap items-center gap-6 rounded-xl border border-slate-200/80 bg-slate-50/50 px-4 py-2.5">
                             <label class="flex cursor-pointer items-center gap-2 text-sm text-concierge-navy">
-                                <input type="checkbox" name="ziarat_makkah" value="1" class="rounded border-slate-300 text-concierge-accent focus:ring-concierge-accent/30" @checked(old('ziarat_makkah', $lead->ziarat_makkah))>
+                                <input type="checkbox" name="ziarat_makkah" value="1"
+                                    class="rounded border-slate-300 text-concierge-accent focus:ring-concierge-accent/30"
+                                    @checked(old('ziarat_makkah', $lead->ziarat_makkah))>
                                 Makkah
                             </label>
                             <label class="flex cursor-pointer items-center gap-2 text-sm text-concierge-navy">
-                                <input type="checkbox" name="ziarat_madinah" value="1" class="rounded border-slate-300 text-concierge-accent focus:ring-concierge-accent/30" @checked(old('ziarat_madinah', $lead->ziarat_madinah))>
+                                <input type="checkbox" name="ziarat_madinah" value="1"
+                                    class="rounded border-slate-300 text-concierge-accent focus:ring-concierge-accent/30"
+                                    @checked(old('ziarat_madinah', $lead->ziarat_madinah))>
                                 Madinah
                             </label>
                         </div>
@@ -159,13 +193,15 @@
                 </div>
 
                 <div class="min-w-0">
-                    <label for="lead_flight_itinerary" class="block text-sm font-medium text-concierge-navy">Flight itinerary <span class="font-normal text-concierge-muted">(optional)</span></label>
+                    <label for="lead_flight_itinerary" class="block text-sm font-medium text-concierge-navy">Flight
+                        itinerary <span class="font-normal text-concierge-muted">(optional)</span></label>
                     <textarea id="lead_flight_itinerary" name="flight_itinerary" rows="4" class="{{ $fieldClass }}">{{ old('flight_itinerary', $lead->flight_itinerary) }}</textarea>
                 </div>
 
                 <div class="space-y-3 rounded-2xl border border-slate-200/80 bg-slate-50/40 p-4 sm:p-5">
                     <div class="flex flex-wrap items-center justify-between gap-3">
-                        <h2 class="text-base font-semibold text-concierge-navy"><span class="text-rose-600">*</span> Itineraries</h2>
+                        <h2 class="text-base font-semibold text-concierge-navy"><span class="text-rose-600">*</span>
+                            Itineraries</h2>
                         <button type="button" id="add-itinerary-row"
                             class="inline-flex cursor-pointer items-center justify-center rounded-xl bg-concierge-navy px-4 py-2 text-xs font-semibold text-white hover:bg-concierge-navy-deep">
                             Add itinerary
@@ -199,7 +235,8 @@
                                             </button>
                                         </td>
                                         <td class="border border-slate-200 px-2 py-2">
-                                            <input type="number" min="1" name="itineraries[{{ $i }}][sr_no]"
+                                            <input type="number" min="1"
+                                                name="itineraries[{{ $i }}][sr_no]"
                                                 value="{{ data_get($row, 'sr_no') }}"
                                                 class="w-12 rounded-lg border border-slate-200 bg-white px-2 py-1.5 text-sm">
                                         </td>
@@ -224,12 +261,14 @@
                                                 class="w-36 rounded-lg border border-slate-200 bg-white px-2 py-1.5 text-sm">
                                         </td>
                                         <td class="border border-slate-200 px-2 py-2">
-                                            <input type="text" name="itineraries[{{ $i }}][departure_airport]"
+                                            <input type="text"
+                                                name="itineraries[{{ $i }}][departure_airport]"
                                                 value="{{ data_get($row, 'departure_airport') }}"
                                                 class="w-28 rounded-lg border border-slate-200 bg-white px-2 py-1.5 text-sm">
                                         </td>
                                         <td class="border border-slate-200 px-2 py-2">
-                                            <input type="text" name="itineraries[{{ $i }}][arrival_airport]"
+                                            <input type="text"
+                                                name="itineraries[{{ $i }}][arrival_airport]"
                                                 value="{{ data_get($row, 'arrival_airport') }}"
                                                 class="w-28 rounded-lg border border-slate-200 bg-white px-2 py-1.5 text-sm">
                                         </td>
@@ -258,7 +297,8 @@
 
                 <div class="space-y-3 rounded-2xl border border-slate-200/80 bg-slate-50/40 p-4 sm:p-5">
                     <div class="flex flex-wrap items-center justify-between gap-3">
-                        <h2 class="text-base font-semibold text-concierge-navy"><span class="text-rose-600">*</span> Passenger details</h2>
+                        <h2 class="text-base font-semibold text-concierge-navy"><span class="text-rose-600">*</span>
+                            Passenger details</h2>
                         <button type="button" id="add-passenger-row"
                             class="inline-flex cursor-pointer items-center justify-center rounded-xl bg-concierge-navy px-4 py-2 text-xs font-semibold text-white hover:bg-concierge-navy-deep">
                             Add new passenger
@@ -331,7 +371,8 @@
                                                 class="w-36 rounded-lg border border-slate-200 bg-white px-2 py-1.5 text-sm">
                                         </td>
                                         <td class="border border-slate-200 px-2 py-2">
-                                            <input type="text" name="passengers[{{ $i }}][passport_details]"
+                                            <input type="text"
+                                                name="passengers[{{ $i }}][passport_details]"
                                                 value="{{ data_get($row, 'passport_details') }}"
                                                 class="w-40 rounded-lg border border-slate-200 bg-white px-2 py-1.5 text-sm">
                                         </td>
@@ -345,7 +386,8 @@
 
                 <div class="space-y-3 rounded-2xl border border-slate-200/80 bg-slate-50/40 p-4 sm:p-5">
                     <div class="flex flex-wrap items-center justify-between gap-3">
-                        <h2 class="text-base font-semibold text-concierge-navy"><span class="text-rose-600">*</span> Hotel/Package cost</h2>
+                        <h2 class="text-base font-semibold text-concierge-navy"><span class="text-rose-600">*</span>
+                            Hotel/Package cost</h2>
                         <button type="button" id="add-package-cost-row"
                             class="inline-flex cursor-pointer items-center justify-center rounded-xl bg-concierge-navy px-4 py-2 text-xs font-semibold text-white hover:bg-concierge-navy-deep">
                             Add new package cost
@@ -400,27 +442,32 @@
                                                 class="w-24 rounded-lg border border-slate-200 bg-white px-2 py-1.5 text-sm">
                                         </td>
                                         <td class="border border-slate-200 px-2 py-2">
-                                            <input type="number" min="0" step="0.01" name="package_costs[{{ $i }}][fare]"
+                                            <input type="number" min="0" step="0.01"
+                                                name="package_costs[{{ $i }}][fare]"
                                                 value="{{ data_get($row, 'fare') }}"
                                                 class="w-20 rounded-lg border border-slate-200 bg-white px-2 py-1.5 text-sm">
                                         </td>
                                         <td class="border border-slate-200 px-2 py-2">
-                                            <input type="number" min="0" step="0.01" name="package_costs[{{ $i }}][tax]"
+                                            <input type="number" min="0" step="0.01"
+                                                name="package_costs[{{ $i }}][tax]"
                                                 value="{{ data_get($row, 'tax') }}"
                                                 class="w-20 rounded-lg border border-slate-200 bg-white px-2 py-1.5 text-sm">
                                         </td>
                                         <td class="border border-slate-200 px-2 py-2">
-                                            <input type="number" min="0" step="0.01" name="package_costs[{{ $i }}][total_cost]"
+                                            <input type="number" min="0" step="0.01"
+                                                name="package_costs[{{ $i }}][total_cost]"
                                                 value="{{ data_get($row, 'total_cost') }}"
                                                 class="w-24 rounded-lg border border-slate-200 bg-white px-2 py-1.5 text-sm">
                                         </td>
                                         <td class="border border-slate-200 px-2 py-2">
-                                            <input type="number" min="0" step="0.01" name="package_costs[{{ $i }}][margin]"
+                                            <input type="number" min="0" step="0.01"
+                                                name="package_costs[{{ $i }}][margin]"
                                                 value="{{ data_get($row, 'margin') }}"
                                                 class="w-20 rounded-lg border border-slate-200 bg-white px-2 py-1.5 text-sm">
                                         </td>
                                         <td class="border border-slate-200 px-2 py-2">
-                                            <input type="number" min="0" step="0.01" name="package_costs[{{ $i }}][sell]"
+                                            <input type="number" min="0" step="0.01"
+                                                name="package_costs[{{ $i }}][sell]"
                                                 value="{{ data_get($row, 'sell') }}"
                                                 class="w-20 rounded-lg border border-slate-200 bg-white px-2 py-1.5 text-sm">
                                         </td>
@@ -443,7 +490,7 @@
                 </div>
 
                 <div class="flex flex-col gap-3 border-t border-slate-100 pt-6 sm:flex-row sm:justify-end">
-                    <a href="{{ route('admin.leads.index') }}"
+                    <a href="{{ route(($leadRoutePrefix ?? 'admin') . '.leads.index') }}"
                         class="inline-flex cursor-pointer items-center justify-center rounded-xl border border-slate-200 py-2.5 text-center text-sm font-medium text-concierge-navy hover:bg-slate-50 sm:px-6">
                         Cancel
                     </a>
@@ -716,7 +763,8 @@
             function renumberRows() {
                 [...tableBody.querySelectorAll('.package-cost-row')].forEach((row, idx) => {
                     row.querySelectorAll('input[name^="package_costs["]').forEach((input) => {
-                        input.name = input.name.replace(/package_costs\[\d+\]/, `package_costs[${idx}]`);
+                        input.name = input.name.replace(/package_costs\[\d+\]/,
+                            `package_costs[${idx}]`);
                     });
                 });
             }
@@ -783,12 +831,10 @@
 
             function sectionHasAtLeastOneFilledRow(selector) {
                 const rows = [...document.querySelectorAll(selector)];
-                return rows.some((row) =>
-                    [...row.querySelectorAll('input, select, textarea')].some((field) => {
-                        const value = field.value;
-                        return typeof value === 'string' && value.trim() !== '';
-                    })
-                );
+                return rows.some((row) => [...row.querySelectorAll('input, select, textarea')].some((field) => {
+                    const value = field.value;
+                    return typeof value === 'string' && value.trim() !== '';
+                }));
             }
 
             form.addEventListener('submit', (event) => {

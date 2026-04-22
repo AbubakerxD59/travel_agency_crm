@@ -24,6 +24,11 @@ class User extends Authenticatable
         'name',
         'email',
         'phone_number',
+        'agent_cnic',
+        'home_address',
+        'guardian_name',
+        'guardian_phone_number',
+        'guardian_cnic',
         'password',
     ];
 
@@ -60,7 +65,7 @@ class User extends Authenticatable
         }
 
         if ($this->hasRole('agent')) {
-            return 'admin.leads.index';
+            return 'agent.dashboard';
         }
 
         return 'admin.dashboard';

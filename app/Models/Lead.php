@@ -20,6 +20,12 @@ class Lead extends Model
 
     protected $fillable = [
         'agent_id',
+        'customer_name',
+        'phone_number',
+        'email',
+        'city',
+        'source',
+        'notes',
         'order_type',
         'vendor_reference',
         'company_id',

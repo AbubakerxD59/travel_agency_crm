@@ -47,7 +47,17 @@ class AgentController extends Controller
     {
         try {
             $user = DB::transaction(function () use ($request) {
-                $data = $request->safe()->only(['name', 'email', 'phone_number', 'password']);
+                $data = $request->safe()->only([
+                    'name',
+                    'email',
+                    'phone_number',
+                    'agent_cnic',
+                    'home_address',
+                    'guardian_name',
+                    'guardian_phone_number',
+                    'guardian_cnic',
+                    'password',
+                ]);
                 $user = User::create($data);
                 $user->assignRole($request->validated('role'));
 
@@ -97,7 +107,16 @@ class AgentController extends Controller
         $this->ensureAgent($agent);
 
         try {
-            $data = $request->safe()->only(['name', 'email', 'phone_number']);
+            $data = $request->safe()->only([
+                'name',
+                'email',
+                'phone_number',
+                'agent_cnic',
+                'home_address',
+                'guardian_name',
+                'guardian_phone_number',
+                'guardian_cnic',
+            ]);
             if ($request->filled('password')) {
                 $data['password'] = $request->validated('password');
             }
@@ -215,6 +234,11 @@ class AgentController extends Controller
             'name' => $user->name,
             'email' => $user->email,
             'phone_number' => $user->phone_number,
+            'agent_cnic' => $user->agent_cnic,
+            'home_address' => $user->home_address,
+            'guardian_name' => $user->guardian_name,
+            'guardian_phone_number' => $user->guardian_phone_number,
+            'guardian_cnic' => $user->guardian_cnic,
             'role' => $user->getRoleNames()->first(),
             'created_at' => $user->created_at?->format('M j, Y'),
         ];

@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\AssignLeadRequest;
 use App\Http\Requests\StoreLeadRequest;
 use App\Http\Requests\UpdateLeadRequest;
 use App\Models\Company;
@@ -34,8 +35,74 @@ class LeadController extends Controller
 
         return view('admin.leads.index', [
             'leads' => $leads,
+            'companies' => Company::query()->orderBy('name')->get(['id', 'name']),
+            'agents' => User::role('agent')->orderBy('name')->get(['id', 'name']),
             'canCreateLeads' => $request->user()->hasRole('super-admin'),
         ]);
+    }
+
+    public function assign(AssignLeadRequest $request): RedirectResponse
+    {
+        $data = $request->validated();
+
+        $companyId = $data['company_id'] ?? Company::query()->value('id');
+        if ($companyId === null) {
+            return back()->withInput()->with('error', __('Please add a company first, then assign the lead.'));
+        }
+
+        $destinationId = Destination::query()->value('id');
+        if ($destinationId === null) {
+            return back()->withInput()->with('error', __('Please add a destination first, then assign the lead.'));
+        }
+
+        Lead::create([
+            'agent_id' => $data['agent_id'] ?? null,
+            'customer_name' => $data['customer_name'],
+            'phone_number' => $data['phone_number'],
+            'email' => $data['email'] ?? null,
+            'company_id' => $companyId,
+            'city' => $data['city'] ?? null,
+            'source' => $data['source'] ?? null,
+            'notes' => $data['notes'] ?? null,
+            'order_type' => 'Assigned',
+            'status' => Lead::STATUS_NEW,
+            'destination_id' => $destinationId,
+            'travel_date' => now()->toDateString(),
+            'vendor_reference' => null,
+            'balance_due_date' => null,
+            'flight_itinerary' => null,
+            'ziarat_makkah' => false,
+            'ziarat_madinah' => false,
+        ]);
+
+        return redirect()
+            ->route('admin.leads.index')
+            ->with('status', __('Lead assigned successfully.'));
+    }
+
+    public function updateAssign(AssignLeadRequest $request, Lead $lead): RedirectResponse
+    {
+        $data = $request->validated();
+
+        $companyId = $data['company_id'] ?? $lead->company_id ?? Company::query()->value('id');
+        if ($companyId === null) {
+            return back()->withInput()->with('error', __('Please add a company first, then update the lead.'));
+        }
+
+        $lead->update([
+            'agent_id' => $data['agent_id'] ?? null,
+            'customer_name' => $data['customer_name'],
+            'phone_number' => $data['phone_number'],
+            'email' => $data['email'] ?? null,
+            'company_id' => $companyId,
+            'city' => $data['city'] ?? null,
+            'source' => $data['source'] ?? null,
+            'notes' => $data['notes'] ?? null,
+        ]);
+
+        return redirect()
+            ->route('admin.leads.index')
+            ->with('status', __('Lead updated successfully.'));
     }
 
     public function create(Request $request): View
@@ -44,11 +111,13 @@ class LeadController extends Controller
         $companies = Company::query()->with('country')->orderBy('name')->get();
         $destinations = Destination::query()->orderBy('name')->get();
 
-        return view('admin.leads.create', [
+        return view('agent.leads.create', [
             'agents' => $agents,
             'companies' => $companies,
             'destinations' => $destinations,
             'statuses' => Lead::statusLabels(),
+            'leadRoutePrefix' => 'admin',
+            'leadLayout' => 'layouts.admin',
         ]);
     }
 
@@ -75,12 +144,14 @@ class LeadController extends Controller
         $companies = Company::query()->with('country')->orderBy('name')->get();
         $destinations = Destination::query()->orderBy('name')->get();
 
-        return view('admin.leads.edit', [
+        return view('agent.leads.edit', [
             'lead' => $lead,
             'agents' => $agents,
             'companies' => $companies,
             'destinations' => $destinations,
             'statuses' => Lead::statusLabels(),
+            'leadRoutePrefix' => 'admin',
+            'leadLayout' => 'layouts.admin',
         ]);
     }
 

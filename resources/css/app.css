@@ -19,6 +19,23 @@
 }
 
 @layer components {
+    a[href],
+    button,
+    input[type='button'],
+    input[type='submit'],
+    input[type='reset'],
+    [role='button'] {
+        cursor: pointer;
+    }
+
+    button:disabled,
+    input:disabled,
+    select:disabled,
+    textarea:disabled,
+    [aria-disabled='true'] {
+        cursor: not-allowed;
+    }
+
     .concierge-sidebar-link {
         @apply flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium text-concierge-muted transition-colors;
     }
@@ -151,11 +168,45 @@
     .dash-stat-progress__fill {
         @apply h-full max-w-full rounded-full bg-emerald-700;
     }
+
+    .loading-dot {
+        @apply h-1.5 w-1.5 rounded-full bg-current;
+        animation: loading-dots 1s infinite ease-in-out;
+    }
+
+    .loading-dot:nth-child(2) {
+        animation-delay: 0.16s;
+    }
+
+    .loading-dot:nth-child(3) {
+        animation-delay: 0.32s;
+    }
+}
+
+@keyframes loading-dots {
+    0%,
+    80%,
+    100% {
+        opacity: 0.35;
+        transform: translateY(0);
+    }
+    40% {
+        opacity: 1;
+        transform: translateY(-2px);
+    }
 }
 
 @layer utilities {
     .grid-cols-3 {
         grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+
+    .grid-cols-4 {
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+    }
+
+    .col-span-full {
+        grid-column: 1 / -1;
     }
 }
 
@@ -168,6 +219,16 @@
 @media (min-width: 1024px) {
     .lg\:grid-cols-3 {
         grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+
+    .lg\:grid-cols-4 {
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+    }
+}
+
+@media (min-width: 1280px) {
+    .xl\:grid-cols-4 {
+        grid-template-columns: repeat(4, minmax(0, 1fr));
     }
 }
 

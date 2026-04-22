@@ -11,7 +11,22 @@ class UpdateLeadRequest extends FormRequest
 {
     public function authorize(): bool
     {
-        return (bool) $this->user()?->hasRole('super-admin');
+        $user = $this->user();
+        if (! $user) {
+            return false;
+        }
+
+        if ($user->hasRole('super-admin')) {
+            return true;
+        }
+
+        if ($user->hasRole('agent')) {
+            /** @var \App\Models\Lead|null $lead */
+            $lead = $this->route('lead');
+            return $lead !== null && (int) $lead->agent_id === (int) $user->id;
+        }
+
+        return false;
     }
 
     public function rules(): array

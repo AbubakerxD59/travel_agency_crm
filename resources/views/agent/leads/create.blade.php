@@ -1,4 +1,4 @@
-@extends('layouts.admin')
+@extends($leadLayout ?? 'layouts.admin')
 
 @section('title', 'New lead')
 
@@ -9,14 +9,14 @@
                 <h1 class="text-2xl font-bold text-concierge-navy lg:text-3xl">New lead</h1>
                 <p class="mt-1 text-sm text-concierge-muted">Create a booking record.</p>
             </div>
-            <a href="{{ route('admin.leads.index') }}"
+            <a href="{{ route(($leadRoutePrefix ?? 'admin').'.leads.index') }}"
                 class="inline-flex shrink-0 items-center justify-center rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-medium text-concierge-navy shadow-sm transition hover:bg-slate-50">
                 Back to leads
             </a>
         </div>
 
         <div class="mt-8 rounded-2xl border border-slate-200/80 bg-white p-6 shadow-sm sm:p-8">
-            <form id="lead-create-form" method="POST" action="{{ route('admin.leads.store') }}" class="space-y-4">
+            <form id="lead-create-form" method="POST" action="{{ route(($leadRoutePrefix ?? 'admin').'.leads.store') }}" class="space-y-4">
                 @csrf
 
                 @if (session('error'))
@@ -425,7 +425,7 @@
                 </div>
 
                 <div class="flex flex-col gap-3 border-t border-slate-100 pt-6 sm:flex-row sm:justify-end">
-                    <a href="{{ route('admin.leads.index') }}"
+                    <a href="{{ route(($leadRoutePrefix ?? 'admin').'.leads.index') }}"
                         class="inline-flex cursor-pointer items-center justify-center rounded-xl border border-slate-200 py-2.5 text-center text-sm font-medium text-concierge-navy hover:bg-slate-50 sm:px-6">
                         Cancel
                     </a>

@@ -12,7 +12,6 @@
         <div class="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
             <div>
                 <h1 class="text-2xl font-bold text-concierge-navy lg:text-3xl">Companies</h1>
-                <p class="mt-1 text-sm text-concierge-muted">Manage partner companies and suppliers.</p>
             </div>
             <button type="button" id="open-company-modal"
                     class="inline-flex shrink-0 cursor-pointer items-center justify-center gap-2 rounded-xl bg-concierge-navy px-5 py-2.5 text-sm font-semibold text-white shadow-md shadow-concierge-navy/25 transition hover:bg-concierge-navy-deep">

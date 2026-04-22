@@ -248,6 +248,31 @@ function closeEditCompanyModal() {
     editForm?.reset();
 }
 
+function setButtonLoading(button, isLoading) {
+    if (!(button instanceof HTMLButtonElement)) {
+        return;
+    }
+
+    if (isLoading) {
+        if (button.dataset.loading === '1') {
+            return;
+        }
+        button.dataset.loading = '1';
+        button.dataset.originalHtml = button.innerHTML;
+        button.disabled = true;
+        button.innerHTML =
+            '<span class="inline-flex items-center justify-center gap-1" aria-hidden="true"><span class="loading-dot"></span><span class="loading-dot"></span><span class="loading-dot"></span></span>';
+        return;
+    }
+
+    if (button.dataset.originalHtml) {
+        button.innerHTML = button.dataset.originalHtml;
+    }
+    delete button.dataset.originalHtml;
+    delete button.dataset.loading;
+    button.disabled = false;
+}
+
 /** @param {EventTarget|null} target */
 function elementFromClickTarget(target) {
     if (target instanceof Element) {
@@ -294,11 +319,15 @@ document.addEventListener('click', async (e) => {
     const delBtn = root.closest('[data-delete-company]');
 
     if (editBtn) {
+        if (editBtn.dataset.loading === '1') {
+            return;
+        }
         const id = editBtn.getAttribute('data-edit-company');
         if (!id || !editForm) {
             return;
         }
         editingCompanyId = id;
+        setButtonLoading(editBtn, true);
         try {
             const res = await fetch(companyUrl(id), { headers: jsonHeaders() });
             const data = await res.json().catch(() => ({}));
@@ -320,11 +349,16 @@ document.addEventListener('click', async (e) => {
             openEditCompanyModal();
         } catch {
             toastr.error('Network error.');
+        } finally {
+            setButtonLoading(editBtn, false);
         }
         return;
     }
 
     if (delBtn) {
+        if (delBtn.dataset.loading === '1') {
+            return;
+        }
         const id = delBtn.getAttribute('data-delete-company');
         if (!id) {
             return;
@@ -333,6 +367,7 @@ document.addEventListener('click', async (e) => {
         if (!confirmed) {
             return;
         }
+        setButtonLoading(delBtn, true);
         try {
             const res = await fetch(companyUrl(id), {
                 method: 'DELETE',
@@ -347,6 +382,8 @@ document.addEventListener('click', async (e) => {
             }
         } catch {
             toastr.error('Network error.');
+        } finally {
+            setButtonLoading(delBtn, false);
         }
     }
 });
@@ -358,9 +395,7 @@ editForm?.addEventListener('submit', async (e) => {
     }
 
     const submitBtn = editForm.querySelector('button[type="submit"]');
-    if (submitBtn) {
-        submitBtn.disabled = true;
-    }
+    setButtonLoading(submitBtn, true);
 
     const fd = new FormData(editForm);
 
@@ -401,9 +436,7 @@ editForm?.addEventListener('submit', async (e) => {
     } catch {
         toastr.error('Network error.');
     } finally {
-        if (submitBtn) {
-            submitBtn.disabled = false;
-        }
+        setButtonLoading(submitBtn, false);
     }
 });
 
@@ -411,9 +444,7 @@ form?.addEventListener('submit', async (e) => {
     e.preventDefault();
 
     const submitBtn = form.querySelector('button[type="submit"]');
-    if (submitBtn) {
-        submitBtn.disabled = true;
-    }
+    setButtonLoading(submitBtn, true);
 
     try {
         const res = await fetch(form.action, {
@@ -455,8 +486,6 @@ form?.addEventListener('submit', async (e) => {
     } catch {
         toastr.error('Network error. Please try again.');
     } finally {
-        if (submitBtn) {
-            submitBtn.disabled = false;
-        }
+        setButtonLoading(submitBtn, false);
     }
 });

@@ -371,6 +371,31 @@ function toastValidationErrors(data) {
     return false;
 }
 
+function setButtonLoading(button, isLoading) {
+    if (!(button instanceof HTMLButtonElement)) {
+        return;
+    }
+
+    if (isLoading) {
+        if (button.dataset.loading === '1') {
+            return;
+        }
+        button.dataset.loading = '1';
+        button.dataset.originalHtml = button.innerHTML;
+        button.disabled = true;
+        button.innerHTML =
+            '<span class="inline-flex items-center justify-center gap-1" aria-hidden="true"><span class="loading-dot"></span><span class="loading-dot"></span><span class="loading-dot"></span></span>';
+        return;
+    }
+
+    if (button.dataset.originalHtml) {
+        button.innerHTML = button.dataset.originalHtml;
+    }
+    delete button.dataset.originalHtml;
+    delete button.dataset.loading;
+    button.disabled = false;
+}
+
 agentListFilterInput?.addEventListener('input', applyAgentListFilter);
 agentListFilterInput?.addEventListener('search', applyAgentListFilter);
 
@@ -417,11 +442,15 @@ document.addEventListener('click', async (e) => {
     const permBtn = root.closest('[data-permissions-agent]');
 
     if (editBtn) {
+        if (editBtn.dataset.loading === '1') {
+            return;
+        }
         const id = editBtn.getAttribute('data-edit-agent');
         if (!id || !editForm) {
             return;
         }
         editingAgentId = id;
+        setButtonLoading(editBtn, true);
         try {
             const res = await fetch(agentUrl(id), { headers: jsonHeaders() });
             const data = await res.json().catch(() => ({}));
@@ -438,22 +467,34 @@ document.addEventListener('click', async (e) => {
             document.getElementById('edit_modal_name').value = a.name ?? '';
             document.getElementById('edit_modal_email').value = a.email ?? '';
             document.getElementById('edit_modal_phone_number').value = a.phone_number ?? '';
+            document.getElementById('edit_modal_agent_cnic').value = a.agent_cnic ?? '';
+            document.getElementById('edit_modal_home_address').value = a.home_address ?? '';
+            document.getElementById('edit_modal_guardian_name').value = a.guardian_name ?? '';
+            document.getElementById('edit_modal_guardian_phone_number').value =
+                a.guardian_phone_number ?? '';
+            document.getElementById('edit_modal_guardian_cnic').value = a.guardian_cnic ?? '';
             document.getElementById('edit_modal_password').value = '';
             document.getElementById('edit_modal_confirm_password').value = '';
             resetPasswordVisibility();
             openEditAgentModal();
         } catch {
             toastr.error('Network error.');
+        } finally {
+            setButtonLoading(editBtn, false);
         }
         return;
     }
 
     if (permBtn) {
+        if (permBtn.dataset.loading === '1') {
+            return;
+        }
         const id = permBtn.getAttribute('data-permissions-agent');
         if (!id || !permissionsCheckboxes) {
             return;
         }
         permissionsAgentId = id;
+        setButtonLoading(permBtn, true);
         try {
             const res = await fetch(permissionsUrl(id), { headers: jsonHeaders() });
             const data = await res.json().catch(() => ({}));
@@ -479,11 +520,16 @@ document.addEventListener('click', async (e) => {
             openPermissionsModal();
         } catch {
             toastr.error('Network error.');
+        } finally {
+            setButtonLoading(permBtn, false);
         }
         return;
     }
 
     if (delBtn) {
+        if (delBtn.dataset.loading === '1') {
+            return;
+        }
         if (delBtn.disabled) {
             return;
         }
@@ -495,6 +541,7 @@ document.addEventListener('click', async (e) => {
         if (!confirmed) {
             return;
         }
+        setButtonLoading(delBtn, true);
         try {
             const res = await fetch(agentUrl(id), {
                 method: 'DELETE',
@@ -509,6 +556,8 @@ document.addEventListener('click', async (e) => {
             }
         } catch {
             toastr.error('Network error.');
+        } finally {
+            setButtonLoading(delBtn, false);
         }
     }
 });
@@ -520,9 +569,7 @@ editForm?.addEventListener('submit', async (e) => {
     }
 
     const submitBtn = editForm.querySelector('button[type="submit"]');
-    if (submitBtn) {
-        submitBtn.disabled = true;
-    }
+    setButtonLoading(submitBtn, true);
 
     const fd = new FormData(editForm);
 
@@ -552,9 +599,7 @@ editForm?.addEventListener('submit', async (e) => {
     } catch {
         toastr.error('Network error.');
     } finally {
-        if (submitBtn) {
-            submitBtn.disabled = false;
-        }
+        setButtonLoading(submitBtn, false);
     }
 });
 
@@ -565,9 +610,7 @@ permissionsForm?.addEventListener('submit', async (e) => {
     }
 
     const submitBtn = permissionsForm.querySelector('button[type="submit"]');
-    if (submitBtn) {
-        submitBtn.disabled = true;
-    }
+    setButtonLoading(submitBtn, true);
 
     const boxes = permissionsCheckboxes?.querySelectorAll('input[type="checkbox"][name="permissions[]"]') ?? [];
     const permissions = Array.from(boxes)
@@ -596,9 +639,7 @@ permissionsForm?.addEventListener('submit', async (e) => {
     } catch {
         toastr.error('Network error.');
     } finally {
-        if (submitBtn) {
-            submitBtn.disabled = false;
-        }
+        setButtonLoading(submitBtn, false);
     }
 });
 
@@ -606,9 +647,7 @@ form?.addEventListener('submit', async (e) => {
     e.preventDefault();
 
     const submitBtn = form.querySelector('button[type="submit"]');
-    if (submitBtn) {
-        submitBtn.disabled = true;
-    }
+    setButtonLoading(submitBtn, true);
 
     try {
         const res = await fetch(form.action, {
@@ -647,8 +686,6 @@ form?.addEventListener('submit', async (e) => {
     } catch {
         toastr.error('Network error. Please try again.');
     } finally {
-        if (submitBtn) {
-            submitBtn.disabled = false;
-        }
+        setButtonLoading(submitBtn, false);
     }
 });
