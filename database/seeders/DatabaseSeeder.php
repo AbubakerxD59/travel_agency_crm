@@ -16,6 +16,9 @@ class DatabaseSeeder extends Seeder
             SuperAdminSeeder::class,
             CountrySeeder::class,
             DestinationSeeder::class,
+            AgentsSeeder::class,
+            CompaniesSeeder::class,
+            LeadsSeeder::class,
         ]);
     }
 }

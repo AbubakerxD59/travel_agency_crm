@@ -49,9 +49,21 @@
                         @forelse ($agents as $agent)
                             <tr class="hover:bg-slate-50/50" data-agent-id="{{ $agent->id }}"
                                 data-search-text="{{ e(mb_strtolower($agent->name . ' ' . $agent->email . ' ' . ($agent->phone_number ?? ''), 'UTF-8')) }}">
-                                <td class="px-6 py-4 font-medium text-concierge-navy">{{ $agent->name }}</td>
-                                <td class="px-6 py-4 text-concierge-muted">{{ $agent->email }}</td>
-                                <td class="px-6 py-4 text-concierge-muted">{{ $agent->phone_number ?? '—' }}</td>
+                                <td class="px-6 py-4 font-medium text-concierge-navy">
+                                    <a href="{{ route('admin.agents.overview', $agent) }}" class="hover:underline">
+                                        {{ $agent->name }}
+                                    </a>
+                                </td>
+                                <td class="px-6 py-4 text-concierge-muted">
+                                    <a href="{{ route('admin.agents.overview', $agent) }}" class="hover:underline">
+                                        {{ $agent->email }}
+                                    </a>
+                                </td>
+                                <td class="px-6 py-4 text-concierge-muted">
+                                    <a href="{{ route('admin.agents.overview', $agent) }}" class="hover:underline">
+                                        {{ $agent->phone_number ?? '—' }}
+                                    </a>
+                                </td>
                                 <td class="px-6 py-4">
                                     <span
                                         class="concierge-pill concierge-pill-contacted">{{ $agent->roles->first()?->name ?? 'agent' }}</span>

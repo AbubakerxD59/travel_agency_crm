@@ -3,40 +3,80 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Models\Lead;
 use App\Models\User;
+use Carbon\Carbon;
 use Illuminate\View\View;
 
 class DashboardController extends Controller
 {
     public function index(): View
     {
-        // Replace with database aggregates when the Lead model exists.
-        $totalLeads = 124;
-        $leadsSuccessful = 51;
-        $leadsFailed = 28;
+        $totalLeads = Lead::query()->count();
+        $totalClosed = Lead::query()->where('status', Lead::STATUS_SALE_DONE)->count();
+        $totalFailed = Lead::query()->where('status', Lead::STATUS_NOT_CONVERTED)->count();
+        $totalPending = max(0, $totalLeads - $totalClosed - $totalFailed);
 
-        $totalAgents = User::role('agent')->count();
+        $agents = User::role('agent')->orderBy('name')->get(['id', 'name']);
+        $totalAgents = $agents->count();
 
         $leadsSuccessRatePercent = $totalLeads > 0
-            ? min(100, (int) round(($leadsSuccessful / $totalLeads) * 100))
+            ? min(100, (int) round(($totalClosed / $totalLeads) * 100))
             : 0;
+
+        $startMonth = now()->startOfMonth()->subMonths(5);
+        $months = collect(range(0, 5))->map(
+            fn (int $offset) => (clone $startMonth)->addMonths($offset)
+        );
+
+        $labels = $months->map(fn (Carbon $month) => $month->format('M'))->values()->all();
+        $monthKeys = $months->map(fn (Carbon $month) => $month->format('Y-m'))->values()->all();
+
+        $monthlyAgentCounts = Lead::query()
+            ->selectRaw("agent_id, DATE_FORMAT(created_at, '%Y-%m') as ym, COUNT(*) as total")
+            ->whereNotNull('agent_id')
+            ->whereIn('agent_id', $agents->pluck('id'))
+            ->where('status', Lead::STATUS_SALE_DONE)
+            ->where('created_at', '>=', $startMonth)
+            ->groupBy('agent_id', 'ym')
+            ->get()
+            ->groupBy('agent_id');
+
+        $agentColors = [
+            '#2d5a8c',
+            '#0ea5e9',
+            '#059669',
+            '#d97706',
+            '#7c3aed',
+            '#dc2626',
+            '#0f766e',
+            '#7c2d12',
+        ];
 
         /** @var array{labels: list<string>, agents: list<array{name: string, color: string, data: list<int>}>} */
         $dashboardAgentChart = [
-            'labels' => ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'],
-            'agents' => [
-                ['name' => 'Alex Morgan', 'color' => '#2d5a8c', 'data' => [14, 18, 16, 22, 20, 26]],
-                ['name' => 'Jordan Lee', 'color' => '#0ea5e9', 'data' => [10, 12, 15, 14, 19, 21]],
-                ['name' => 'Sam Rivera', 'color' => '#059669', 'data' => [8, 11, 13, 17, 16, 20]],
-                ['name' => 'Casey Nguyen', 'color' => '#d97706', 'data' => [16, 14, 12, 15, 18, 17]],
-                ['name' => 'Riley Patel', 'color' => '#7c3aed', 'data' => [11, 15, 19, 18, 22, 25]],
-            ],
+            'labels' => $labels,
+            'agents' => $agents->values()->map(function (User $agent, int $index) use ($monthlyAgentCounts, $monthKeys, $agentColors): array {
+                $rowsForAgent = collect($monthlyAgentCounts->get($agent->id, []));
+                $totalsByMonth = $rowsForAgent
+                    ->pluck('total', 'ym')
+                    ->map(fn ($total): int => (int) $total);
+
+                return [
+                    'name' => $agent->name,
+                    'color' => $agentColors[$index % count($agentColors)],
+                    'data' => collect($monthKeys)->map(
+                        fn (string $key): int => (int) ($totalsByMonth[$key] ?? 0)
+                    )->all(),
+                ];
+            })->all(),
         ];
 
         return view('admin.dashboard', compact(
             'totalLeads',
-            'leadsSuccessful',
-            'leadsFailed',
+            'totalClosed',
+            'totalPending',
+            'totalFailed',
             'totalAgents',
             'leadsSuccessRatePercent',
             'dashboardAgentChart',

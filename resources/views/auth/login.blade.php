@@ -4,7 +4,7 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="csrf-token" content="{{ csrf_token() }}">
-    <title>Sign in — {{ config('app.name', 'Concierge') }}</title>
+    <title>Sign in — {{ config('app.name', 'NAZIRSONS') }}</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -13,8 +13,7 @@
 <body class="min-h-screen bg-concierge-page font-sans text-slate-800 antialiased">
     <div class="flex min-h-screen flex-col items-center justify-center px-4 py-12">
         <div class="mb-10 text-center">
-            <p class="text-2xl font-bold tracking-tight text-concierge-navy">CONCIERGE</p>
-            <p class="mt-1 text-xs font-medium uppercase tracking-widest text-concierge-muted">Premium Management</p>
+            <p class="text-2xl font-bold tracking-tight text-concierge-navy">NAZIRSONS</p>
         </div>
 
         <div class="w-full max-w-md rounded-2xl border border-slate-200/80 bg-white p-8 shadow-lg shadow-slate-200/50">

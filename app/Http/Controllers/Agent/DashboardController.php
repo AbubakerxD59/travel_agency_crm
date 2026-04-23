@@ -14,12 +14,9 @@ class DashboardController extends Controller
         $agentId = (int) request()->user()->id;
         $baseQuery = Lead::query()->where('agent_id', $agentId);
         $totalLeads = (clone $baseQuery)->count();
-        $leadsSuccessful = (clone $baseQuery)->where('status', Lead::STATUS_SALE_DONE)->count();
-        $leadsFailed = (clone $baseQuery)->where('status', Lead::STATUS_NOT_CONVERTED)->count();
-
-        $leadsSuccessRatePercent = $totalLeads > 0
-            ? min(100, (int) round(($leadsSuccessful / $totalLeads) * 100))
-            : 0;
+        $totalClosed = (clone $baseQuery)->where('status', Lead::STATUS_SALE_DONE)->count();
+        $totalFailed = (clone $baseQuery)->where('status', Lead::STATUS_NOT_CONVERTED)->count();
+        $totalPending = max(0, $totalLeads - $totalClosed - $totalFailed);
 
         $startMonth = now()->startOfMonth()->subMonths(5);
         $months = collect(range(0, 5))->map(
@@ -73,9 +70,9 @@ class DashboardController extends Controller
 
         return view('agent.dashboard', compact(
             'totalLeads',
-            'leadsSuccessful',
-            'leadsFailed',
-            'leadsSuccessRatePercent',
+            'totalClosed',
+            'totalPending',
+            'totalFailed',
             'dashboardAgentChart',
         ));
     }

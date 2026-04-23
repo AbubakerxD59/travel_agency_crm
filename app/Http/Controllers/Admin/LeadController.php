@@ -26,16 +26,62 @@ class LeadController extends Controller
 
     public function index(Request $request): View
     {
-        $leads = Lead::query()
+        $search = trim((string) $request->query('search', ''));
+        $agentId = $request->integer('agent_id') ?: null;
+        $companyId = $request->integer('company_id') ?: null;
+        $source = trim((string) $request->query('source', ''));
+        $status = trim((string) $request->query('status', ''));
+
+        $leadsQuery = Lead::query()
             ->with(['agent', 'company', 'destination'])
-            ->orderByDesc('travel_date')
+            ->orderByDesc('travel_date');
+
+        if ($companyId !== null) {
+            $leadsQuery->where('company_id', $companyId);
+        }
+
+        if ($agentId !== null) {
+            $leadsQuery->where('agent_id', $agentId);
+        }
+
+        if ($source !== '') {
+            $leadsQuery->where('source', $source);
+        }
+
+        if ($status !== '') {
+            $leadsQuery->where('status', $status);
+        }
+
+        if ($search !== '') {
+            $leadsQuery->where(function ($query) use ($search): void {
+                $query
+                    ->where('customer_name', 'like', '%'.$search.'%')
+                    ->orWhere('phone_number', 'like', '%'.$search.'%')
+                    ->orWhere('email', 'like', '%'.$search.'%');
+            });
+        }
+
+        $leads = $leadsQuery
             ->orderByDesc('id')
             ->paginate(15)
             ->withQueryString();
 
         return view('admin.leads.index', [
             'leads' => $leads,
+            'search' => $search,
+            'selectedAgentId' => $agentId,
+            'selectedCompanyId' => $companyId,
+            'selectedSource' => $source,
+            'selectedStatus' => $status,
             'companies' => Company::query()->orderBy('name')->get(['id', 'name']),
+            'sources' => Lead::query()
+                ->whereNotNull('source')
+                ->where('source', '!=', '')
+                ->distinct()
+                ->orderBy('source')
+                ->pluck('source')
+                ->values(),
+            'statuses' => Lead::statusLabels(),
             'agents' => User::role('agent')->orderBy('name')->get(['id', 'name']),
             'canCreateLeads' => $request->user()->hasRole('super-admin'),
         ]);

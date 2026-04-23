@@ -17,6 +17,9 @@ Route::prefix('admin')->name('admin.')->group(function () {
     Route::put('/agents/{agent}/permissions', [AgentController::class, 'syncPermissions'])
         ->name('agents.permissions.update');
 
+    Route::get('/agents/{agent}/overview', [AgentController::class, 'overview'])
+        ->name('agents.overview');
+
     Route::resource('agents', AgentController::class)->only([
         'index',
         'store',

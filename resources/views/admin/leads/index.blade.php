@@ -31,6 +31,77 @@
             </div>
         @endif
 
+        <form method="GET" action="{{ route('admin.leads.index') }}" class="mt-6">
+            <div class="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-4">
+                <div>
+                    <label for="lead-agent-filter" class="block text-sm font-medium text-concierge-navy">Agent</label>
+                    <select id="lead-agent-filter" name="agent_id"
+                        class="mt-1.5 w-full rounded-xl border border-slate-200 bg-slate-50/80 px-4 py-2.5 text-sm text-slate-800 focus:border-concierge-accent focus:bg-white focus:outline-none focus:ring-2 focus:ring-concierge-accent/20">
+                        <option value="">All agents</option>
+                        @foreach ($agents as $agent)
+                            <option value="{{ $agent->id }}" @selected((string) $selectedAgentId === (string) $agent->id)>
+                                {{ $agent->name }}
+                            </option>
+                        @endforeach
+                    </select>
+                </div>
+                <div>
+                    <label for="lead-company-filter" class="block text-sm font-medium text-concierge-navy">Company</label>
+                    <select id="lead-company-filter" name="company_id"
+                        class="mt-1.5 w-full rounded-xl border border-slate-200 bg-slate-50/80 px-4 py-2.5 text-sm text-slate-800 focus:border-concierge-accent focus:bg-white focus:outline-none focus:ring-2 focus:ring-concierge-accent/20">
+                        <option value="">All companies</option>
+                        @foreach ($companies as $company)
+                            <option value="{{ $company->id }}" @selected((string) $selectedCompanyId === (string) $company->id)>
+                                {{ $company->name }}
+                            </option>
+                        @endforeach
+                    </select>
+                </div>
+                <div>
+                    <label for="lead-source-filter" class="block text-sm font-medium text-concierge-navy">Source</label>
+                    <select id="lead-source-filter" name="source"
+                        class="mt-1.5 w-full rounded-xl border border-slate-200 bg-slate-50/80 px-4 py-2.5 text-sm text-slate-800 focus:border-concierge-accent focus:bg-white focus:outline-none focus:ring-2 focus:ring-concierge-accent/20">
+                        <option value="">All sources</option>
+                        @foreach ($sources as $sourceOption)
+                            <option value="{{ $sourceOption }}" @selected($selectedSource === $sourceOption)>
+                                {{ $sourceOption }}
+                            </option>
+                        @endforeach
+                    </select>
+                </div>
+                <div>
+                    <label for="lead-status-filter" class="block text-sm font-medium text-concierge-navy">Status</label>
+                    <select id="lead-status-filter" name="status"
+                        class="mt-1.5 w-full rounded-xl border border-slate-200 bg-slate-50/80 px-4 py-2.5 text-sm text-slate-800 focus:border-concierge-accent focus:bg-white focus:outline-none focus:ring-2 focus:ring-concierge-accent/20">
+                        <option value="">All statuses</option>
+                        @foreach ($statuses as $statusKey => $statusLabel)
+                            <option value="{{ $statusKey }}" @selected($selectedStatus === $statusKey)>
+                                {{ $statusLabel }}
+                            </option>
+                        @endforeach
+                    </select>
+                </div>
+            </div>
+
+            <div class="mt-1.5 flex flex-col gap-2 sm:flex-row">
+                <input id="lead-search" name="search" type="search"
+                    placeholder="Search by customer name, phone number, or email" value="{{ $search }}"
+                    class="w-full rounded-xl border border-slate-200 bg-slate-50/80 px-4 py-2.5 text-sm text-slate-800 placeholder:text-slate-400 focus:border-concierge-accent focus:bg-white focus:outline-none focus:ring-2 focus:ring-concierge-accent/20">
+                <div class="flex shrink-0 gap-2">
+                    <button type="submit"
+                        class="inline-flex cursor-pointer items-center justify-center rounded-xl bg-concierge-navy px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-concierge-navy-deep">
+                        Apply
+                    </button>
+                    @if ($search !== '' || $selectedAgentId || $selectedCompanyId || $selectedSource !== '' || $selectedStatus !== '')
+                        <a href="{{ route('admin.leads.index') }}"
+                            class="inline-flex items-center justify-center rounded-xl border border-slate-200 px-4 py-2.5 text-sm font-medium text-concierge-navy transition hover:bg-slate-50">
+                            Clear
+                        </a>
+                    @endif
+                </div>
+            </div>
+        </form>
+
         <div class="mt-6 overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-sm">
             <div class="overflow-x-auto">
                 <table class="min-w-full text-left text-sm">
@@ -340,6 +411,15 @@
             resetAssignLeadModalToCreate();
             openAssignLeadModal();
         });
+
+        const shouldOpenAssignLeadFromQuery = new URLSearchParams(window.location.search).get('openAssignLead') === '1';
+        if (shouldOpenAssignLeadFromQuery) {
+            resetAssignLeadModalToCreate();
+            openAssignLeadModal();
+            const cleanUrl = new URL(window.location.href);
+            cleanUrl.searchParams.delete('openAssignLead');
+            window.history.replaceState({}, '', cleanUrl.toString());
+        }
 
         document.querySelectorAll('.js-edit-assigned-lead').forEach((button) => {
             button.addEventListener('click', () => {

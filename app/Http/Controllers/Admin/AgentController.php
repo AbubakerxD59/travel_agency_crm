@@ -6,7 +6,9 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\StoreAgentRequest;
 use App\Http\Requests\SyncAgentPermissionsRequest;
 use App\Http\Requests\UpdateAgentRequest;
+use App\Models\Lead;
 use App\Models\User;
+use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -22,6 +24,7 @@ class AgentController extends Controller
         $this->middleware('can:agents.create')->only(['index', 'store']);
         $this->middleware('can:agents.manage')->only([
             'show',
+            'overview',
             'update',
             'destroy',
             'permissions',
@@ -99,6 +102,84 @@ class AgentController extends Controller
 
         return response()->json([
             'agent' => $this->agentPayload($agent),
+        ]);
+    }
+
+    public function overview(User $agent): View
+    {
+        $this->ensureAgent($agent);
+
+        $baseQuery = Lead::query()->where('agent_id', $agent->id);
+        $totalLeads = (clone $baseQuery)->count();
+        $totalClosed = (clone $baseQuery)->where('status', Lead::STATUS_SALE_DONE)->count();
+        $totalFailed = (clone $baseQuery)->where('status', Lead::STATUS_NOT_CONVERTED)->count();
+        $totalPending = max(0, $totalLeads - $totalClosed - $totalFailed);
+
+        $startMonth = now()->startOfMonth()->subMonths(5);
+        $months = collect(range(0, 5))->map(
+            fn (int $offset) => (clone $startMonth)->addMonths($offset)
+        );
+
+        $labels = $months->map(fn (Carbon $month) => $month->format('M'))->values()->all();
+        $monthKeys = $months->map(fn (Carbon $month) => $month->format('Y-m'))->values()->all();
+
+        $totalByMonth = (clone $baseQuery)
+            ->selectRaw("DATE_FORMAT(created_at, '%Y-%m') as ym, COUNT(*) as total")
+            ->where('created_at', '>=', $startMonth)
+            ->groupBy('ym')
+            ->pluck('total', 'ym');
+
+        $closedByMonth = (clone $baseQuery)
+            ->selectRaw("DATE_FORMAT(created_at, '%Y-%m') as ym, COUNT(*) as total")
+            ->where('created_at', '>=', $startMonth)
+            ->where('status', Lead::STATUS_SALE_DONE)
+            ->groupBy('ym')
+            ->pluck('total', 'ym');
+
+        $failedByMonth = (clone $baseQuery)
+            ->selectRaw("DATE_FORMAT(created_at, '%Y-%m') as ym, COUNT(*) as total")
+            ->where('created_at', '>=', $startMonth)
+            ->where('status', Lead::STATUS_NOT_CONVERTED)
+            ->groupBy('ym')
+            ->pluck('total', 'ym');
+
+        /** @var array{labels: list<string>, agents: list<array{name: string, color: string, data: list<int>}>} */
+        $dashboardAgentChart = [
+            'labels' => $labels,
+            'agents' => [
+                [
+                    'name' => 'Total leads',
+                    'color' => '#2d5a8c',
+                    'data' => collect($monthKeys)->map(fn (string $key) => (int) ($totalByMonth[$key] ?? 0))->all(),
+                ],
+                [
+                    'name' => 'Closed Leads',
+                    'color' => '#059669',
+                    'data' => collect($monthKeys)->map(fn (string $key) => (int) ($closedByMonth[$key] ?? 0))->all(),
+                ],
+                [
+                    'name' => 'Failed Leads',
+                    'color' => '#dc2626',
+                    'data' => collect($monthKeys)->map(fn (string $key) => (int) ($failedByMonth[$key] ?? 0))->all(),
+                ],
+            ],
+        ];
+
+        $leads = Lead::query()
+            ->with(['company', 'destination'])
+            ->where('agent_id', $agent->id)
+            ->latest()
+            ->paginate(15)
+            ->withQueryString();
+
+        return view('admin.agents.overview', [
+            'agent' => $agent,
+            'totalLeads' => $totalLeads,
+            'totalClosed' => $totalClosed,
+            'totalPending' => $totalPending,
+            'totalFailed' => $totalFailed,
+            'dashboardAgentChart' => $dashboardAgentChart,
+            'leads' => $leads,
         ]);
     }
 

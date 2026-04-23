@@ -9,8 +9,7 @@
 >
     <div class="mb-10 flex items-start justify-between gap-2 px-2">
         <div class="min-w-0">
-            <p class="text-lg font-bold tracking-tight text-concierge-navy">CONCIERGE</p>
-            <p class="mt-0.5 text-[11px] font-medium uppercase tracking-widest text-concierge-muted">Premium Management</p>
+            <p class="text-lg font-bold tracking-tight text-concierge-navy">NAZIRSONS</p>
         </div>
         <button
             type="button"
@@ -66,13 +65,12 @@
     </nav>
 
     @role('super-admin')
-        <a href="{{ route('admin.leads.create') }}" target="_blank" rel="noopener noreferrer"
+        <a href="{{ route('admin.leads.index', ['openAssignLead' => 1]) }}"
            class="mt-4 flex items-center justify-center gap-2 rounded-xl bg-concierge-navy px-4 py-3 text-sm font-semibold text-white shadow-md shadow-concierge-navy/25 transition hover:bg-concierge-navy-deep">
             <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true">
                 <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
             </svg>
-            New lead
-            <span class="sr-only">(opens in new tab)</span>
+            Assign Lead
         </a>
     @endrole
 </aside>
