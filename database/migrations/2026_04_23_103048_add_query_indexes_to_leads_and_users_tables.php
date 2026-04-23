@@ -16,7 +16,7 @@ return new class extends Migration
             $table->index('source');
             $table->index('travel_date');
             $table->index(['agent_id', 'travel_date', 'id'], 'leads_agent_travel_id_idx');
-            $table->index(['company_id', 'status', 'source'], 'leads_company_status_source_idx');
+            $table->index(['company_id', 'status'], 'leads_company_status_idx');
             $table->index('customer_name');
             $table->index('phone_number');
             $table->index('email');
@@ -38,7 +38,7 @@ return new class extends Migration
             $table->dropIndex(['source']);
             $table->dropIndex(['travel_date']);
             $table->dropIndex('leads_agent_travel_id_idx');
-            $table->dropIndex('leads_company_status_source_idx');
+            $table->dropIndex('leads_company_status_idx');
             $table->dropIndex(['customer_name']);
             $table->dropIndex(['phone_number']);
             $table->dropIndex(['email']);
