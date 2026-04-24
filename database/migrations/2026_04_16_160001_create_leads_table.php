@@ -10,16 +10,15 @@ return new class extends Migration
     {
         Schema::create('leads', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('agent_id')->nullable()->constrained('users')->cascadeOnUpdate()->nullOnDelete();
-            $table->string('order_type');
-            $table->string('vendor_reference')->nullable();
-            $table->foreignId('company_id')->constrained()->cascadeOnUpdate()->restrictOnDelete();
-            $table->string('status');
-            $table->foreignId('destination_id')->constrained()->cascadeOnUpdate()->restrictOnDelete();
-            $table->date('travel_date');
-            $table->date('balance_due_date')->nullable();
-            $table->boolean('ziarat_makkah')->default(false);
-            $table->boolean('ziarat_madinah')->default(false);
+            $table->unsignedBigInteger('agent_id')->nullable();
+            $table->string('customer_name')->nullable();
+            $table->string('phone_number')->nullable();
+            $table->string('email')->nullable();
+            $table->unsignedBigInteger('company_id')->nullable();
+            $table->string('city')->nullable();
+            $table->string('source')->nullable();
+            $table->text('notes')->nullable();
+            $table->string('status')->nullable();
             $table->timestamps();
         });
     }

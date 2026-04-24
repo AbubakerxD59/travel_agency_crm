@@ -1,23 +1,23 @@
 @extends($leadLayout ?? 'layouts.admin')
 
-@section('title', 'Edit lead')
+@section('title', 'Edit folder')
 
 @section('content')
     <div class="mx-auto max-w-7xl">
         <div class="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
             <div>
-                <h1 class="text-2xl font-bold text-concierge-navy lg:text-3xl">Edit lead #{{ $lead->id }}</h1>
-                <p class="mt-1 text-sm text-concierge-muted">Update lead details.</p>
+                <h1 class="text-2xl font-bold text-concierge-navy lg:text-3xl">Edit folder #{{ $lead->id }}</h1>
+                <p class="mt-1 text-sm text-concierge-muted">Update folder details.</p>
             </div>
-            <a href="{{ route(($leadRoutePrefix ?? 'admin') . '.leads.index') }}"
+            <a href="{{ route(($leadRoutePrefix ?? 'admin') . '.'.($leadRouteResource ?? 'leads').'.index') }}"
                 class="inline-flex shrink-0 items-center justify-center rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-medium text-concierge-navy shadow-sm transition hover:bg-slate-50">
-                Back to leads
+                Back to folders
             </a>
         </div>
 
         <div class="mt-8 rounded-2xl border border-slate-200/80 bg-white p-6 shadow-sm sm:p-8">
             <form id="lead-edit-form" method="POST"
-                action="{{ route(($leadRoutePrefix ?? 'admin') . '.leads.update', $lead) }}" class="space-y-4">
+                action="{{ route(($leadRoutePrefix ?? 'admin') . '.'.($leadRouteResource ?? 'leads').'.update', $lead) }}" class="space-y-4">
                 @csrf
                 @method('PATCH')
 
@@ -111,7 +111,7 @@
                     }
                 @endphp
 
-                <div class="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
+                <div class="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
                     <div class="min-w-0">
                         <label for="lead_order_type" class="block text-sm font-medium text-concierge-navy"><span
                                 class="text-rose-600">*</span> Order type</label>
@@ -131,16 +131,6 @@
                             @foreach ($companies as $company)
                                 <option value="{{ $company->id }}" @selected(old('company_id', $lead->company_id) == $company->id)>{{ $company->name }}
                                     ({{ $company->country?->name ?? '—' }})
-                                </option>
-                            @endforeach
-                        </select>
-                    </div>
-                    <div class="min-w-0">
-                        <label for="lead_status" class="block text-sm font-medium text-concierge-navy"><span
-                                class="text-rose-600">*</span> Status</label>
-                        <select id="lead_status" name="status" required class="{{ $fieldClass }}">
-                            @foreach ($statuses as $value => $label)
-                                <option value="{{ $value }}" @selected(old('status', $lead->status) === $value)>{{ $label }}
                                 </option>
                             @endforeach
                         </select>
@@ -490,13 +480,13 @@
                 </div>
 
                 <div class="flex flex-col gap-3 border-t border-slate-100 pt-6 sm:flex-row sm:justify-end">
-                    <a href="{{ route(($leadRoutePrefix ?? 'admin') . '.leads.index') }}"
+                    <a href="{{ route(($leadRoutePrefix ?? 'admin') . '.'.($leadRouteResource ?? 'leads').'.index') }}"
                         class="inline-flex cursor-pointer items-center justify-center rounded-xl border border-slate-200 py-2.5 text-center text-sm font-medium text-concierge-navy hover:bg-slate-50 sm:px-6">
                         Cancel
                     </a>
                     <button type="submit"
                         class="inline-flex cursor-pointer items-center justify-center rounded-xl bg-concierge-navy py-2.5 text-sm font-semibold text-white shadow-md shadow-concierge-navy/25 hover:bg-concierge-navy-deep sm:px-6">
-                        Save changes
+                        Save folder
                     </button>
                 </div>
             </form>

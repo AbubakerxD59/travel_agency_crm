@@ -53,6 +53,10 @@ function agentUrl(id) {
     return `${agentBaseUrl}/${id}`;
 }
 
+function agentOverviewUrl(id) {
+    return `${agentUrl(id)}/overview`;
+}
+
 /** @param {EventTarget|null} target */
 function elementFromClickTarget(target) {
     if (target instanceof Element) {
@@ -138,17 +142,32 @@ function buildAgentRow(agent) {
 
     const tdName = document.createElement('td');
     tdName.className = 'px-6 py-4 font-medium text-concierge-navy';
-    tdName.textContent = agent.name ?? '';
+    tdName.innerHTML = `<a href="${agentOverviewUrl(agent.id)}" class="hover:underline">${escapeHtml(agent.name ?? '')}${
+        agent.agent_cnic
+            ? `<br><span class="text-xs text-concierge-muted">CNIC: ${escapeHtml(agent.agent_cnic)}</span>`
+            : ''
+    }</a>`;
 
     const tdEmail = document.createElement('td');
-    tdEmail.className = 'px-6 py-4 text-concierge-muted';
-    tdEmail.textContent = agent.email ?? '';
+    tdEmail.className = 'px-6 py-4 font-medium text-concierge-navy';
+    tdEmail.innerHTML = `<a href="${agentOverviewUrl(agent.id)}" class="hover:underline">${escapeHtml(agent.email ?? '')}${
+        agent.phone_number
+            ? `<br><span class="text-xs text-concierge-muted">Phone: ${escapeHtml(agent.phone_number)}</span>`
+            : ''
+    }</a>`;
 
-    const tdPhone = document.createElement('td');
-    tdPhone.className = 'px-6 py-4 text-concierge-muted';
-    const phone =
-        agent.phone_number != null && String(agent.phone_number) !== '' ? String(agent.phone_number) : '—';
-    tdPhone.textContent = phone;
+    const tdGuardian = document.createElement('td');
+    if (agent.guardian_name) {
+        tdGuardian.className = 'px-6 py-4 font-medium text-concierge-navy';
+        tdGuardian.innerHTML = `<a href="${agentOverviewUrl(agent.id)}" class="hover:underline">${escapeHtml(agent.guardian_name)}${
+            agent.guardian_phone_number
+                ? `<br><span class="text-xs text-concierge-muted">Phone: ${escapeHtml(agent.guardian_phone_number)}</span>`
+                : ''
+        }</a>`;
+    } else {
+        tdGuardian.className = 'px-6 py-4 font-medium text-concierge-navy text-center';
+        tdGuardian.textContent = '-';
+    }
 
     const tdRole = document.createElement('td');
     tdRole.className = 'px-6 py-4';
@@ -161,7 +180,7 @@ function buildAgentRow(agent) {
     tdAdded.className = 'px-6 py-4 text-sm text-concierge-muted';
     tdAdded.textContent = agent.created_at ?? '';
 
-    tr.append(tdName, tdEmail, tdPhone, tdRole, tdAdded);
+    tr.append(tdName, tdEmail, tdGuardian, tdRole, tdAdded);
 
     if (canManageAgents()) {
         const tdAct = document.createElement('td');
@@ -189,11 +208,27 @@ function updateAgentRowFromPayload(agent) {
     if (cells.length < 5) {
         return;
     }
-    cells[0].textContent = agent.name ?? '';
-    cells[1].textContent = agent.email ?? '';
-    const phone =
-        agent.phone_number != null && String(agent.phone_number) !== '' ? String(agent.phone_number) : '—';
-    cells[2].textContent = phone;
+    cells[0].innerHTML = `<a href="${agentOverviewUrl(agent.id)}" class="hover:underline">${escapeHtml(agent.name ?? '')}${
+        agent.agent_cnic
+            ? `<br><span class="text-xs text-concierge-muted">CNIC: ${escapeHtml(agent.agent_cnic)}</span>`
+            : ''
+    }</a>`;
+    cells[1].innerHTML = `<a href="${agentOverviewUrl(agent.id)}" class="hover:underline">${escapeHtml(agent.email ?? '')}${
+        agent.phone_number
+            ? `<br><span class="text-xs text-concierge-muted">Phone: ${escapeHtml(agent.phone_number)}</span>`
+            : ''
+    }</a>`;
+    if (agent.guardian_name) {
+        cells[2].className = 'px-6 py-4 font-medium text-concierge-navy';
+        cells[2].innerHTML = `<a href="${agentOverviewUrl(agent.id)}" class="hover:underline">${escapeHtml(agent.guardian_name)}${
+            agent.guardian_phone_number
+                ? `<br><span class="text-xs text-concierge-muted">Phone: ${escapeHtml(agent.guardian_phone_number)}</span>`
+                : ''
+        }</a>`;
+    } else {
+        cells[2].className = 'px-6 py-4 font-medium text-concierge-navy text-center';
+        cells[2].textContent = '-';
+    }
     const pill = cells[3].querySelector('.concierge-pill');
     if (pill) {
         pill.textContent = agent.role ?? 'agent';

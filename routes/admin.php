@@ -3,6 +3,7 @@
 use App\Http\Controllers\Admin\AgentController;
 use App\Http\Controllers\Admin\CompanyController;
 use App\Http\Controllers\Admin\DashboardController;
+use App\Http\Controllers\Admin\FolderController;
 use App\Http\Controllers\Admin\LeadController;
 use Illuminate\Support\Facades\Route;
 
@@ -37,6 +38,8 @@ Route::prefix('admin')->name('admin.')->group(function () {
     Route::post('/leads', [LeadController::class, 'store'])->name('leads.store');
     Route::patch('/leads/{lead}', [LeadController::class, 'update'])->name('leads.update');
     Route::delete('/leads/{lead}', [LeadController::class, 'destroy'])->name('leads.destroy');
+    Route::get('/folders', [FolderController::class, 'index'])->name('folders.index');
+    Route::get('/folders/{folder}', [FolderController::class, 'show'])->name('folders.show');
 
     Route::resource('companies', CompanyController::class)->only([
         'index',

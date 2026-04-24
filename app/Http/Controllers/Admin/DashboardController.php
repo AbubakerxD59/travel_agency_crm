@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Models\Folder;
 use App\Models\Lead;
 use App\Models\User;
 use Carbon\Carbon;
@@ -19,6 +20,7 @@ class DashboardController extends Controller
 
         $agents = User::role('agent')->orderBy('name')->get(['id', 'name']);
         $totalAgents = $agents->count();
+        $totalFolders = Folder::query()->count();
 
         $leadsSuccessRatePercent = $totalLeads > 0
             ? min(100, (int) round(($totalClosed / $totalLeads) * 100))
@@ -78,6 +80,7 @@ class DashboardController extends Controller
             'totalPending',
             'totalFailed',
             'totalAgents',
+            'totalFolders',
             'leadsSuccessRatePercent',
             'dashboardAgentChart',
         ));

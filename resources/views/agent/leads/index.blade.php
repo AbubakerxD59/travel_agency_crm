@@ -107,22 +107,43 @@
                                 <td class="px-4 py-4 text-concierge-muted lg:px-6">{{ $lead->city ?? '—' }}</td>
                                 <td class="whitespace-nowrap px-4 py-4 text-concierge-muted lg:px-6">
                                     {{ $lead->travel_date?->format('M j, Y') }}</td>
-                                <td class="px-4 py-4 lg:px-6">
-                                    <span
+                                <td class="whitespace-nowrap px-4 py-4 lg:px-6">
+                                    <span data-lead-status-pill="{{ $lead->id }}"
                                         class="concierge-pill concierge-pill-{{ $lead->statusPillClass() }}">{{ $lead->statusLabel() }}</span>
                                 </td>
                                 <td class="px-4 py-4 text-right lg:px-6">
                                     <div class="inline-flex items-center justify-end gap-1 whitespace-nowrap">
-                                        <a href="{{ route('agent.leads.edit', $lead) }}"
-                                            class="lead-row-action inline-flex cursor-pointer rounded-lg p-2 text-concierge-muted transition hover:bg-slate-100 hover:text-concierge-navy"
-                                            title="Edit" aria-label="Edit">
-                                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none"
-                                                viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5"
-                                                aria-hidden="true">
-                                                <path stroke-linecap="round" stroke-linejoin="round"
-                                                    d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931z" />
-                                            </svg>
-                                        </a>
+                                        <div class="relative inline-flex">
+                                            <button type="button"
+                                                data-status-toggle
+                                                data-lead-id="{{ $lead->id }}"
+                                                data-current-status="{{ $lead->status }}"
+                                                data-status-url="{{ route('agent.leads.status', $lead) }}"
+                                                class="lead-row-action inline-flex cursor-pointer rounded-lg p-2 text-concierge-muted transition hover:bg-slate-100 hover:text-concierge-navy"
+                                                title="Edit" aria-label="Edit">
+                                                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none"
+                                                    viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5"
+                                                    aria-hidden="true">
+                                                    <path stroke-linecap="round" stroke-linejoin="round"
+                                                        d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931z" />
+                                                </svg>
+                                            </button>
+                                            <div data-status-dropdown="{{ $lead->id }}"
+                                                class="absolute right-0 top-full z-20 mt-2 hidden w-44 rounded-xl border border-slate-200 bg-white p-2 text-left shadow-xl">
+                                                <p class="px-2 pb-2 text-xs font-semibold uppercase tracking-wide text-concierge-muted">
+                                                    Update status
+                                                </p>
+                                                @foreach ($statuses as $statusKey => $statusLabel)
+                                                    <button type="button"
+                                                        data-status-option
+                                                        data-lead-id="{{ $lead->id }}"
+                                                        data-status="{{ $statusKey }}"
+                                                        class="mb-1 block w-full rounded-lg px-2 py-1.5 text-left text-sm text-concierge-navy hover:bg-slate-100 {{ $lead->status === $statusKey ? 'bg-slate-100 font-semibold' : '' }}">
+                                                        {{ $statusLabel }}
+                                                    </button>
+                                                @endforeach
+                                            </div>
+                                        </div>
                                         <a href="{{ route('agent.leads.show', $lead) }}"
                                             class="lead-row-action inline-flex cursor-pointer rounded-lg p-2 text-concierge-muted transition hover:bg-slate-100 hover:text-concierge-accent"
                                             title="View" aria-label="View">
@@ -156,3 +177,136 @@
         </div>
     </div>
 @endsection
+
+@push('scripts')
+    <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.js"></script>
+    <script>
+        (() => {
+            const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
+
+            if (!document.getElementById('toastr-css-cdn')) {
+                const link = document.createElement('link');
+                link.id = 'toastr-css-cdn';
+                link.rel = 'stylesheet';
+                link.href = 'https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.css';
+                document.head.appendChild(link);
+            }
+
+            if (window.toastr) {
+                window.toastr.options = {
+                    closeButton: true,
+                    progressBar: true,
+                    positionClass: 'toast-top-right',
+                    timeOut: 3500,
+                    extendedTimeOut: 1500,
+                };
+            }
+
+            function toastSuccess(message) {
+                if (window.toastr) {
+                    window.toastr.success(message);
+                    return;
+                }
+
+                alert(message);
+            }
+
+            function closeAllDropdowns() {
+                document.querySelectorAll('[data-status-dropdown]').forEach((dropdown) => {
+                    dropdown.classList.add('hidden');
+                });
+            }
+
+            function setStatusSelection(leadId, status) {
+                document.querySelectorAll(`[data-status-option][data-lead-id="${leadId}"]`).forEach((button) => {
+                    const isSelected = button.getAttribute('data-status') === status;
+                    button.classList.toggle('bg-slate-100', isSelected);
+                    button.classList.toggle('font-semibold', isSelected);
+                });
+            }
+
+            async function updateLeadStatus(url, status) {
+                const response = await fetch(url, {
+                    method: 'PATCH',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json',
+                        'X-CSRF-TOKEN': csrfToken ?? '',
+                    },
+                    body: JSON.stringify({
+                        status,
+                    }),
+                });
+
+                if (!response.ok) {
+                    throw new Error('Failed to update lead status.');
+                }
+
+                return response.json();
+            }
+
+            document.addEventListener('click', async (event) => {
+                const toggleButton = event.target.closest('[data-status-toggle]');
+                const statusOptionButton = event.target.closest('[data-status-option]');
+
+                if (toggleButton) {
+                    const leadId = toggleButton.getAttribute('data-lead-id');
+                    if (!leadId) {
+                        return;
+                    }
+
+                    const dropdown = document.querySelector(`[data-status-dropdown="${leadId}"]`);
+                    if (!dropdown) {
+                        return;
+                    }
+
+                    const isHidden = dropdown.classList.contains('hidden');
+                    closeAllDropdowns();
+                    if (isHidden) {
+                        dropdown.classList.remove('hidden');
+                    }
+                    return;
+                }
+
+                if (!statusOptionButton) {
+                    closeAllDropdowns();
+                    return;
+                }
+
+                const leadId = statusOptionButton.getAttribute('data-lead-id');
+                const status = statusOptionButton.getAttribute('data-status');
+                const toggle = document.querySelector(`[data-status-toggle][data-lead-id="${leadId}"]`);
+                const url = toggle?.getAttribute('data-status-url');
+                if (!leadId || !status || !url) {
+                    closeAllDropdowns();
+                    return;
+                }
+
+                statusOptionButton.disabled = true;
+                statusOptionButton.classList.add('opacity-60');
+
+                try {
+                    const payload = await updateLeadStatus(url, status);
+                    const statusPill = document.querySelector(`[data-lead-status-pill="${leadId}"]`);
+                    if (statusPill) {
+                        statusPill.textContent = payload.status_label ?? status;
+                        statusPill.className = `concierge-pill concierge-pill-${payload.status_pill_class ?? 'meta'}`;
+                    }
+                    if (toggle) {
+                        toggle.setAttribute('data-current-status', payload.status ?? status);
+                    }
+                    setStatusSelection(leadId, payload.status ?? status);
+                    toastSuccess(payload.message ?? 'Lead status updated successfully.');
+                } catch (error) {
+                    console.log(error);
+                    alert('Could not update status. Please try again.');
+                } finally {
+                    statusOptionButton.disabled = false;
+                    statusOptionButton.classList.remove('opacity-60');
+                    closeAllDropdowns();
+                }
+            });
+        })();
+    </script>
+@endpush

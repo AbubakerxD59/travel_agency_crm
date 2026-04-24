@@ -37,7 +37,7 @@
                             class="border-b border-slate-100 bg-slate-50/80 text-xs font-semibold uppercase tracking-wide text-concierge-muted">
                             <th class="px-6 py-4">Name</th>
                             <th class="px-6 py-4">Email</th>
-                            <th class="px-6 py-4">Phone</th>
+                            <th class="px-6 py-4">Guardian</th>
                             <th class="px-6 py-4">Role</th>
                             <th class="px-6 py-4">Added</th>
                             @if ($canManageAgents)
@@ -52,18 +52,40 @@
                                 <td class="px-6 py-4 font-medium text-concierge-navy">
                                     <a href="{{ route('admin.agents.overview', $agent) }}" class="hover:underline">
                                         {{ $agent->name }}
+                                        @if ($agent->agent_cnic)
+                                            <br>
+                                            <span class="text-xs text-concierge-muted">
+                                                CNIC: {{ $agent->agent_cnic }}
+                                            </span>
+                                        @endif
                                     </a>
                                 </td>
-                                <td class="px-6 py-4 text-concierge-muted">
+                                <td class="px-6 py-4 font-medium text-concierge-navy">
                                     <a href="{{ route('admin.agents.overview', $agent) }}" class="hover:underline">
                                         {{ $agent->email }}
+                                        @if ($agent->phone_number)
+                                            <br>
+                                            <span class="text-xs text-concierge-muted">
+                                                Phone: {{ $agent->phone_number }}
+                                            </span>
+                                        @endif
                                     </a>
                                 </td>
-                                <td class="px-6 py-4 text-concierge-muted">
-                                    <a href="{{ route('admin.agents.overview', $agent) }}" class="hover:underline">
-                                        {{ $agent->phone_number ?? '—' }}
-                                    </a>
-                                </td>
+                                @if ($agent->guardian_name)
+                                    <td class="px-6 py-4 font-medium text-concierge-navy">
+                                        <a href="{{ route('admin.agents.overview', $agent) }}" class="hover:underline">
+                                            {{ $agent->guardian_name ?? '-' }}
+                                            @if ($agent->guardian_phone_number)
+                                                <br>
+                                                <span class="text-xs text-concierge-muted">
+                                                    Phone: {{ $agent->guardian_phone_number }}
+                                                </span>
+                                            @endif
+                                        </a>
+                                    </td>
+                                @else
+                                    <td class="px-6 py-4 font-medium text-concierge-navy text-center">-</td>
+                                @endif
                                 <td class="px-6 py-4">
                                     <span
                                         class="concierge-pill concierge-pill-contacted">{{ $agent->roles->first()?->name ?? 'agent' }}</span>
@@ -130,7 +152,7 @@
     {{-- Modal --}}
     <div id="agent-modal" class="fixed inset-0 z-50 hidden items-center justify-center bg-slate-900/40 p-4"
         aria-hidden="true" role="dialog" aria-labelledby="agent-modal-title">
-        <div class="max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-2xl bg-white shadow-xl">
+        <div class="max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-2xl bg-white shadow-xl">
             <div class="flex items-center justify-between border-b border-slate-100 px-6 py-4">
                 <h2 id="agent-modal-title" class="text-lg font-semibold text-concierge-navy">Add new agent</h2>
                 <button type="button" data-close-agent-modal
@@ -289,7 +311,7 @@
         {{-- Edit agent modal --}}
         <div id="edit-agent-modal" class="fixed inset-0 z-50 hidden items-center justify-center bg-slate-900/40 p-4"
             aria-hidden="true" role="dialog" aria-labelledby="edit-agent-modal-title">
-            <div class="max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-2xl bg-white shadow-xl">
+            <div class="max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-2xl bg-white shadow-xl">
                 <div class="flex items-center justify-between border-b border-slate-100 px-6 py-4">
                     <h2 id="edit-agent-modal-title" class="text-lg font-semibold text-concierge-navy">Edit agent</h2>
                     <button type="button" data-close-edit-agent-modal
@@ -362,6 +384,14 @@
                                 class="block text-sm font-medium text-concierge-navy">Guardian CNIC</label>
                             <input id="edit_modal_guardian_cnic" name="guardian_cnic" type="text"
                                 class="mt-1.5 w-full rounded-xl border border-slate-200 bg-slate-50/80 px-4 py-2.5 text-sm focus:border-concierge-accent focus:bg-white focus:outline-none focus:ring-2 focus:ring-concierge-accent/20">
+                        </div>
+
+                        <div>
+                            <label for="edit_modal_role" class="block text-sm font-medium text-concierge-navy">Role</label>
+                            <select id="edit_modal_role" disabled
+                                class="mt-1.5 w-full rounded-xl border border-slate-200 bg-slate-100 px-4 py-2.5 text-sm text-slate-500">
+                                <option value="agent" selected>Agent</option>
+                            </select>
                         </div>
 
                         <div>

@@ -15,6 +15,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\View\View;
 use Spatie\Permission\Models\Permission;
+use Spatie\Permission\PermissionRegistrar;
 use Throwable;
 
 class AgentController extends Controller
@@ -37,7 +38,7 @@ class AgentController extends Controller
         $agents = User::role('agent')
             ->with('roles')
             ->select('users.*')
-            ->orderBy('users.name')
+            ->latest()
             ->get();
 
         return view('admin.agents.index', [
@@ -63,6 +64,11 @@ class AgentController extends Controller
                 ]);
                 $user = User::create($data);
                 $user->assignRole($request->validated('role'));
+                $user->givePermissionTo([
+                    'dashboard.access',
+                    'leads.access',
+                    'folders.access',
+                ]);
 
                 return $user;
             });
@@ -265,7 +271,7 @@ class AgentController extends Controller
 
         return response()->json([
             'assignable' => $assignable,
-            'assigned' => $agent->getPermissionNames()->values()->all(),
+            'assigned' => $agent->load('permissions')->permissions->pluck('name')->values()->all(),
             'agent' => [
                 'id' => $agent->id,
                 'name' => $agent->name,
@@ -284,6 +290,7 @@ class AgentController extends Controller
                 ->all();
 
             $agent->syncPermissions($permissions);
+            app(PermissionRegistrar::class)->forgetCachedPermissions();
         } catch (Throwable $e) {
             report($e);
 
@@ -294,7 +301,7 @@ class AgentController extends Controller
 
         return response()->json([
             'message' => __('Permissions updated successfully.'),
-            'assigned' => $agent->getPermissionNames()->values()->all(),
+            'assigned' => $agent->load('permissions')->permissions->pluck('name')->values()->all(),
         ]);
     }
 

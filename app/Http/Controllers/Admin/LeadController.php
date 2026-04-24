@@ -34,7 +34,7 @@ class LeadController extends Controller
 
         $leadsQuery = Lead::query()
             ->with(['agent', 'company', 'destination'])
-            ->orderByDesc('travel_date');
+            ->latest();
 
         if ($companyId !== null) {
             $leadsQuery->where('company_id', $companyId);
@@ -62,9 +62,17 @@ class LeadController extends Controller
         }
 
         $leads = $leadsQuery
-            ->orderByDesc('id')
             ->paginate(15)
             ->withQueryString();
+
+        $totalLeads = Lead::query()->count();
+        $totalClosed = Lead::query()->where('status', Lead::STATUS_SALE_DONE)->count();
+        $totalFailed = Lead::query()->where('status', Lead::STATUS_NOT_CONVERTED)->count();
+        $totalPending = max(0, $totalLeads - $totalClosed - $totalFailed);
+
+        $leadsSuccessRatePercent = $totalLeads > 0
+            ? min(100, (int) round(($totalClosed / $totalLeads) * 100))
+            : 0;
 
         return view('admin.leads.index', [
             'leads' => $leads,
@@ -84,6 +92,11 @@ class LeadController extends Controller
             'statuses' => Lead::statusLabels(),
             'agents' => User::role('agent')->orderBy('name')->get(['id', 'name']),
             'canCreateLeads' => $request->user()->hasRole('super-admin'),
+            'totalLeads' => $totalLeads,
+            'totalClosed' => $totalClosed,
+            'totalPending' => $totalPending,
+            'totalFailed' => $totalFailed,
+            'leadsSuccessRatePercent' => $leadsSuccessRatePercent,
         ]);
     }
 
@@ -172,10 +185,6 @@ class LeadController extends Controller
         $lead->load([
             'agent',
             'company',
-            'destination',
-            'itineraries',
-            'passengers',
-            'packageCosts',
         ]);
 
         return view('admin.leads.show', [

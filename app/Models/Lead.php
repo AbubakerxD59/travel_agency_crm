@@ -4,7 +4,6 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
-use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Lead extends Model
 {
@@ -23,19 +22,11 @@ class Lead extends Model
         'customer_name',
         'phone_number',
         'email',
+        'company_id',
         'city',
         'source',
         'notes',
-        'order_type',
-        'vendor_reference',
-        'company_id',
-        'status',
-        'destination_id',
-        'travel_date',
-        'balance_due_date',
-        'flight_itinerary',
-        'ziarat_makkah',
-        'ziarat_madinah',
+        'status'
     ];
 
     /**
@@ -62,12 +53,9 @@ class Lead extends Model
 
     public function statusLabel(): string
     {
-        return self::statusLabels()[$this->status] ?? $this->status;
+        return self::statusLabels()[$this->status] ?? (string) ($this->status ?? '');
     }
 
-    /**
-     * Tailwind pill class suffix (matches `.concierge-pill-*` in app.css).
-     */
     public function statusPillClass(): string
     {
         return match ($this->status) {
@@ -78,16 +66,6 @@ class Lead extends Model
             self::STATUS_NOT_CONVERTED => 'not-converted',
             default => 'meta',
         };
-    }
-
-    protected function casts(): array
-    {
-        return [
-            'travel_date' => 'date',
-            'balance_due_date' => 'date',
-            'ziarat_makkah' => 'boolean',
-            'ziarat_madinah' => 'boolean',
-        ];
     }
 
     /**
@@ -112,29 +90,5 @@ class Lead extends Model
     public function destination(): BelongsTo
     {
         return $this->belongsTo(Destination::class);
-    }
-
-    /**
-     * @return HasMany<LeadItinerary, $this>
-     */
-    public function itineraries(): HasMany
-    {
-        return $this->hasMany(LeadItinerary::class);
-    }
-
-    /**
-     * @return HasMany<LeadPassenger, $this>
-     */
-    public function passengers(): HasMany
-    {
-        return $this->hasMany(LeadPassenger::class);
-    }
-
-    /**
-     * @return HasMany<LeadPackageCost, $this>
-     */
-    public function packageCosts(): HasMany
-    {
-        return $this->hasMany(LeadPackageCost::class);
     }
 }

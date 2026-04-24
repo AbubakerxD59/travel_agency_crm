@@ -31,6 +31,32 @@
             </div>
         @endif
 
+        <div class="mt-6 grid min-w-0 gap-4 xl:grid-cols-4 md:grid-cols-2 grid-cols-1 md:gap-6">
+            <div class="dash-stat-card dash-stat-card--accent-leads">
+                <p class="dash-stat-card__label">Total Leads</p>
+                <p class="dash-stat-card__value">{{ number_format($totalLeads) }}</p>
+                <div class="dash-stat-progress" role="presentation" aria-hidden="true">
+                    <div class="dash-stat-progress__fill" style="width: {{ $leadsSuccessRatePercent }}%"></div>
+                </div>
+                <p class="dash-stat-card__hint">{{ $leadsSuccessRatePercent }}% converted or won of pipeline</p>
+            </div>
+            <div class="dash-stat-card dash-stat-card--accent-success">
+                <p class="dash-stat-card__label">Total Closed</p>
+                <p class="dash-stat-card__value dash-stat-card__value--success">{{ number_format($totalClosed) }}</p>
+                <p class="dash-stat-card__hint">Closed-won leads</p>
+            </div>
+            <div class="dash-stat-card dash-stat-card--accent-leads">
+                <p class="dash-stat-card__label">Total Pending</p>
+                <p class="dash-stat-card__value">{{ number_format($totalPending) }}</p>
+                <p class="dash-stat-card__hint">Open leads in progress</p>
+            </div>
+            <div class="dash-stat-card dash-stat-card--accent-fail">
+                <p class="dash-stat-card__label">Total Failed</p>
+                <p class="dash-stat-card__value dash-stat-card__value--fail">{{ number_format($totalFailed) }}</p>
+                <p class="dash-stat-card__hint">Lost or not converted</p>
+            </div>
+        </div>
+
         <form method="GET" action="{{ route('admin.leads.index') }}" class="mt-6">
             <div class="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-4">
                 <div>
@@ -115,7 +141,6 @@
                             <th class="px-4 py-4 lg:px-6">Company Name</th>
                             <th class="px-4 py-4 lg:px-6">City</th>
                             <th class="px-4 py-4 lg:px-6">Source</th>
-                            <th class="px-4 py-4 lg:px-6">Notes</th>
                             <th class="px-4 py-4 lg:px-6">Status</th>
                             <th class="px-4 py-4 text-right lg:px-6">Action</th>
                         </tr>
@@ -123,7 +148,15 @@
                     <tbody class="divide-y divide-slate-100">
                         @forelse ($leads as $lead)
                             <tr class="hover:bg-slate-50/50">
-                                <td class="px-4 py-4 text-concierge-navy lg:px-6">{{ $lead->agent?->name ?? 'Unassigned' }}
+                                <td class="px-4 py-4 text-concierge-navy lg:px-6">
+                                    @if ($lead->agent)
+                                        <a href="{{ route('admin.agents.overview', $lead->agent) }}"
+                                            class="font-medium text-concierge-accent hover:underline">
+                                            {{ $lead->agent->name }}
+                                        </a>
+                                    @else
+                                        Unassigned
+                                    @endif
                                 </td>
                                 <td class="px-4 py-4 text-concierge-navy lg:px-6">{{ $lead->customer_name ?? '—' }}</td>
                                 <td class="px-4 py-4 text-concierge-muted lg:px-6">{{ $lead->phone_number ?? '—' }}</td>
@@ -131,10 +164,6 @@
                                 <td class="px-4 py-4 text-concierge-navy lg:px-6">{{ $lead->company?->name ?? '—' }}</td>
                                 <td class="px-4 py-4 text-concierge-muted lg:px-6">{{ $lead->city ?? '—' }}</td>
                                 <td class="px-4 py-4 text-concierge-muted lg:px-6">{{ $lead->source ?? '—' }}</td>
-                                <td class="max-w-xs truncate px-4 py-4 text-concierge-muted lg:px-6"
-                                    title="{{ $lead->notes }}">
-                                    {{ $lead->notes ?? '—' }}
-                                </td>
                                 <td class="px-4 py-4 lg:px-6">
                                     <span
                                         class="concierge-pill concierge-pill-{{ $lead->statusPillClass() }}">{{ $lead->statusLabel() }}</span>
@@ -206,7 +235,7 @@
                             </tr>
                         @empty
                             <tr>
-                                <td colspan="10" class="px-6 py-10 text-center text-sm text-concierge-muted">
+                                <td colspan="9" class="px-6 py-10 text-center text-sm text-concierge-muted">
                                     @if ($canCreateLeads)
                                         No leads yet. Use “Assign Lead” to create one.
                                     @else

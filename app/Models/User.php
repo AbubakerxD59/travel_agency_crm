@@ -2,8 +2,6 @@
 
 namespace App\Models;
 
-// use Illuminate\Contracts\Auth\MustVerifyEmail;
-use Database\Factories\UserFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Foundation\Auth\User as Authenticatable;
@@ -65,7 +63,17 @@ class User extends Authenticatable
         }
 
         if ($this->hasRole('agent')) {
-            return 'agent.dashboard';
+            if ($this->can('dashboard.access')) {
+                return 'agent.dashboard';
+            }
+
+            if ($this->can('leads.access')) {
+                return 'agent.leads.index';
+            }
+
+            if ($this->can('folders.access')) {
+                return 'agent.folders.index';
+            }
         }
 
         return 'admin.dashboard';

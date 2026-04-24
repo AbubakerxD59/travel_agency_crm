@@ -5,10 +5,10 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
-class LeadItinerary extends Model
+class FolderItinerary extends Model
 {
     protected $fillable = [
-        'lead_id',
+        'folder_id',
         'sr_no',
         'airline_code',
         'airline_number',
@@ -30,10 +30,10 @@ class LeadItinerary extends Model
     }
 
     /**
-     * @return BelongsTo<Lead, $this>
+     * @return BelongsTo<Folder, $this>
      */
-    public function lead(): BelongsTo
+    public function folder(): BelongsTo
     {
-        return $this->belongsTo(Lead::class);
+        return $this->belongsTo(Folder::class);
     }
 }

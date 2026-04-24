@@ -24,20 +24,34 @@
     </div>
 
     <nav class="flex flex-1 flex-col gap-1">
-        <a href="{{ route('agent.dashboard') }}"
-            class="concierge-sidebar-link {{ $route === 'agent.dashboard' ? 'concierge-sidebar-link--active' : '' }}">
-            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M3.75 6A2.25 2.25 0 016 3.75h2.25A2.25 2.25 0 0110.5 6v2.25a2.25 2.25 0 01-2.25 2.25H6a2.25 2.25 0 01-2.25-2.25V6zM13.5 15.75A2.25 2.25 0 0115.75 13.5H18a2.25 2.25 0 012.25 2.25V18A2.25 2.25 0 0118 20.25h-2.25A2.25 2.25 0 0113.5 18v-2.25zM13.5 6A2.25 2.25 0 0115.75 3.75H18A2.25 2.25 0 0120.25 6v2.25A2.25 2.25 0 0118 10.5h-2.25A2.25 2.25 0 0113.5 8.25V6zM3.75 15.75A2.25 2.25 0 016 13.5h2.25A2.25 2.25 0 0110.5 18v2.25A2.25 2.25 0 018 20.25H6a2.25 2.25 0 01-2.25-2.25V15.75z" />
-            </svg>
-            Dashboard
-        </a>
+        @can('dashboard.access')
+            <a href="{{ route('agent.dashboard') }}"
+                class="concierge-sidebar-link {{ $route === 'agent.dashboard' ? 'concierge-sidebar-link--active' : '' }}">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M3.75 6A2.25 2.25 0 016 3.75h2.25A2.25 2.25 0 0110.5 6v2.25a2.25 2.25 0 01-2.25 2.25H6a2.25 2.25 0 01-2.25-2.25V6zM13.5 15.75A2.25 2.25 0 0115.75 13.5H18a2.25 2.25 0 012.25 2.25V18A2.25 2.25 0 0118 20.25h-2.25A2.25 2.25 0 0113.5 18v-2.25zM13.5 6A2.25 2.25 0 0115.75 3.75H18A2.25 2.25 0 0120.25 6v2.25A2.25 2.25 0 0118 10.5h-2.25A2.25 2.25 0 0113.5 8.25V6zM3.75 15.75A2.25 2.25 0 016 13.5h2.25A2.25 2.25 0 0110.5 18v2.25A2.25 2.25 0 018 20.25H6a2.25 2.25 0 01-2.25-2.25V15.75z" />
+                </svg>
+                Dashboard
+            </a>
+        @endcan
 
-        <a href="{{ route('agent.leads.index') }}"
-            class="concierge-sidebar-link {{ str_starts_with((string) $route, 'agent.leads.') ? 'concierge-sidebar-link--active' : '' }}">
-            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M15 19.128a9.38 9.38 0 002.625.372 9.337 9.337 0 004.121-.952 4.125 4.125 0 00-7.533-2.493M15 19.128v-.003c0-1.113-.285-2.16-.786-3.07M15 19.128v.106A12.318 12.318 0 018.624 21c-2.331 0-4.512-.645-6.374-1.766l-.001-.109a6.375 6.375 0 0111.964-3.07M12 6.375a3.375 3.375 0 11-6.75 0 3.375 3.375 0 016.75 0zm8.25 2.25a2.625 2.625 0 11-5.25 0 2.625 2.625 0 015.25 0z" />
-            </svg>
-            Leads
-        </a>
+        @can('leads.access')
+            <a href="{{ route('agent.leads.index') }}"
+                class="concierge-sidebar-link {{ str_starts_with((string) $route, 'agent.leads.') ? 'concierge-sidebar-link--active' : '' }}">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M15 19.128a9.38 9.38 0 002.625.372 9.337 9.337 0 004.121-.952 4.125 4.125 0 00-7.533-2.493M15 19.128v-.003c0-1.113-.285-2.16-.786-3.07M15 19.128v.106A12.318 12.318 0 018.624 21c-2.331 0-4.512-.645-6.374-1.766l-.001-.109a6.375 6.375 0 0111.964-3.07M12 6.375a3.375 3.375 0 11-6.75 0 3.375 3.375 0 016.75 0zm8.25 2.25a2.625 2.625 0 11-5.25 0 2.625 2.625 0 015.25 0z" />
+                </svg>
+                Leads
+            </a>
+        @endcan
+
+        @can('folders.access')
+            <a href="{{ route('agent.folders.index') }}"
+                class="concierge-sidebar-link {{ str_starts_with((string) $route, 'agent.folders.') ? 'concierge-sidebar-link--active' : '' }}">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M3.75 5.25A2.25 2.25 0 016 3h3.879a2.25 2.25 0 011.591.659l1.121 1.121A2.25 2.25 0 0014.182 5.5H18A2.25 2.25 0 0120.25 7.75v10.5A2.25 2.25 0 0118 20.5H6a2.25 2.25 0 01-2.25-2.25V5.25z" />
+                </svg>
+                Folder
+            </a>
+        @endcan
     </nav>
 </aside>

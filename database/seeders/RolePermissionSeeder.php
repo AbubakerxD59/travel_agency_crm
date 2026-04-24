@@ -2,6 +2,7 @@
 
 namespace Database\Seeders;
 
+use App\Models\User;
 use Illuminate\Database\Seeder;
 use Spatie\Permission\Models\Permission;
 use Spatie\Permission\Models\Role;
@@ -25,6 +26,7 @@ class RolePermissionSeeder extends Seeder
             'agents.create',
             'agents.manage',
             'leads.access',
+            'folders.access',
             'companies.create',
             'companies.manage',
         ];
@@ -34,12 +36,7 @@ class RolePermissionSeeder extends Seeder
         }
 
         $superAdmin = Role::firstOrCreate(['name' => 'super-admin', 'guard_name' => 'web']);
-        $agent = Role::firstOrCreate(['name' => 'agent', 'guard_name' => 'web']);
-
+        Role::firstOrCreate(['name' => 'agent', 'guard_name' => 'web']);
         $superAdmin->syncPermissions(Permission::all());
-
-        $agent->syncPermissions([
-            'leads.access',
-        ]);
     }
 }

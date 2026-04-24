@@ -9,8 +9,7 @@
             <p class="mt-1 text-concierge-muted">Overview of your concierge operations.</p>
         </div>
 
-        <div class="grid min-w-0 gap-4 md:grid-cols-2 grid-cols-1 md:gap-6 mb-6">
-            {{-- Left border matches primary metric accent (navy) --}}
+        <div class="mb-6 grid min-w-0 gap-4 md:grid-cols-2 grid-cols-1 md:gap-6">
             <div class="dash-stat-card dash-stat-card--accent-navy">
                 <p class="dash-stat-card__label">Total Agents</p>
                 <p class="dash-stat-card__value">{{ number_format($totalAgents) }}</p>
@@ -22,42 +21,15 @@
                     <span>Active concierge accounts</span>
                 </p>
             </div>
-
-            {{-- Left border navy to match headline; pale blue panel + progress bar --}}
             <div class="dash-stat-card dash-stat-card--accent-leads">
-                <p class="dash-stat-card__label">Total Leads</p>
-                <p class="dash-stat-card__value">{{ number_format($totalLeads) }}</p>
-                <div class="dash-stat-progress" role="presentation" aria-hidden="true">
-                    <div class="dash-stat-progress__fill" style="width: {{ $leadsSuccessRatePercent }}%"></div>
-                </div>
-                <p class="dash-stat-card__hint">{{ $leadsSuccessRatePercent }}% converted or won of pipeline</p>
-            </div>
-        </div>
-
-        <div class="grid min-w-0 gap-4 xl:grid-cols-3 md:grid-cols-2 grid-cols-1 md:gap-6">
-            {{-- Left border emerald to match success value --}}
-            <div class="dash-stat-card dash-stat-card--accent-success">
-                <p class="dash-stat-card__label">Total Closed</p>
-                <p class="dash-stat-card__value dash-stat-card__value--success">{{ number_format($totalClosed) }}</p>
-                <p class="dash-stat-card__hint">Closed-won leads</p>
-            </div>
-
-            <div class="dash-stat-card dash-stat-card--accent-leads">
-                <p class="dash-stat-card__label">Total Pending</p>
-                <p class="dash-stat-card__value">{{ number_format($totalPending) }}</p>
-                <p class="dash-stat-card__hint">Open leads in progress</p>
-            </div>
-
-            {{-- Left border rose to match failed value --}}
-            <div class="dash-stat-card dash-stat-card--accent-fail">
-                <p class="dash-stat-card__label">Total Failed</p>
-                <p class="dash-stat-card__value dash-stat-card__value--fail">{{ number_format($totalFailed) }}</p>
-                <p class="dash-stat-card__hint">Lost or not converted</p>
+                <p class="dash-stat-card__label">Total Folders</p>
+                <p class="dash-stat-card__value">{{ number_format($totalFolders) }}</p>
+                <p class="dash-stat-card__hint">Folders created across all agents</p>
             </div>
         </div>
 
         <section
-            class="mt-8 min-w-0 rounded-xl border border-slate-200/80 bg-white p-5 shadow-[0_1px_3px_rgba(21,44,73,0.08)] md:p-6"
+            class="mt-2 min-w-0 rounded-xl border border-slate-200/80 bg-white p-5 shadow-[0_1px_3px_rgba(21,44,73,0.08)] md:p-6"
             aria-labelledby="dashboard-agent-performance-heading">
             <div class="mb-4 flex flex-col gap-1 sm:flex-row sm:items-end sm:justify-between">
                 <div>
