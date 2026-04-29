@@ -87,9 +87,10 @@
                             value="{{ old('vendor_reference', $lead->vendor_reference ?? '') }}" class="{{ $fieldClass }}">
                     </div>
                     <div class="min-w-0">
-                        <label for="lead_status" class="block text-sm font-medium text-concierge-navy">Status</label>
-                        <input id="lead_status" name="status" type="text"
-                            value="{{ old('status', $lead->status ?? '') }}" class="{{ $fieldClass }}">
+                        <label for="lead_customer_name" class="block text-sm font-medium text-concierge-navy"><span
+                                class="text-rose-600">*</span> Customer Name</label>
+                        <input id="lead_customer_name" name="customer_name" type="text" required
+                            value="{{ old('customer_name', $lead->customer_name ?? '') }}" class="{{ $fieldClass }}">
                     </div>
 
                     <div class="min-w-0">
@@ -129,23 +130,47 @@
                             value="{{ old('balance_due_date', optional($lead->balance_due_date ?? null)->format('Y-m-d')) }}" class="{{ $fieldClass }}">
                     </div>
                     <div class="min-w-0">
+                        @php
+                            $selectedZiarat = old(
+                                'ziarat_option',
+                                ($lead->makkah_ziarat ?? false ? 'makkah' : (($lead->madinah_ziarat ?? false) ? 'madinah' : '')),
+                            );
+                        @endphp
                         <span class="block text-sm font-medium text-concierge-navy">Ziarat</span>
-                        <div
-                            class="mt-1.5 flex min-h-[2.625rem] flex-row flex-nowrap items-center gap-6 rounded-xl border border-slate-200/80 bg-slate-50/50 px-4 py-2.5">
-                            <label
-                                class="flex cursor-pointer items-center gap-2 text-sm text-concierge-navy whitespace-nowrap">
-                                <input type="checkbox" name="ziarat_makkah" value="1"
-                                    class="rounded border-slate-300 text-concierge-accent focus:ring-concierge-accent/30"
-                                    @checked(old('ziarat_makkah', $lead->ziarat_makkah ?? false))>
-                                Makkah
-                            </label>
-                            <label
-                                class="flex cursor-pointer items-center gap-2 text-sm text-concierge-navy whitespace-nowrap">
-                                <input type="checkbox" name="ziarat_madinah" value="1"
-                                    class="rounded border-slate-300 text-concierge-accent focus:ring-concierge-accent/30"
-                                    @checked(old('ziarat_madinah', $lead->ziarat_madinah ?? false))>
-                                Madinah
-                            </label>
+                        <div class="relative mt-1.5" id="ziarat-dropdown-wrapper">
+                            <input type="hidden" name="ziarat_option" id="lead_ziarat_option"
+                                value="{{ $selectedZiarat }}">
+                            <button type="button" id="ziarat-dropdown-toggle"
+                                class="flex min-h-[2.625rem] w-full items-center justify-between rounded-xl border border-slate-200/80 bg-slate-50/50 px-4 py-2.5 text-sm text-concierge-navy transition hover:bg-slate-100">
+                                <span id="ziarat-dropdown-label">
+                                    @if ($selectedZiarat === 'makkah')
+                                        Makkah
+                                    @elseif($selectedZiarat === 'madinah')
+                                        Madinah
+                                    @else
+                                        Select ziarat
+                                    @endif
+                                </span>
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-concierge-muted" fill="none"
+                                    viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5" aria-hidden="true">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 8.25 12 15.75 4.5 8.25" />
+                                </svg>
+                            </button>
+                            <div id="ziarat-dropdown-menu"
+                                class="absolute z-20 mt-1 hidden w-full rounded-xl border border-slate-200 bg-white p-3 shadow-lg">
+                                <label class="flex cursor-pointer items-center gap-2 text-sm text-concierge-navy">
+                                    <input type="checkbox" data-ziarat-checkbox value="makkah"
+                                        class="rounded border-slate-300 text-concierge-accent focus:ring-concierge-accent/30"
+                                        @checked($selectedZiarat === 'makkah')>
+                                    Makkah
+                                </label>
+                                <label class="mt-2 flex cursor-pointer items-center gap-2 text-sm text-concierge-navy">
+                                    <input type="checkbox" data-ziarat-checkbox value="madinah"
+                                        class="rounded border-slate-300 text-concierge-accent focus:ring-concierge-accent/30"
+                                        @checked($selectedZiarat === 'madinah')>
+                                    Madinah
+                                </label>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -714,6 +739,73 @@
     <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.js"></script>
     <script>
+        (() => {
+            const ziaratWrapper = document.getElementById('ziarat-dropdown-wrapper');
+            const ziaratToggleButton = document.getElementById('ziarat-dropdown-toggle');
+            const ziaratMenu = document.getElementById('ziarat-dropdown-menu');
+            const ziaratLabel = document.getElementById('ziarat-dropdown-label');
+            const ziaratHiddenInput = document.getElementById('lead_ziarat_option');
+            const ziaratCheckboxes = [...document.querySelectorAll('input[data-ziarat-checkbox]')];
+
+            function closeZiaratMenu() {
+                ziaratMenu?.classList.add('hidden');
+            }
+
+            function updateZiaratLabel(value) {
+                if (!ziaratLabel) {
+                    return;
+                }
+                if (value === 'makkah') {
+                    ziaratLabel.textContent = 'Makkah';
+                    return;
+                }
+                if (value === 'madinah') {
+                    ziaratLabel.textContent = 'Madinah';
+                    return;
+                }
+                ziaratLabel.textContent = 'Select ziarat';
+            }
+
+            ziaratToggleButton?.addEventListener('click', () => {
+                ziaratMenu?.classList.toggle('hidden');
+            });
+
+            ziaratCheckboxes.forEach((checkbox) => {
+                checkbox.addEventListener('change', () => {
+                    if (!(checkbox instanceof HTMLInputElement)) {
+                        return;
+                    }
+
+                    if (checkbox.checked) {
+                        ziaratCheckboxes.forEach((item) => {
+                            if (item !== checkbox && item instanceof HTMLInputElement) {
+                                item.checked = false;
+                            }
+                        });
+                        if (ziaratHiddenInput instanceof HTMLInputElement) {
+                            ziaratHiddenInput.value = checkbox.value;
+                        }
+                        updateZiaratLabel(checkbox.value);
+                        return;
+                    }
+
+                    if (ziaratHiddenInput instanceof HTMLInputElement) {
+                        ziaratHiddenInput.value = '';
+                    }
+                    updateZiaratLabel('');
+                });
+            });
+
+            document.addEventListener('click', (event) => {
+                if (!ziaratWrapper || !(event.target instanceof Node)) {
+                    return;
+                }
+                if (!ziaratWrapper.contains(event.target)) {
+                    closeZiaratMenu();
+                }
+            });
+        })();
+
         (() => {
             const tableBody = document.getElementById('itinerary-rows');
             const addButton = document.getElementById('add-itinerary-row');

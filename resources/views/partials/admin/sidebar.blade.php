@@ -4,7 +4,7 @@
 
 <aside
     id="admin-sidebar"
-    class="fixed inset-y-0 left-0 z-[110] flex h-full w-64 max-w-[85vw] -translate-x-full flex-col overflow-y-auto border-r border-slate-200/80 bg-concierge-sidebar px-4 py-6 shadow-2xl shadow-slate-900/20 transition-transform duration-300 ease-out lg:static lg:z-auto lg:h-auto lg:max-w-none lg:w-72 lg:translate-x-0 lg:shadow-none"
+    class="concierge-fixed-sidebar"
     aria-label="Main navigation"
 >
     <div class="mb-10 flex items-start justify-between gap-2 px-2">

@@ -21,7 +21,7 @@
     <div class="flex min-h-screen">
         @include('partials.agent.sidebar')
 
-        <div class="flex min-h-screen min-w-0 flex-1 flex-col">
+        <div class="concierge-layout-content">
             @include('partials.admin.navbar')
 
             <main class="flex-1 overflow-auto p-6 lg:p-8">

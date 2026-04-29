@@ -18,15 +18,34 @@ class FolderController extends Controller
 {
     public function index(Request $request): View
     {
+        $search = trim((string) $request->string('search')->value());
+        $companyId = $request->integer('company_id') ?: null;
+        $destinationId = $request->integer('destination_id') ?: null;
+
         $folders = Folder::query()
             ->with(['agent', 'company', 'destination'])
             ->where('agent_id', $request->user()->getAuthIdentifier())
+            ->when($companyId !== null, fn ($query) => $query->where('company_id', $companyId))
+            ->when($destinationId !== null, fn ($query) => $query->where('destination_id', $destinationId))
+            ->when($search !== '', function ($query) use ($search) {
+                $query->where(function ($searchQuery) use ($search) {
+                    $searchQuery
+                        ->where('customer_name', 'like', '%'.$search.'%')
+                        ->orWhere('order_type', 'like', '%'.$search.'%')
+                        ->orWhere('vendor_reference', 'like', '%'.$search.'%');
+                });
+            })
             ->latest()
             ->paginate(15)
             ->withQueryString();
 
         return view('agent.folders.index', [
             'folders' => $folders,
+            'search' => $search,
+            'selectedCompanyId' => $companyId,
+            'selectedDestinationId' => $destinationId,
+            'companies' => Company::query()->orderBy('name')->get(['id', 'name']),
+            'destinations' => Destination::query()->orderBy('name')->get(['id', 'name']),
         ]);
     }
 
@@ -231,13 +250,12 @@ class FolderController extends Controller
             'agent_id' => ['nullable', 'integer', 'exists:users,id'],
             'order_type' => ['required', 'string', 'max:255'],
             'vendor_reference' => ['required', 'string', 'max:255'],
-            'status' => ['nullable', 'string', 'max:255'],
+            'customer_name' => ['required', 'string', 'max:255'],
             'company_id' => ['required', 'integer', 'exists:companies,id'],
             'destination_id' => ['required', 'integer', 'exists:destinations,id'],
             'travel_date' => ['required', 'date'],
             'balance_due_date' => ['required', 'date'],
-            'ziarat_makkah' => ['nullable', 'boolean'],
-            'ziarat_madinah' => ['nullable', 'boolean'],
+            'ziarat_option' => ['nullable', 'string', 'in:makkah,madinah'],
             'itineraries' => ['required', 'array', 'min:1'],
             'itineraries.*.sr_no' => ['required', 'integer', 'min:1'],
             'itineraries.*.airline_code' => ['required', 'string', 'max:20'],
@@ -246,8 +264,8 @@ class FolderController extends Controller
             'itineraries.*.departure_date' => ['required', 'date'],
             'itineraries.*.departure_airport' => ['required', 'string', 'max:30'],
             'itineraries.*.arrival_airport' => ['required', 'string', 'max:30'],
-            'itineraries.*.departure_time' => ['required', 'date_format:H:i'],
-            'itineraries.*.arrival_time' => ['required', 'date_format:H:i'],
+            'itineraries.*.departure_time' => ['required', 'date_format:H:i:s'],
+            'itineraries.*.arrival_time' => ['required', 'date_format:H:i:s'],
             'itineraries.*.arrival_date' => ['required', 'date'],
             'passengers' => ['required', 'array', 'min:1'],
             'passengers.*.title' => ['required', 'string', 'max:20'],
@@ -394,13 +412,13 @@ class FolderController extends Controller
                     'agent_id' => $validated['agent_id'] ?? request()->user()?->getAuthIdentifier(),
                     'order_type' => $validated['order_type'],
                     'vendor_reference' => $validated['vendor_reference'] ?? null,
-                    'status' => $validated['status'] ?? null,
+                    'customer_name' => $validated['customer_name'],
                     'company_id' => $validated['company_id'],
                     'destination_id' => $validated['destination_id'],
                     'travel_date' => $validated['travel_date'],
                     'balance_due_date' => $validated['balance_due_date'] ?? null,
-                    'makkah_ziarat' => (bool) ($validated['ziarat_makkah'] ?? false),
-                    'madinah_ziarat' => (bool) ($validated['ziarat_madinah'] ?? false),
+                    'makkah_ziarat' => ($validated['ziarat_option'] ?? null) === 'makkah',
+                    'madinah_ziarat' => ($validated['ziarat_option'] ?? null) === 'madinah',
                 ];
 
                 if ($folder === null) {

@@ -53,6 +53,14 @@
         @apply text-concierge-navy;
     }
 
+    .concierge-fixed-sidebar {
+        @apply fixed inset-y-0 left-0 z-[110] flex h-full w-64 max-w-[85vw] -translate-x-full flex-col overflow-y-auto border-r border-slate-200/80 bg-concierge-sidebar px-4 py-6 shadow-2xl shadow-slate-900/20 transition-transform duration-300 ease-out lg:w-72 lg:max-w-none lg:translate-x-0 lg:shadow-none;
+    }
+
+    .concierge-layout-content {
+        @apply flex min-h-screen min-w-0 flex-1 flex-col lg:ml-72;
+    }
+
     .concierge-pill {
         @apply inline-flex rounded-full px-2.5 py-0.5 text-xs font-semibold uppercase tracking-wide;
     }

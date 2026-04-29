@@ -13,6 +13,7 @@ class Folder extends Model
         'agent_id',
         'order_type',
         'vendor_reference',
+        'customer_name',
         'company_id',
         'destination_id',
         'travel_date',

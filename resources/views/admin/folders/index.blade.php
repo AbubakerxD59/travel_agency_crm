@@ -11,6 +11,66 @@
             </div>
         </div>
 
+        <form method="GET" action="{{ route('admin.folders.index') }}" class="mt-6">
+            <div class="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-3">
+                <div>
+                    <label for="folder-agent-filter" class="block text-sm font-medium text-concierge-navy">Agent</label>
+                    <select id="folder-agent-filter" name="agent_id"
+                        class="mt-1.5 w-full rounded-xl border border-slate-200 bg-slate-50/80 px-4 py-2.5 text-sm text-slate-800 focus:border-concierge-accent focus:bg-white focus:outline-none focus:ring-2 focus:ring-concierge-accent/20">
+                        <option value="">All agents</option>
+                        @foreach ($agents as $agent)
+                            <option value="{{ $agent->id }}" @selected((string) ($selectedAgentId ?? '') === (string) $agent->id)>
+                                {{ $agent->name }}
+                            </option>
+                        @endforeach
+                    </select>
+                </div>
+                <div>
+                    <label for="folder-company-filter" class="block text-sm font-medium text-concierge-navy">Company</label>
+                    <select id="folder-company-filter" name="company_id"
+                        class="mt-1.5 w-full rounded-xl border border-slate-200 bg-slate-50/80 px-4 py-2.5 text-sm text-slate-800 focus:border-concierge-accent focus:bg-white focus:outline-none focus:ring-2 focus:ring-concierge-accent/20">
+                        <option value="">All companies</option>
+                        @foreach ($companies as $company)
+                            <option value="{{ $company->id }}" @selected((string) ($selectedCompanyId ?? '') === (string) $company->id)>
+                                {{ $company->name }}
+                            </option>
+                        @endforeach
+                    </select>
+                </div>
+                <div>
+                    <label for="folder-destination-filter"
+                        class="block text-sm font-medium text-concierge-navy">Destination</label>
+                    <select id="folder-destination-filter" name="destination_id"
+                        class="mt-1.5 w-full rounded-xl border border-slate-200 bg-slate-50/80 px-4 py-2.5 text-sm text-slate-800 focus:border-concierge-accent focus:bg-white focus:outline-none focus:ring-2 focus:ring-concierge-accent/20">
+                        <option value="">All destinations</option>
+                        @foreach ($destinations as $destination)
+                            <option value="{{ $destination->id }}" @selected((string) ($selectedDestinationId ?? '') === (string) $destination->id)>
+                                {{ $destination->name }}
+                            </option>
+                        @endforeach
+                    </select>
+                </div>
+            </div>
+
+            <div class="mt-1.5 flex flex-col gap-2 sm:flex-row">
+                <input id="folder-search-admin" name="search" type="search"
+                    placeholder="Search by customer name, order type, or vendor ref#" value="{{ $search ?? '' }}"
+                    class="w-full rounded-xl border border-slate-200 bg-slate-50/80 px-4 py-2.5 text-sm text-slate-800 placeholder:text-slate-400 focus:border-concierge-accent focus:bg-white focus:outline-none focus:ring-2 focus:ring-concierge-accent/20">
+                <div class="flex shrink-0 gap-2">
+                    <button type="submit"
+                        class="inline-flex cursor-pointer items-center justify-center rounded-xl bg-concierge-navy px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-concierge-navy-deep">
+                        Apply
+                    </button>
+                    @if (($search ?? '') !== '' || ($selectedAgentId ?? null) || ($selectedCompanyId ?? null) || ($selectedDestinationId ?? null))
+                        <a href="{{ route('admin.folders.index') }}"
+                            class="inline-flex items-center justify-center rounded-xl border border-slate-200 px-4 py-2.5 text-sm font-medium text-concierge-navy transition hover:bg-slate-50">
+                            Clear
+                        </a>
+                    @endif
+                </div>
+            </div>
+        </form>
+
         <div class="mt-6 overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-sm">
             <div class="overflow-x-auto">
                 <table class="min-w-full text-left text-sm">
@@ -18,27 +78,38 @@
                         <tr
                             class="border-b border-slate-100 bg-slate-50/80 text-xs font-semibold uppercase tracking-wide text-concierge-muted">
                             <th class="px-4 py-4 lg:px-6">Agent</th>
+                            <th class="px-4 py-4 lg:px-6">Customer Name</th>
                             <th class="px-4 py-4 lg:px-6">Order Type</th>
                             <th class="px-4 py-4 lg:px-6">Vendor Ref#</th>
                             <th class="px-4 py-4 lg:px-6">Company</th>
                             <th class="px-4 py-4 lg:px-6">Destination</th>
                             <th class="px-4 py-4 lg:px-6">Travel Date</th>
-                            <th class="px-4 py-4 lg:px-6">Status</th>
                             <th class="px-4 py-4 text-right lg:px-6">Action</th>
                         </tr>
                     </thead>
                     <tbody class="divide-y divide-slate-100">
                         @forelse ($folders as $folder)
                             <tr class="hover:bg-slate-50/50">
-                                <td class="px-4 py-4 text-concierge-navy lg:px-6">{{ $folder->agent?->name ?? 'Unassigned' }}</td>
+                                <td class="px-4 py-4 text-concierge-navy lg:px-6">
+                                    @if ($folder->agent)
+                                        <a href="{{ route('admin.agents.overview', $folder->agent) }}"
+                                            class="font-medium text-concierge-accent hover:underline">
+                                            {{ $folder->agent->name }}
+                                        </a>
+                                    @else
+                                        Unassigned
+                                    @endif
+                                </td>
+                                <td class="px-4 py-4 text-concierge-muted lg:px-6">{{ $folder->customer_name ?? '—' }}</td>
                                 <td class="px-4 py-4 text-concierge-navy lg:px-6">{{ $folder->order_type ?? '—' }}</td>
-                                <td class="px-4 py-4 text-concierge-muted lg:px-6">{{ $folder->vendor_reference ?? '—' }}</td>
+                                <td class="px-4 py-4 text-concierge-muted lg:px-6">{{ $folder->vendor_reference ?? '—' }}
+                                </td>
                                 <td class="px-4 py-4 text-concierge-navy lg:px-6">{{ $folder->company?->name ?? '—' }}</td>
-                                <td class="px-4 py-4 text-concierge-muted lg:px-6">{{ $folder->destination?->name ?? '—' }}</td>
+                                <td class="px-4 py-4 text-concierge-muted lg:px-6">{{ $folder->destination?->name ?? '—' }}
+                                </td>
                                 <td class="whitespace-nowrap px-4 py-4 text-concierge-muted lg:px-6">
                                     {{ $folder->travel_date?->format('M j, Y') ?? '—' }}
                                 </td>
-                                <td class="px-4 py-4 text-concierge-muted lg:px-6">{{ $folder->status ?? '—' }}</td>
                                 <td class="px-4 py-4 text-right lg:px-6">
                                     <a href="{{ route('admin.folders.show', $folder) }}"
                                         class="lead-row-action inline-flex cursor-pointer rounded-lg p-2 text-concierge-muted transition hover:bg-slate-100 hover:text-concierge-accent"
