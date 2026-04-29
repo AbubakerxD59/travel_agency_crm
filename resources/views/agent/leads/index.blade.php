@@ -129,7 +129,7 @@
                                                 </svg>
                                             </button>
                                             <div data-status-dropdown="{{ $lead->id }}"
-                                                class="absolute right-0 top-full z-20 mt-2 hidden w-44 rounded-xl border border-slate-200 bg-white p-2 text-left shadow-xl">
+                                                class="absolute right-0 top-full z-20 mt-2 hidden w-44 rounded-xl border border-slate-200 bg-white p-2 text-left shadow-xl update-status-dropdown">
                                                 <p class="px-2 pb-2 text-xs font-semibold uppercase tracking-wide text-concierge-muted">
                                                     Update status
                                                 </p>

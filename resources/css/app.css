@@ -204,6 +204,12 @@
         right: 2%;
     }
 
+    .update-status-dropdown {
+        position: fixed;
+        top: 65%;
+        right: 15%;
+    }
+
     .grid-cols-3 {
         grid-template-columns: repeat(3, minmax(0, 1fr));
     }

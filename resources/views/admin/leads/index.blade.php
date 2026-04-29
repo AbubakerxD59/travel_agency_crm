@@ -356,7 +356,7 @@
                         </button>
                         <button type="submit" id="assign-lead-submit-btn"
                             class="flex-1 cursor-pointer rounded-xl bg-concierge-navy py-2.5 text-sm font-semibold text-white shadow-md shadow-concierge-navy/25 hover:bg-concierge-navy-deep">
-                            Save Lead
+                            Send Lead
                         </button>
                     </div>
                 </form>
@@ -412,7 +412,7 @@
                 assignLeadModalTitle.textContent = 'Assign Lead';
             }
             if (assignLeadSubmitBtn) {
-                assignLeadSubmitBtn.textContent = 'Save Lead';
+                assignLeadSubmitBtn.textContent = 'Send Lead';
                 setButtonLoading(assignLeadSubmitBtn, false);
             }
             assignLeadForm.reset();
