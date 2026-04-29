@@ -19,10 +19,11 @@ class FolderController extends Controller
     public function index(Request $request): View
     {
         $folders = Folder::query()
-        ->with(['agent', 'company', 'destination'])
-        ->latest()
-        ->paginate(15)
-        ->withQueryString();
+            ->with(['agent', 'company', 'destination'])
+            ->where('agent_id', $request->user()->getAuthIdentifier())
+            ->latest()
+            ->paginate(15)
+            ->withQueryString();
 
         return view('agent.folders.index', [
             'folders' => $folders,
