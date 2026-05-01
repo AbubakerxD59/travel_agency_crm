@@ -1,9 +1,9 @@
-<header class="sticky top-0 z-40 border-b border-slate-200/80 bg-white/90 px-4 py-4 backdrop-blur-md sm:px-6 lg:z-10 lg:px-8">
+<header class="sticky top-0 z-40 border-b border-slate-300/80 bg-slate-100/95 px-4 py-4 backdrop-blur-md sm:px-6 lg:z-10 lg:px-8">
     <div class="flex w-full items-center gap-4">
         <button
             type="button"
             id="admin-sidebar-toggle"
-            class="inline-flex shrink-0 cursor-pointer items-center justify-center rounded-xl border border-slate-200/80 bg-white p-2.5 text-concierge-navy shadow-sm transition hover:bg-slate-50 lg:hidden"
+            class="inline-flex shrink-0 cursor-pointer items-center justify-center rounded-xl border border-slate-300/80 bg-slate-100 p-2.5 text-concierge-navy shadow-sm transition hover:bg-slate-200 lg:hidden"
             aria-expanded="false"
             aria-controls="admin-sidebar"
         >
@@ -23,7 +23,7 @@
                         type="button"
                     id="agent-notification-icon"
                     data-poll-url="{{ route('agent.notifications.poll') }}"
-                    class="relative inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-slate-200/80 bg-white text-concierge-navy shadow-sm transition hover:bg-slate-50"
+                    class="relative inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-slate-300/80 bg-slate-100 text-concierge-navy shadow-sm transition hover:bg-slate-200"
                     aria-label="Notifications"
                     aria-expanded="false"
                     aria-controls="agent-notification-dropdown"
@@ -39,7 +39,7 @@
                             aria-hidden="true"></span>
                     </button>
                     <div id="agent-notification-dropdown"
-                        class="absolute right-0 z-20 mt-2 hidden w-65 max-w-[90vw] overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-xl">
+                        class="absolute right-0 z-20 mt-2 hidden w-65 max-w-[90vw] overflow-hidden rounded-2xl border border-slate-300 bg-slate-100 shadow-xl">
                         <div class="border-b border-slate-100 px-4 py-3">
                             <p class="text-base font-semibold text-concierge-navy">Notifications</p>
                         </div>
@@ -58,7 +58,7 @@
             </div>
             <form method="POST" action="{{ route('logout') }}" class="inline shrink-0">
                 @csrf
-                <button type="submit" class="rounded-lg px-3 py-2 text-xs font-medium text-concierge-muted hover:bg-slate-100 hover:text-concierge-navy">
+                <button type="submit" class="rounded-lg px-3 py-2 text-xs font-medium text-concierge-muted hover:bg-slate-200 hover:text-concierge-navy">
                     Log out
                 </button>
             </form>

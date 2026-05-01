@@ -9,13 +9,13 @@
     --font-sans: 'Inter', ui-sans-serif, system-ui, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji',
         'Segoe UI Symbol', 'Noto Color Emoji';
 
-    --color-concierge-navy: #152c49;
-    --color-concierge-navy-deep: #0f1f35;
-    --color-concierge-sidebar: #dde8f0;
-    --color-concierge-sidebar-hover: #cfdce8;
-    --color-concierge-page: #f0f4f8;
-    --color-concierge-accent: #2d5a8c;
-    --color-concierge-muted: #64748b;
+    --color-concierge-navy: #10253f;
+    --color-concierge-navy-deep: #0b192c;
+    --color-concierge-sidebar: #cfdae5;
+    --color-concierge-sidebar-hover: #c0cfdd;
+    --color-concierge-page: #d7e0ea;
+    --color-concierge-accent: #254d79;
+    --color-concierge-muted: #55667d;
 }
 
 @layer components {
