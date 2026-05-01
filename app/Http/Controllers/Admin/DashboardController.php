@@ -7,6 +7,9 @@ use App\Models\Folder;
 use App\Models\Lead;
 use App\Models\User;
 use Carbon\Carbon;
+use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
+use Illuminate\Support\Collection;
 use Illuminate\View\View;
 
 class DashboardController extends Controller
@@ -26,21 +29,106 @@ class DashboardController extends Controller
             ? min(100, (int) round(($totalClosed / $totalLeads) * 100))
             : 0;
 
-        $startMonth = now()->startOfMonth()->subMonths(5);
-        $months = collect(range(0, 5))->map(
-            fn (int $offset) => (clone $startMonth)->addMonths($offset)
+        $dashboardAgentChart = $this->buildAgentChartData($agents, 'year');
+
+        return view('admin.dashboard', compact(
+            'totalLeads',
+            'totalClosed',
+            'totalPending',
+            'totalFailed',
+            'totalAgents',
+            'totalFolders',
+            'leadsSuccessRatePercent',
+            'dashboardAgentChart',
+        ));
+    }
+
+    public function agentPerformanceData(Request $request): JsonResponse
+    {
+        $range = (string) $request->string('range', 'year');
+        $customStart = null;
+        $customEnd = null;
+
+        try {
+            $customStart = $request->filled('start_date') ? Carbon::parse((string) $request->input('start_date')) : null;
+            $customEnd = $request->filled('end_date') ? Carbon::parse((string) $request->input('end_date')) : null;
+        } catch (\Throwable) {
+            $customStart = null;
+            $customEnd = null;
+        }
+
+        $agents = User::role('agent')->orderBy('name')->get(['id', 'name']);
+
+        return response()->json(
+            $this->buildAgentChartData($agents, $range, $customStart, $customEnd)
         );
+    }
 
-        $labels = $months->map(fn (Carbon $month) => $month->format('M'))->values()->all();
-        $monthKeys = $months->map(fn (Carbon $month) => $month->format('Y-m'))->values()->all();
+    /**
+     * @return array{labels: list<string>, agents: list<array{name: string, color: string, data: list<int>}>}
+     */
+    private function buildAgentChartData(
+        Collection $agents,
+        string $range,
+        ?Carbon $customStart = null,
+        ?Carbon $customEnd = null,
+    ): array {
+        $now = now();
+        $safeRange = in_array($range, ['week', 'month', 'year', 'custom'], true) ? $range : 'year';
 
-        $monthlyAgentCounts = Lead::query()
-            ->selectRaw("agent_id, DATE_FORMAT(created_at, '%Y-%m') as ym, COUNT(*) as total")
+        $groupByMonth = false;
+        $start = null;
+        $end = null;
+
+        if ($safeRange === 'week') {
+            $start = $now->copy()->startOfWeek();
+            $end = $now->copy()->endOfWeek();
+        } elseif ($safeRange === 'month') {
+            $start = $now->copy()->startOfMonth();
+            $end = $now->copy()->endOfMonth();
+        } elseif ($safeRange === 'year') {
+            $groupByMonth = true;
+            $start = $now->copy()->startOfYear();
+            $end = $now->copy()->endOfYear();
+        } else {
+            if ($customStart instanceof Carbon && $customEnd instanceof Carbon && $customStart->lte($customEnd)) {
+                $start = $customStart->copy()->startOfDay();
+                $end = $customEnd->copy()->endOfDay();
+                $daysDiff = $start->diffInDays($end);
+                $groupByMonth = $daysDiff > 62;
+            } else {
+                $start = $now->copy()->startOfMonth();
+                $end = $now->copy()->endOfMonth();
+            }
+        }
+
+        $bucketKeys = [];
+        $labels = [];
+        $cursor = $start->copy();
+
+        while ($cursor->lte($end)) {
+            if ($groupByMonth) {
+                $bucketKeys[] = $cursor->format('Y-m');
+                $labels[] = $cursor->format('M');
+                $cursor->addMonthNoOverflow();
+            } else {
+                $bucketKeys[] = $cursor->format('Y-m-d');
+                $labels[] = $cursor->format('d M');
+                $cursor->addDay();
+            }
+        }
+
+        $bucketSql = $groupByMonth
+            ? "DATE_FORMAT(created_at, '%Y-%m')"
+            : "DATE_FORMAT(created_at, '%Y-%m-%d')";
+
+        $rowsByAgent = Lead::query()
+            ->selectRaw("agent_id, {$bucketSql} as bucket, COUNT(*) as total")
             ->whereNotNull('agent_id')
             ->whereIn('agent_id', $agents->pluck('id'))
             ->where('status', Lead::STATUS_SALE_DONE)
-            ->where('created_at', '>=', $startMonth)
-            ->groupBy('agent_id', 'ym')
+            ->whereBetween('created_at', [$start, $end])
+            ->groupBy('agent_id', 'bucket')
             ->get()
             ->groupBy('agent_id');
 
@@ -55,34 +143,23 @@ class DashboardController extends Controller
             '#7c2d12',
         ];
 
-        /** @var array{labels: list<string>, agents: list<array{name: string, color: string, data: list<int>}>} */
-        $dashboardAgentChart = [
+        $chartAgents = $agents->values()->map(function (User $agent, int $index) use ($rowsByAgent, $bucketKeys, $agentColors): array {
+            $totalsByBucket = collect($rowsByAgent->get($agent->id, []))
+                ->pluck('total', 'bucket')
+                ->map(fn ($total): int => (int) $total);
+
+            return [
+                'name' => $agent->name,
+                'color' => $agentColors[$index % count($agentColors)],
+                'data' => collect($bucketKeys)->map(
+                    fn (string $key): int => (int) ($totalsByBucket[$key] ?? 0)
+                )->all(),
+            ];
+        })->all();
+
+        return [
             'labels' => $labels,
-            'agents' => $agents->values()->map(function (User $agent, int $index) use ($monthlyAgentCounts, $monthKeys, $agentColors): array {
-                $rowsForAgent = collect($monthlyAgentCounts->get($agent->id, []));
-                $totalsByMonth = $rowsForAgent
-                    ->pluck('total', 'ym')
-                    ->map(fn ($total): int => (int) $total);
-
-                return [
-                    'name' => $agent->name,
-                    'color' => $agentColors[$index % count($agentColors)],
-                    'data' => collect($monthKeys)->map(
-                        fn (string $key): int => (int) ($totalsByMonth[$key] ?? 0)
-                    )->all(),
-                ];
-            })->all(),
+            'agents' => $chartAgents,
         ];
-
-        return view('admin.dashboard', compact(
-            'totalLeads',
-            'totalClosed',
-            'totalPending',
-            'totalFailed',
-            'totalAgents',
-            'totalFolders',
-            'leadsSuccessRatePercent',
-            'dashboardAgentChart',
-        ));
     }
 }

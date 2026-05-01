@@ -8,16 +8,18 @@
             <div>
                 <h1 class="text-2xl font-bold text-concierge-navy lg:text-3xl">Lead Management</h1>
             </div>
-            @if ($canCreateLeads)
-                <button type="button" id="open-assign-lead-modal"
-                    class="inline-flex shrink-0 cursor-pointer items-center justify-center gap-2 rounded-xl bg-concierge-navy px-5 py-2.5 text-sm font-semibold text-white shadow-md shadow-concierge-navy/25 transition hover:bg-concierge-navy-deep">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24"
-                        stroke="currentColor" stroke-width="2" aria-hidden="true">
-                        <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
-                    </svg>
-                    Assign Lead
-                </button>
-            @endif
+            <div class="flex shrink-0 items-center gap-2">
+                @if ($canCreateLeads)
+                    <button type="button" id="open-assign-lead-modal"
+                        class="inline-flex shrink-0 cursor-pointer items-center justify-center gap-2 rounded-xl bg-concierge-navy px-5 py-2.5 text-sm font-semibold text-white shadow-md shadow-concierge-navy/25 transition hover:bg-concierge-navy-deep">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24"
+                            stroke="currentColor" stroke-width="2" aria-hidden="true">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
+                        </svg>
+                        Assign Lead
+                    </button>
+                @endif
+            </div>
         </div>
 
         @if (session('status'))
@@ -57,7 +59,10 @@
             </div>
         </div>
 
-        <form method="GET" action="{{ route('admin.leads.index') }}" class="mt-6">
+        <form id="lead-management-filter-form" method="GET" action="{{ route('admin.leads.index') }}" class="mt-6">
+            <input type="hidden" id="lead-date-range-input" name="date_range" value="{{ $selectedDateRange }}">
+            <input type="hidden" id="lead-start-date-input" name="start_date" value="{{ $selectedStartDate }}">
+            <input type="hidden" id="lead-end-date-input" name="end_date" value="{{ $selectedEndDate }}">
             <div class="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-4">
                 <div>
                     <label for="lead-agent-filter" class="block text-sm font-medium text-concierge-navy">Agent</label>
@@ -114,11 +119,44 @@
                     placeholder="Search by customer name, phone number, or email" value="{{ $search }}"
                     class="w-full rounded-xl border border-slate-200 bg-slate-50/80 px-4 py-2.5 text-sm text-slate-800 placeholder:text-slate-400 focus:border-concierge-accent focus:bg-white focus:outline-none focus:ring-2 focus:ring-concierge-accent/20">
                 <div class="flex shrink-0 gap-2">
+                    <div class="relative">
+                        <button type="button" id="lead-date-filter-button"
+                            class="inline-flex cursor-pointer items-center gap-2 rounded-xl border border-slate-200 bg-white px-3.5 py-2 text-sm font-medium text-concierge-navy transition hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-concierge-accent/25"
+                            aria-haspopup="true" aria-expanded="false" aria-controls="lead-date-filter-menu">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24"
+                                stroke="currentColor" stroke-width="1.7" aria-hidden="true">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M3 4.5h18m-15 6h12m-9 6h6" />
+                            </svg>
+                            <span id="lead-date-filter-label">{{ $selectedDateFilterLabel }}</span>
+                        </button>
+                        <div id="lead-date-filter-menu"
+                            class="absolute right-0 z-10 mt-2 hidden min-w-40 overflow-hidden rounded-xl border border-slate-200 bg-white shadow-lg"
+                            role="menu" aria-labelledby="lead-date-filter-button">
+                            <button type="button"
+                                class="lead-date-filter-option block w-full px-4 py-2.5 text-left text-sm text-concierge-navy transition hover:bg-slate-50"
+                                role="menuitem" data-filter="week" data-filter-label="This week">This week</button>
+                            <button type="button"
+                                class="lead-date-filter-option block w-full px-4 py-2.5 text-left text-sm text-concierge-navy transition hover:bg-slate-50"
+                                role="menuitem" data-filter="month" data-filter-label="This month">This month</button>
+                            <button type="button"
+                                class="lead-date-filter-option block w-full px-4 py-2.5 text-left text-sm text-concierge-navy transition hover:bg-slate-50"
+                                role="menuitem" data-filter="year" data-filter-label="This year">This year</button>
+                            <button type="button"
+                                class="lead-date-filter-option block w-full px-4 py-2.5 text-left text-sm text-concierge-navy transition hover:bg-slate-50"
+                                role="menuitem" data-filter="custom" data-filter-label="Custom date">Custom date</button>
+                        </div>
+                    </div>
                     <button type="submit"
                         class="inline-flex cursor-pointer items-center justify-center rounded-xl bg-concierge-navy px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-concierge-navy-deep">
                         Apply
                     </button>
-                    @if ($search !== '' || $selectedAgentId || $selectedCompanyId || $selectedSource !== '' || $selectedStatus !== '')
+                    @if (
+                        $search !== '' ||
+                            $selectedAgentId ||
+                            $selectedCompanyId ||
+                            $selectedSource !== '' ||
+                            $selectedStatus !== '' ||
+                            $selectedDateRange !== '')
                         <a href="{{ route('admin.leads.index') }}"
                             class="inline-flex items-center justify-center rounded-xl border border-slate-200 px-4 py-2.5 text-sm font-medium text-concierge-navy transition hover:bg-slate-50">
                             Clear
@@ -366,6 +404,7 @@
 @endsection
 
 @push('scripts')
+    @vite(['resources/js/admin-leads-filters.js'])
     <script>
         const assignLeadModal = document.getElementById('assign-lead-modal');
         const openAssignLeadModalBtn = document.getElementById('open-assign-lead-modal');

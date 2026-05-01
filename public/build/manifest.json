@@ -1,4 +1,15 @@
 {
+  "_flatpickr-CksuuEqD.css": {
+    "file": "assets/flatpickr-CksuuEqD.css",
+    "src": "_flatpickr-CksuuEqD.css"
+  },
+  "_flatpickr.min-Cc3t1Oke.js": {
+    "file": "assets/flatpickr.min-Cc3t1Oke.js",
+    "name": "flatpickr.min",
+    "css": [
+      "assets/flatpickr-CksuuEqD.css"
+    ]
+  },
   "_toastr-DxWENf-B.css": {
     "file": "assets/toastr-DxWENf-B.css",
     "src": "_toastr-DxWENf-B.css"
@@ -11,13 +22,28 @@
     ]
   },
   "resources/css/app.css": {
-    "file": "assets/app-CkOhZAAz.css",
+    "file": "assets/app-Cjvguhm_.css",
     "src": "resources/css/app.css",
     "isEntry": true,
     "name": "app",
     "names": [
       "app.css"
     ]
+  },
+  "resources/js/admin-leads-filters.js": {
+    "file": "assets/admin-leads-filters-BNiARiqQ.js",
+    "name": "admin-leads-filters",
+    "src": "resources/js/admin-leads-filters.js",
+    "isEntry": true,
+    "imports": [
+      "_flatpickr.min-Cc3t1Oke.js"
+    ]
+  },
+  "resources/js/agent-notifications-poller.js": {
+    "file": "assets/agent-notifications-poller-DcIyBRf-.js",
+    "name": "agent-notifications-poller",
+    "src": "resources/js/agent-notifications-poller.js",
+    "isEntry": true
   },
   "resources/js/agents.js": {
     "file": "assets/agents-BgQNGArw.js",
@@ -44,9 +70,12 @@
     ]
   },
   "resources/js/dashboard.js": {
-    "file": "assets/dashboard-CJ95iiUa.js",
+    "file": "assets/dashboard-IAq6dYiH.js",
     "name": "dashboard",
     "src": "resources/js/dashboard.js",
-    "isEntry": true
+    "isEntry": true,
+    "imports": [
+      "_flatpickr.min-Cc3t1Oke.js"
+    ]
   }
 }

@@ -19,6 +19,7 @@ class Lead extends Model
 
     protected $fillable = [
         'agent_id',
+        'lead_assign_date',
         'customer_name',
         'phone_number',
         'email',
@@ -27,6 +28,10 @@ class Lead extends Model
         'source',
         'notes',
         'status'
+    ];
+
+    protected $casts = [
+        'lead_assign_date' => 'datetime',
     ];
 
     /**

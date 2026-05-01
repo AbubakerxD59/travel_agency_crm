@@ -11,6 +11,9 @@ Route::prefix('admin')->name('admin.')->group(function () {
     Route::get('/dashboard', [DashboardController::class, 'index'])
         ->middleware('can:dashboard.access')
         ->name('dashboard');
+    Route::get('/dashboard/agent-performance', [DashboardController::class, 'agentPerformanceData'])
+        ->middleware('can:dashboard.access')
+        ->name('dashboard.agent-performance');
 
     Route::get('/agents/{agent}/permissions', [AgentController::class, 'permissions'])
         ->name('agents.permissions.show');
@@ -20,6 +23,8 @@ Route::prefix('admin')->name('admin.')->group(function () {
 
     Route::get('/agents/{agent}/overview', [AgentController::class, 'overview'])
         ->name('agents.overview');
+    Route::get('/agents/{agent}/overview/performance', [AgentController::class, 'overviewPerformanceData'])
+        ->name('agents.overview.performance');
 
     Route::resource('agents', AgentController::class)->only([
         'index',

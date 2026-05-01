@@ -19,6 +19,7 @@
 }
 
 @layer components {
+
     a[href],
     button,
     select,
@@ -193,12 +194,14 @@
 }
 
 @keyframes loading-dots {
+
     0%,
     80%,
     100% {
         opacity: 0.35;
         transform: translateY(0);
     }
+
     40% {
         opacity: 1;
         transform: translateY(-2px);
@@ -218,6 +221,12 @@
         right: 15%;
     }
 
+    .view-update-status-dropdown {
+        position: fixed;
+        top: 25%;
+        right: 5%;
+    }
+
     .grid-cols-3 {
         grid-template-columns: repeat(3, minmax(0, 1fr));
     }
@@ -228,6 +237,10 @@
 
     .col-span-full {
         grid-column: 1 / -1;
+    }
+
+    .w-65 {
+        width: calc(var(--spacing) * 65);
     }
 }
 

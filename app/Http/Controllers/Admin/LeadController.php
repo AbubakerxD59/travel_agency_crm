@@ -10,6 +10,8 @@ use App\Models\Company;
 use App\Models\Destination;
 use App\Models\Lead;
 use App\Models\User;
+use App\Notifications\LeadAssignedNotification;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -31,6 +33,51 @@ class LeadController extends Controller
         $companyId = $request->integer('company_id') ?: null;
         $source = trim((string) $request->query('source', ''));
         $status = trim((string) $request->query('status', ''));
+        $dateRange = trim((string) $request->query('date_range', ''));
+        $startDate = trim((string) $request->query('start_date', ''));
+        $endDate = trim((string) $request->query('end_date', ''));
+
+        $startBound = null;
+        $endBound = null;
+        $selectedDateFilterLabel = 'Date filter';
+
+        if ($dateRange === 'week') {
+            $startBound = now()->startOfWeek();
+            $endBound = now()->endOfWeek();
+            $selectedDateFilterLabel = 'This week';
+        } elseif ($dateRange === 'month') {
+            $startBound = now()->startOfMonth();
+            $endBound = now()->endOfMonth();
+            $selectedDateFilterLabel = 'This month';
+        } elseif ($dateRange === 'year') {
+            $startBound = now()->startOfYear();
+            $endBound = now()->endOfYear();
+            $selectedDateFilterLabel = 'This year';
+        } elseif ($dateRange === 'custom' && $startDate !== '' && $endDate !== '') {
+            try {
+                $startBound = now()->parse($startDate)->startOfDay();
+                $endBound = now()->parse($endDate)->endOfDay();
+                if ($startBound->gt($endBound)) {
+                    $startBound = null;
+                    $endBound = null;
+                    $dateRange = '';
+                    $startDate = '';
+                    $endDate = '';
+                } else {
+                    $selectedDateFilterLabel = $startBound->format('Y-m-d').' - '.$endBound->format('Y-m-d');
+                }
+            } catch (Throwable) {
+                $startBound = null;
+                $endBound = null;
+                $dateRange = '';
+                $startDate = '';
+                $endDate = '';
+            }
+        } else {
+            $dateRange = '';
+            $startDate = '';
+            $endDate = '';
+        }
 
         $leadsQuery = Lead::query()
             ->with(['agent', 'company', 'destination'])
@@ -52,6 +99,10 @@ class LeadController extends Controller
             $leadsQuery->where('status', $status);
         }
 
+        if ($startBound !== null && $endBound !== null) {
+            $leadsQuery->whereBetween('created_at', [$startBound, $endBound]);
+        }
+
         if ($search !== '') {
             $leadsQuery->where(function ($query) use ($search): void {
                 $query
@@ -65,9 +116,34 @@ class LeadController extends Controller
             ->paginate(15)
             ->withQueryString();
 
-        $totalLeads = Lead::query()->count();
-        $totalClosed = Lead::query()->where('status', Lead::STATUS_SALE_DONE)->count();
-        $totalFailed = Lead::query()->where('status', Lead::STATUS_NOT_CONVERTED)->count();
+        $statsQuery = Lead::query();
+        if ($companyId !== null) {
+            $statsQuery->where('company_id', $companyId);
+        }
+        if ($agentId !== null) {
+            $statsQuery->where('agent_id', $agentId);
+        }
+        if ($source !== '') {
+            $statsQuery->where('source', $source);
+        }
+        if ($status !== '') {
+            $statsQuery->where('status', $status);
+        }
+        if ($startBound !== null && $endBound !== null) {
+            $statsQuery->whereBetween('created_at', [$startBound, $endBound]);
+        }
+        if ($search !== '') {
+            $statsQuery->where(function ($query) use ($search): void {
+                $query
+                    ->where('customer_name', 'like', '%'.$search.'%')
+                    ->orWhere('phone_number', 'like', '%'.$search.'%')
+                    ->orWhere('email', 'like', '%'.$search.'%');
+            });
+        }
+
+        $totalLeads = (clone $statsQuery)->count();
+        $totalClosed = (clone $statsQuery)->where('status', Lead::STATUS_SALE_DONE)->count();
+        $totalFailed = (clone $statsQuery)->where('status', Lead::STATUS_NOT_CONVERTED)->count();
         $totalPending = max(0, $totalLeads - $totalClosed - $totalFailed);
 
         $leadsSuccessRatePercent = $totalLeads > 0
@@ -81,6 +157,10 @@ class LeadController extends Controller
             'selectedCompanyId' => $companyId,
             'selectedSource' => $source,
             'selectedStatus' => $status,
+            'selectedDateRange' => $dateRange,
+            'selectedStartDate' => $startDate,
+            'selectedEndDate' => $endDate,
+            'selectedDateFilterLabel' => $selectedDateFilterLabel,
             'companies' => Company::query()->orderBy('name')->get(['id', 'name']),
             'sources' => Lead::query()
                 ->whereNotNull('source')
@@ -114,8 +194,9 @@ class LeadController extends Controller
             return back()->withInput()->with('error', __('Please add a destination first, then assign the lead.'));
         }
 
-        Lead::create([
+        $lead = Lead::create([
             'agent_id' => $data['agent_id'] ?? null,
+            'lead_assign_date' => ! empty($data['agent_id']) ? now() : null,
             'customer_name' => $data['customer_name'],
             'phone_number' => $data['phone_number'],
             'email' => $data['email'] ?? null,
@@ -134,6 +215,8 @@ class LeadController extends Controller
             'ziarat_madinah' => false,
         ]);
 
+        $this->notifyAssignedAgent($lead, null, (int) ($data['agent_id'] ?? 0));
+
         return redirect()
             ->route('admin.leads.index')
             ->with('status', __('Lead assigned successfully.'));
@@ -142,6 +225,8 @@ class LeadController extends Controller
     public function updateAssign(AssignLeadRequest $request, Lead $lead): RedirectResponse
     {
         $data = $request->validated();
+        $previousAgentId = (int) ($lead->agent_id ?? 0);
+        $nextAgentId = $data['agent_id'] ?? null;
 
         $companyId = $data['company_id'] ?? $lead->company_id ?? Company::query()->value('id');
         if ($companyId === null) {
@@ -149,7 +234,10 @@ class LeadController extends Controller
         }
 
         $lead->update([
-            'agent_id' => $data['agent_id'] ?? null,
+            'agent_id' => $nextAgentId,
+            'lead_assign_date' => $nextAgentId === null
+                ? null
+                : ($lead->agent_id !== (int) $nextAgentId ? now() : $lead->lead_assign_date),
             'customer_name' => $data['customer_name'],
             'phone_number' => $data['phone_number'],
             'email' => $data['email'] ?? null,
@@ -158,6 +246,8 @@ class LeadController extends Controller
             'source' => $data['source'] ?? null,
             'notes' => $data['notes'] ?? null,
         ]);
+        $lead->refresh();
+        $this->notifyAssignedAgent($lead, $previousAgentId, (int) ($nextAgentId ?? 0));
 
         return redirect()
             ->route('admin.leads.index')
@@ -214,7 +304,7 @@ class LeadController extends Controller
     {
         try {
             DB::transaction(function () use ($request): void {
-                $lead = Lead::create($request->safe()->only([
+                $payload = $request->safe()->only([
                     'agent_id',
                     'order_type',
                     'vendor_reference',
@@ -226,7 +316,10 @@ class LeadController extends Controller
                     'flight_itinerary',
                     'ziarat_makkah',
                     'ziarat_madinah',
-                ]));
+                ]);
+                $payload['lead_assign_date'] = ! empty($payload['agent_id']) ? now() : null;
+
+                $lead = Lead::create($payload);
 
                 $itineraries = $request->safe()->input('itineraries', []);
                 $lead->itineraries()->createMany($itineraries);
@@ -236,6 +329,8 @@ class LeadController extends Controller
 
                 $packageCosts = $request->safe()->input('package_costs', []);
                 $lead->packageCosts()->createMany($packageCosts);
+
+                $this->notifyAssignedAgent($lead, null, (int) ($payload['agent_id'] ?? 0));
             });
         } catch (Throwable $e) {
             report($e);
@@ -254,7 +349,8 @@ class LeadController extends Controller
     {
         try {
             DB::transaction(function () use ($request, $lead): void {
-                $lead->update($request->safe()->only([
+                $previousAgentId = (int) ($lead->agent_id ?? 0);
+                $payload = $request->safe()->only([
                     'agent_id',
                     'order_type',
                     'vendor_reference',
@@ -266,7 +362,14 @@ class LeadController extends Controller
                     'flight_itinerary',
                     'ziarat_makkah',
                     'ziarat_madinah',
-                ]));
+                ]);
+
+                $nextAgentId = $payload['agent_id'] ?? null;
+                $payload['lead_assign_date'] = $nextAgentId === null
+                    ? null
+                    : ((int) $lead->agent_id !== (int) $nextAgentId ? now() : $lead->lead_assign_date);
+
+                $lead->update($payload);
 
                 $lead->itineraries()->delete();
                 $lead->passengers()->delete();
@@ -275,6 +378,8 @@ class LeadController extends Controller
                 $lead->itineraries()->createMany($request->safe()->input('itineraries', []));
                 $lead->passengers()->createMany($request->safe()->input('passengers', []));
                 $lead->packageCosts()->createMany($request->safe()->input('package_costs', []));
+
+                $this->notifyAssignedAgent($lead->fresh(), $previousAgentId, (int) ($nextAgentId ?? 0));
             });
         } catch (Throwable $e) {
             report($e);
@@ -302,5 +407,37 @@ class LeadController extends Controller
         return redirect()
             ->route('admin.leads.index')
             ->with('status', __('Lead deleted successfully.'));
+    }
+
+    private function notifyAssignedAgent(Lead $lead, ?int $previousAgentId, int $nextAgentId): void
+    {
+        if ($nextAgentId <= 0) {
+            return;
+        }
+
+        // Only send notification when lead is newly assigned or reassigned.
+        if ($previousAgentId !== null && $previousAgentId === $nextAgentId) {
+            return;
+        }
+
+        $agent = User::query()->find($nextAgentId);
+        if (! $agent || ! $agent->hasRole('agent')) {
+            return;
+        }
+
+        $agent->notify(new LeadAssignedNotification(
+            $lead,
+            $previousAgentId !== null && $previousAgentId > 0 && $previousAgentId !== $nextAgentId
+        ));
+
+        // Keep sent_at null until polling endpoint fetches the notification once.
+        if (Schema::hasColumn('notifications', 'sent_at')) {
+            $agent->notifications()
+                ->where('type', LeadAssignedNotification::class)
+                ->where('data->lead_id', $lead->id)
+                ->latest()
+                ->limit(1)
+                ->update(['sent_at' => null]);
+        }
     }
 }

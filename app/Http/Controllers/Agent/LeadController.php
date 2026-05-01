@@ -88,6 +88,7 @@ class LeadController extends Controller
 
         return view('agent.leads.show', [
             'lead' => $lead,
+            'statuses' => Lead::statusLabels(),
         ]);
     }
 
