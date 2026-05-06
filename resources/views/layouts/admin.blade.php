@@ -10,7 +10,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     @vite(['resources/css/app.css', 'resources/js/app.js'])
 </head>
-<body class="min-h-screen bg-concierge-page font-sans text-slate-800 antialiased">
+<body class="min-h-screen bg-concierge-page font-sans text-slate-800 antialiased @yield('body_class')">
     <div
         id="admin-sidebar-overlay"
         class="admin-sidebar-overlay fixed inset-0 z-[100] bg-slate-900/55 backdrop-blur-[2px] lg:hidden"

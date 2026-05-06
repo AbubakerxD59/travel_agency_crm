@@ -25,19 +25,7 @@
         @endif
 
         <form method="GET" action="{{ route('agent.leads.index') }}" class="mt-6">
-            <div class="grid grid-cols-1 gap-3 md:grid-cols-3">
-                <div>
-                    <label for="lead-company-filter" class="block text-sm font-medium text-concierge-navy">Company</label>
-                    <select id="lead-company-filter" name="company_id"
-                        class="mt-1.5 w-full rounded-xl border border-slate-200 bg-slate-50/80 px-4 py-2.5 text-sm text-slate-800 focus:border-concierge-accent focus:bg-white focus:outline-none focus:ring-2 focus:ring-concierge-accent/20">
-                        <option value="">All companies</option>
-                        @foreach ($companies as $company)
-                            <option value="{{ $company->id }}" @selected((string) $selectedCompanyId === (string) $company->id)>
-                                {{ $company->name }}
-                            </option>
-                        @endforeach
-                    </select>
-                </div>
+            <div class="grid grid-cols-1 gap-3 md:grid-cols-2">
                 <div>
                     <label for="lead-source-filter" class="block text-sm font-medium text-concierge-navy">Source</label>
                     <select id="lead-source-filter" name="source"
@@ -73,7 +61,7 @@
                         class="inline-flex cursor-pointer items-center justify-center rounded-xl bg-concierge-navy px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-concierge-navy-deep">
                         Apply
                     </button>
-                    @if ($search !== '' || $selectedCompanyId || $selectedSource !== '' || $selectedStatus !== '')
+                    @if ($search !== '' || $selectedSource !== '' || $selectedStatus !== '')
                         <a href="{{ route('agent.leads.index') }}"
                             class="inline-flex items-center justify-center rounded-xl border border-slate-200 px-4 py-2.5 text-sm font-medium text-concierge-navy transition hover:bg-slate-50">
                             Clear
@@ -175,6 +163,40 @@
                 </div>
             @endif
         </div>
+
+        <div id="not-converted-modal"
+            class="fixed inset-0 z-[100] hidden items-center justify-center bg-slate-900/40 p-4"
+            aria-hidden="true" role="dialog" aria-modal="true" aria-labelledby="not-converted-modal-title">
+            <div class="w-full max-w-lg rounded-2xl border border-slate-200 bg-white shadow-xl">
+                <div class="border-b border-slate-100 px-6 py-4">
+                    <h2 id="not-converted-modal-title" class="text-lg font-semibold text-concierge-navy">Not converted
+                    </h2>
+                    <p class="mt-1 text-sm text-concierge-muted">Please provide a reason. This is saved with the lead.
+                    </p>
+                </div>
+                <div class="space-y-4 px-6 py-5">
+                    <div>
+                        <label for="not-converted-reason-input" class="block text-sm font-medium text-concierge-navy">
+                            Reason <span class="text-rose-600">*</span>
+                        </label>
+                        <textarea id="not-converted-reason-input" rows="4" maxlength="1000"
+                            class="mt-1.5 w-full rounded-xl border border-slate-200 bg-slate-50/80 px-4 py-2.5 text-sm text-concierge-navy placeholder:text-slate-400 focus:border-concierge-accent focus:bg-white focus:outline-none focus:ring-2 focus:ring-concierge-accent/20"
+                            placeholder="e.g. Customer chose another agency, budget constraints…"></textarea>
+                    </div>
+                    <p id="not-converted-modal-error" class="hidden text-sm text-rose-600" role="alert"></p>
+                </div>
+                <div class="flex flex-col-reverse gap-2 border-t border-slate-100 px-6 py-4 sm:flex-row sm:justify-end">
+                    <button type="button" id="not-converted-modal-cancel"
+                        class="inline-flex cursor-pointer items-center justify-center rounded-xl border border-slate-200 px-4 py-2.5 text-sm font-medium text-concierge-navy transition hover:bg-slate-50">
+                        Cancel
+                    </button>
+                    <button type="button" id="not-converted-modal-submit"
+                        class="inline-flex cursor-pointer items-center justify-center rounded-xl bg-concierge-navy px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-concierge-navy-deep">
+                        Update status
+                    </button>
+                </div>
+            </div>
+        </div>
     </div>
 @endsection
 
@@ -212,6 +234,25 @@
                 alert(message);
             }
 
+            function toastError(message) {
+                if (window.toastr) {
+                    window.toastr.error(message);
+                    return;
+                }
+
+                alert(message);
+            }
+
+            const STATUS_NOT_CONVERTED = 'not_converted';
+            const notConvertedModal = document.getElementById('not-converted-modal');
+            const notConvertedReasonInput = document.getElementById('not-converted-reason-input');
+            const notConvertedModalError = document.getElementById('not-converted-modal-error');
+            const notConvertedModalCancel = document.getElementById('not-converted-modal-cancel');
+            const notConvertedModalSubmit = document.getElementById('not-converted-modal-submit');
+
+            let notConvertedPendingUrl = '';
+            let notConvertedPendingLeadId = '';
+
             function closeAllDropdowns() {
                 document.querySelectorAll('[data-status-dropdown]').forEach((dropdown) => {
                     dropdown.classList.add('hidden');
@@ -226,7 +267,57 @@
                 });
             }
 
-            async function updateLeadStatus(url, status) {
+            function hideNotConvertedModalError() {
+                if (!notConvertedModalError) {
+                    return;
+                }
+                notConvertedModalError.classList.add('hidden');
+                notConvertedModalError.textContent = '';
+            }
+
+            function showNotConvertedModalError(message) {
+                if (!notConvertedModalError) {
+                    return;
+                }
+                notConvertedModalError.textContent = message;
+                notConvertedModalError.classList.remove('hidden');
+            }
+
+            function openNotConvertedModal(url, leadId) {
+                if (!notConvertedModal || !notConvertedReasonInput) {
+                    return;
+                }
+                notConvertedPendingUrl = url;
+                notConvertedPendingLeadId = leadId;
+                notConvertedReasonInput.value = '';
+                hideNotConvertedModalError();
+                notConvertedModal.classList.remove('hidden');
+                notConvertedModal.classList.add('flex');
+                notConvertedModal.setAttribute('aria-hidden', 'false');
+                notConvertedReasonInput.focus();
+            }
+
+            function closeNotConvertedModal() {
+                if (!notConvertedModal || !notConvertedReasonInput) {
+                    return;
+                }
+                notConvertedModal.classList.add('hidden');
+                notConvertedModal.classList.remove('flex');
+                notConvertedModal.setAttribute('aria-hidden', 'true');
+                notConvertedPendingUrl = '';
+                notConvertedPendingLeadId = '';
+                notConvertedReasonInput.value = '';
+                hideNotConvertedModalError();
+            }
+
+            async function updateLeadStatus(url, status, notConvertedReason = null) {
+                const body = {
+                    status,
+                };
+                if (status === STATUS_NOT_CONVERTED) {
+                    body.not_converted_reason = notConvertedReason;
+                }
+
                 const response = await fetch(url, {
                     method: 'PATCH',
                     headers: {
@@ -234,23 +325,101 @@
                         'Accept': 'application/json',
                         'X-CSRF-TOKEN': csrfToken ?? '',
                     },
-                    body: JSON.stringify({
-                        status,
-                    }),
+                    body: JSON.stringify(body),
                 });
 
                 if (!response.ok) {
-                    throw new Error('Failed to update lead status.');
+                    let message = 'Failed to update lead status.';
+                    try {
+                        const errorPayload = await response.json();
+                        if (errorPayload?.errors?.not_converted_reason?.[0]) {
+                            message = errorPayload.errors.not_converted_reason[0];
+                        } else if (errorPayload?.message) {
+                            message = errorPayload.message;
+                        }
+                    } catch (error) {
+                        console.log(error);
+                    }
+                    throw new Error(message);
                 }
 
                 return response.json();
             }
+
+            function applyStatusUpdatePayload(leadId, payload, status) {
+                const statusPill = document.querySelector(`[data-lead-status-pill="${leadId}"]`);
+                if (statusPill) {
+                    statusPill.textContent = payload.status_label ?? status;
+                    statusPill.className = `concierge-pill concierge-pill-${payload.status_pill_class ?? 'meta'}`;
+                }
+                const toggle = document.querySelector(`[data-status-toggle][data-lead-id="${leadId}"]`);
+                if (toggle) {
+                    toggle.setAttribute('data-current-status', payload.status ?? status);
+                }
+                setStatusSelection(leadId, payload.status ?? status);
+                toastSuccess(payload.message ?? 'Lead status updated successfully.');
+            }
+
+            notConvertedModalCancel?.addEventListener('click', () => {
+                closeNotConvertedModal();
+            });
+
+            notConvertedReasonInput?.addEventListener('input', () => {
+                hideNotConvertedModalError();
+            });
+
+            notConvertedModal?.addEventListener('click', (event) => {
+                if (event.target === notConvertedModal) {
+                    closeNotConvertedModal();
+                }
+            });
+
+            notConvertedModalSubmit?.addEventListener('click', async () => {
+                const reason = (notConvertedReasonInput?.value ?? '').trim();
+                if (!reason) {
+                    showNotConvertedModalError('Please enter a reason.');
+                    return;
+                }
+                hideNotConvertedModalError();
+                const url = notConvertedPendingUrl;
+                const leadId = notConvertedPendingLeadId;
+                if (!url || !leadId) {
+                    showNotConvertedModalError('Something went wrong. Please try again.');
+                    return;
+                }
+
+                notConvertedModalSubmit.disabled = true;
+                try {
+                    const payload = await updateLeadStatus(url, STATUS_NOT_CONVERTED, reason);
+                    applyStatusUpdatePayload(leadId, payload, STATUS_NOT_CONVERTED);
+                    closeNotConvertedModal();
+                } catch (error) {
+                    console.log(error);
+                    showNotConvertedModalError(
+                        error instanceof Error ? error.message : 'Could not update status. Please try again.');
+                } finally {
+                    notConvertedModalSubmit.disabled = false;
+                }
+            });
+
+            document.addEventListener('keydown', (event) => {
+                if (event.key !== 'Escape') {
+                    return;
+                }
+                if (notConvertedModal && !notConvertedModal.classList.contains('hidden')) {
+                    closeNotConvertedModal();
+                }
+            });
 
             document.addEventListener('click', async (event) => {
                 const toggleButton = event.target.closest('[data-status-toggle]');
                 const statusOptionButton = event.target.closest('[data-status-option]');
 
                 if (toggleButton) {
+                    if (notConvertedModal && !notConvertedModal.classList.contains('hidden')) {
+                        closeNotConvertedModal();
+                    }
+
                     const leadId = toggleButton.getAttribute('data-lead-id');
                     if (!leadId) {
                         return;
@@ -270,6 +439,10 @@
                 }
 
                 if (!statusOptionButton) {
+                    if (notConvertedModal && !notConvertedModal.classList.contains('hidden')
+                        && notConvertedModal.contains(event.target)) {
+                        return;
+                    }
                     closeAllDropdowns();
                     return;
                 }
@@ -283,24 +456,21 @@
                     return;
                 }
 
+                if (status === STATUS_NOT_CONVERTED) {
+                    closeAllDropdowns();
+                    openNotConvertedModal(url, leadId);
+                    return;
+                }
+
                 statusOptionButton.disabled = true;
                 statusOptionButton.classList.add('opacity-60');
 
                 try {
                     const payload = await updateLeadStatus(url, status);
-                    const statusPill = document.querySelector(`[data-lead-status-pill="${leadId}"]`);
-                    if (statusPill) {
-                        statusPill.textContent = payload.status_label ?? status;
-                        statusPill.className = `concierge-pill concierge-pill-${payload.status_pill_class ?? 'meta'}`;
-                    }
-                    if (toggle) {
-                        toggle.setAttribute('data-current-status', payload.status ?? status);
-                    }
-                    setStatusSelection(leadId, payload.status ?? status);
-                    toastSuccess(payload.message ?? 'Lead status updated successfully.');
+                    applyStatusUpdatePayload(leadId, payload, status);
                 } catch (error) {
                     console.log(error);
-                    alert('Could not update status. Please try again.');
+                    toastError(error instanceof Error ? error.message : 'Could not update status. Please try again.');
                 } finally {
                     statusOptionButton.disabled = false;
                     statusOptionButton.classList.remove('opacity-60');

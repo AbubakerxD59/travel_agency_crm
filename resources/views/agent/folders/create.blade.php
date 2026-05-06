@@ -5,9 +5,10 @@
 @endphp
 
 @section('title', $isEditMode ? 'Edit folder' : 'New folder')
+@section('body_class', 'folder-form-sidebar-drawer')
 
 @section('content')
-    <div class="mx-auto max-w-7xl">
+    <div class="mx-auto max-w-8xl">
         <div class="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
             <div>
                 <h1 class="text-2xl font-bold text-concierge-navy lg:text-3xl">
@@ -70,14 +71,22 @@
                     if (!is_array($hotelDetailRows) || count($hotelDetailRows) === 0) {
                         $hotelDetailRows = [[]];
                     }
+                    $passengerTitles = \App\Models\FolderPassenger::titles();
+                    $passengerTypes = \App\Models\FolderPassenger::passengerTypes();
                 @endphp
 
                 <div class="grid grid-cols-1 gap-4 lg:grid-cols-3">
                     <div class="min-w-0">
                         <label for="lead_order_type" class="block text-sm font-medium text-concierge-navy"><span
                                 class="text-rose-600">*</span> Order type</label>
-                        <input id="lead_order_type" name="order_type" type="text" required
-                            value="{{ old('order_type', $lead->order_type ?? '') }}" placeholder="e.g. Umrah package" class="{{ $fieldClass }}">
+                        <select id="lead_order_type" name="order_type" required class="{{ $fieldClass }}">
+                            <option value="" disabled @selected(!old('order_type', $lead->order_type ?? null))>Select order type</option>
+                            @foreach (\App\Models\Folder::orderTypes() as $orderType)
+                                <option value="{{ $orderType }}" @selected(old('order_type', $lead->order_type ?? null) === $orderType)>
+                                    {{ $orderType }}
+                                </option>
+                            @endforeach
+                        </select>
                     </div>
                     <div class="min-w-0">
                         <label for="lead_vendor_reference" class="block text-sm font-medium text-concierge-navy"><span
@@ -131,21 +140,29 @@
                     </div>
                     <div class="min-w-0">
                         @php
-                            $selectedZiarat = old(
-                                'ziarat_option',
-                                ($lead->makkah_ziarat ?? false ? 'makkah' : (($lead->madinah_ziarat ?? false) ? 'madinah' : '')),
-                            );
+                            $selectedZiarat = old('ziarat_option');
+                            if (!is_array($selectedZiarat)) {
+                                $selectedZiarat = [];
+                            }
+                            if ($selectedZiarat === []) {
+                                if ($lead->makkah_ziarat ?? false) {
+                                    $selectedZiarat[] = 'makkah';
+                                }
+                                if ($lead->madinah_ziarat ?? false) {
+                                    $selectedZiarat[] = 'madinah';
+                                }
+                            }
                         @endphp
                         <span class="block text-sm font-medium text-concierge-navy">Ziarat</span>
                         <div class="relative mt-1.5" id="ziarat-dropdown-wrapper">
-                            <input type="hidden" name="ziarat_option" id="lead_ziarat_option"
-                                value="{{ $selectedZiarat }}">
                             <button type="button" id="ziarat-dropdown-toggle"
                                 class="flex min-h-[2.625rem] w-full items-center justify-between rounded-xl border border-slate-200/80 bg-slate-50/50 px-4 py-2.5 text-sm text-concierge-navy transition hover:bg-slate-100">
                                 <span id="ziarat-dropdown-label">
-                                    @if ($selectedZiarat === 'makkah')
+                                    @if (count($selectedZiarat) === 2)
+                                        Makkah, Madinah
+                                    @elseif(in_array('makkah', $selectedZiarat, true))
                                         Makkah
-                                    @elseif($selectedZiarat === 'madinah')
+                                    @elseif(in_array('madinah', $selectedZiarat, true))
                                         Madinah
                                     @else
                                         Select ziarat
@@ -159,15 +176,15 @@
                             <div id="ziarat-dropdown-menu"
                                 class="absolute z-20 mt-1 hidden w-full rounded-xl border border-slate-200 bg-white p-3 shadow-lg">
                                 <label class="flex cursor-pointer items-center gap-2 text-sm text-concierge-navy">
-                                    <input type="checkbox" data-ziarat-checkbox value="makkah"
+                                    <input type="checkbox" data-ziarat-checkbox value="makkah" name="ziarat_option[]"
                                         class="rounded border-slate-300 text-concierge-accent focus:ring-concierge-accent/30"
-                                        @checked($selectedZiarat === 'makkah')>
+                                        @checked(in_array('makkah', $selectedZiarat, true))>
                                     Makkah
                                 </label>
                                 <label class="mt-2 flex cursor-pointer items-center gap-2 text-sm text-concierge-navy">
-                                    <input type="checkbox" data-ziarat-checkbox value="madinah"
+                                    <input type="checkbox" data-ziarat-checkbox value="madinah" name="ziarat_option[]"
                                         class="rounded border-slate-300 text-concierge-accent focus:ring-concierge-accent/30"
-                                        @checked($selectedZiarat === 'madinah')>
+                                        @checked(in_array('madinah', $selectedZiarat, true))>
                                     Madinah
                                 </label>
                             </div>
@@ -359,8 +376,7 @@
                                         Email</th>
                                     <th class="border border-slate-200 px-2 py-2"><span class="text-rose-600">*</span>
                                         Phone</th>
-                                    <th class="border border-slate-200 px-2 py-2"><span class="text-rose-600">*</span>
-                                        Date of birth</th>
+                                    <th class="border border-slate-200 px-2 py-2">Date of birth</th>
                                     <th class="border border-slate-200 px-2 py-2">Passport details</th>
                                 </tr>
                             </thead>
@@ -374,9 +390,18 @@
                                             </button>
                                         </td>
                                         <td class="border border-slate-200 px-2 py-2">
-                                            <input type="text" name="passengers[{{ $i }}][title]"
-                                                value="{{ data_get($row, 'title') }}"
-                                                class="w-16 rounded-lg border border-slate-200 bg-white px-2 py-1.5 text-sm">
+                                            @php
+                                                $selTitle = old("passengers.$i.title", data_get($row, 'title'));
+                                                $titleValid = in_array($selTitle, $passengerTitles, true);
+                                            @endphp
+                                            <select name="passengers[{{ $i }}][title]" required
+                                                class="min-w-[8rem] w-full max-w-[10rem] rounded-lg border border-slate-200 bg-white px-2 py-1.5 text-sm focus:border-concierge-accent focus:outline-none focus:ring-2 focus:ring-concierge-accent/20">
+                                                <option value="" disabled @selected(!$titleValid)>Select title</option>
+                                                @foreach ($passengerTitles as $passengerTitle)
+                                                    <option value="{{ $passengerTitle }}"
+                                                        @selected($titleValid && $selTitle === $passengerTitle)>{{ $passengerTitle }}</option>
+                                                @endforeach
+                                            </select>
                                         </td>
                                         <td class="border border-slate-200 px-2 py-2">
                                             <input type="text" name="passengers[{{ $i }}][first_name]"
@@ -394,9 +419,18 @@
                                                 class="w-28 rounded-lg border border-slate-200 bg-white px-2 py-1.5 text-sm">
                                         </td>
                                         <td class="border border-slate-200 px-2 py-2">
-                                            <input type="text" name="passengers[{{ $i }}][passenger_type]"
-                                                value="{{ data_get($row, 'passenger_type') }}"
-                                                class="w-24 rounded-lg border border-slate-200 bg-white px-2 py-1.5 text-sm">
+                                            @php
+                                                $selPassengerType = old("passengers.$i.passenger_type", data_get($row, 'passenger_type'));
+                                                $passengerTypeValid = in_array($selPassengerType, $passengerTypes, true);
+                                            @endphp
+                                            <select name="passengers[{{ $i }}][passenger_type]" required
+                                                class="min-w-[10rem] w-full max-w-[12rem] rounded-lg border border-slate-200 bg-white px-2 py-1.5 text-sm focus:border-concierge-accent focus:outline-none focus:ring-2 focus:ring-concierge-accent/20">
+                                                <option value="" disabled @selected(!$passengerTypeValid)>Select passenger type</option>
+                                                @foreach ($passengerTypes as $passengerType)
+                                                    <option value="{{ $passengerType }}"
+                                                        @selected($passengerTypeValid && $selPassengerType === $passengerType)>{{ $passengerType }}</option>
+                                                @endforeach
+                                            </select>
                                         </td>
                                         <td class="border border-slate-200 px-2 py-2">
                                             <input type="email" name="passengers[{{ $i }}][email]"
@@ -529,10 +563,10 @@
                                                 class="w-24 rounded-lg border border-slate-200 bg-white px-2 py-1.5 text-sm">
                                         </td>
                                         <td class="border border-slate-200 px-2 py-2">
-                                            <input type="number" min="0" step="0.01"
+                                            <input type="number" step="0.01" readonly tabindex="-1"
                                                 name="package_costs[{{ $i }}][margin]"
                                                 value="{{ data_get($row, 'margin') }}"
-                                                class="w-20 rounded-lg border border-slate-200 bg-white px-2 py-1.5 text-sm">
+                                                class="w-20 cursor-not-allowed rounded-lg border border-slate-200 bg-slate-50/80 px-2 py-1.5 text-sm text-slate-700">
                                         </td>
                                         <td class="border border-slate-200 px-2 py-2">
                                             <input type="number" min="0" step="0.01"
@@ -606,9 +640,9 @@
                                     <th class="border border-slate-200 px-2 py-2"><span class="text-rose-600">*</span>
                                         Meals</th>
                                     <th class="border border-slate-200 px-2 py-2"><span class="text-rose-600">*</span>
-                                        Date in</th>
+                                        Check-in</th>
                                     <th class="border border-slate-200 px-2 py-2"><span class="text-rose-600">*</span>
-                                        Date out</th>
+                                        Check-out</th>
                                     <th class="border border-slate-200 px-2 py-2"><span class="text-rose-600">*</span>
                                         Nights</th>
                                     <th class="border border-slate-200 px-2 py-2"><span class="text-rose-600">*</span>
@@ -697,10 +731,10 @@
                                                 class="w-20 rounded-lg border border-slate-200 bg-white px-2 py-1.5 text-sm">
                                         </td>
                                         <td class="border border-slate-200 px-2 py-2">
-                                            <input type="number" step="0.01"
+                                            <input type="number" step="0.01" readonly tabindex="-1"
                                                 name="hotel_details[{{ $i }}][margin]"
                                                 value="{{ data_get($row, 'margin') }}"
-                                                class="w-20 rounded-lg border border-slate-200 bg-white px-2 py-1.5 text-sm">
+                                                class="w-20 cursor-not-allowed rounded-lg border border-slate-200 bg-slate-50/80 px-2 py-1.5 text-sm text-slate-700">
                                         </td>
                                         <td class="border border-slate-200 px-2 py-2">
                                             <input type="number" min="0" step="0.01"
@@ -744,26 +778,29 @@
             const ziaratToggleButton = document.getElementById('ziarat-dropdown-toggle');
             const ziaratMenu = document.getElementById('ziarat-dropdown-menu');
             const ziaratLabel = document.getElementById('ziarat-dropdown-label');
-            const ziaratHiddenInput = document.getElementById('lead_ziarat_option');
             const ziaratCheckboxes = [...document.querySelectorAll('input[data-ziarat-checkbox]')];
 
             function closeZiaratMenu() {
                 ziaratMenu?.classList.add('hidden');
             }
 
-            function updateZiaratLabel(value) {
+            function updateZiaratLabel() {
                 if (!ziaratLabel) {
                     return;
                 }
-                if (value === 'makkah') {
+                const selected = ziaratCheckboxes
+                    .filter((checkbox) => checkbox instanceof HTMLInputElement && checkbox.checked)
+                    .map((checkbox) => checkbox.value);
+
+                if (selected.length === 2) {
+                    ziaratLabel.textContent = 'Makkah, Madinah';
+                } else if (selected.includes('makkah')) {
                     ziaratLabel.textContent = 'Makkah';
-                    return;
-                }
-                if (value === 'madinah') {
+                } else if (selected.includes('madinah')) {
                     ziaratLabel.textContent = 'Madinah';
-                    return;
+                } else {
+                    ziaratLabel.textContent = 'Select ziarat';
                 }
-                ziaratLabel.textContent = 'Select ziarat';
             }
 
             ziaratToggleButton?.addEventListener('click', () => {
@@ -775,26 +812,11 @@
                     if (!(checkbox instanceof HTMLInputElement)) {
                         return;
                     }
-
-                    if (checkbox.checked) {
-                        ziaratCheckboxes.forEach((item) => {
-                            if (item !== checkbox && item instanceof HTMLInputElement) {
-                                item.checked = false;
-                            }
-                        });
-                        if (ziaratHiddenInput instanceof HTMLInputElement) {
-                            ziaratHiddenInput.value = checkbox.value;
-                        }
-                        updateZiaratLabel(checkbox.value);
-                        return;
-                    }
-
-                    if (ziaratHiddenInput instanceof HTMLInputElement) {
-                        ziaratHiddenInput.value = '';
-                    }
-                    updateZiaratLabel('');
+                    updateZiaratLabel();
                 });
             });
+
+            updateZiaratLabel();
 
             document.addEventListener('click', (event) => {
                 if (!ziaratWrapper || !(event.target instanceof Node)) {
@@ -1081,12 +1103,15 @@
                 return;
             }
 
-            const fields = [
-                ['title', 'text', 'w-16', null],
+            const passengerTitleOptions = @json(\App\Models\FolderPassenger::titles());
+            const passengerTypeOptions = @json(\App\Models\FolderPassenger::passengerTypes());
+
+            const nameFields = [
                 ['first_name', 'text', 'w-28', null],
                 ['middle_name', 'text', 'w-28', null],
                 ['last_name', 'text', 'w-28', null],
-                ['passenger_type', 'text', 'w-24', null],
+            ];
+            const afterPassengerTypeFields = [
                 ['email', 'email', 'w-40', null],
                 ['phone', 'text', 'w-32', null],
                 ['date_of_birth', 'date', 'w-36', null],
@@ -1095,6 +1120,48 @@
 
             function inputClass(sizeClass) {
                 return `${sizeClass} rounded-lg border border-slate-200 bg-white px-2 py-1.5 text-sm`;
+            }
+
+            function makeTitleSelect(index) {
+                const sel = document.createElement('select');
+                sel.name = `passengers[${index}][title]`;
+                sel.required = true;
+                sel.className =
+                    `${inputClass('min-w-[8rem] w-full max-w-[10rem]')} focus:border-concierge-accent focus:outline-none focus:ring-2 focus:ring-concierge-accent/20`;
+                const placeholder = document.createElement('option');
+                placeholder.value = '';
+                placeholder.disabled = true;
+                placeholder.selected = true;
+                placeholder.textContent = 'Select title';
+                sel.appendChild(placeholder);
+                passengerTitleOptions.forEach((t) => {
+                    const opt = document.createElement('option');
+                    opt.value = t;
+                    opt.textContent = t;
+                    sel.appendChild(opt);
+                });
+                return sel;
+            }
+
+            function makePassengerTypeSelect(index) {
+                const sel = document.createElement('select');
+                sel.name = `passengers[${index}][passenger_type]`;
+                sel.required = true;
+                sel.className =
+                    `${inputClass('min-w-[10rem] w-full max-w-[12rem]')} focus:border-concierge-accent focus:outline-none focus:ring-2 focus:ring-concierge-accent/20`;
+                const placeholder = document.createElement('option');
+                placeholder.value = '';
+                placeholder.disabled = true;
+                placeholder.selected = true;
+                placeholder.textContent = 'Select passenger type';
+                sel.appendChild(placeholder);
+                passengerTypeOptions.forEach((t) => {
+                    const opt = document.createElement('option');
+                    opt.value = t;
+                    opt.textContent = t;
+                    sel.appendChild(opt);
+                });
+                return sel;
             }
 
             function makeInput(index, field, type, sizeClass, minValue) {
@@ -1106,6 +1173,15 @@
                     input.min = minValue;
                 }
                 return input;
+            }
+
+            function appendFieldCells(row, index, fieldDefs) {
+                fieldDefs.forEach(([field, type, sizeClass, minValue]) => {
+                    const cell = document.createElement('td');
+                    cell.className = 'border border-slate-200 px-2 py-2';
+                    cell.appendChild(makeInput(index, field, type, sizeClass, minValue));
+                    row.appendChild(cell);
+                });
             }
 
             function createRow(index) {
@@ -1122,20 +1198,27 @@
                 actionCell.appendChild(removeBtn);
                 row.appendChild(actionCell);
 
-                fields.forEach(([field, type, sizeClass, minValue]) => {
-                    const cell = document.createElement('td');
-                    cell.className = 'border border-slate-200 px-2 py-2';
-                    cell.appendChild(makeInput(index, field, type, sizeClass, minValue));
-                    row.appendChild(cell);
-                });
+                const titleCell = document.createElement('td');
+                titleCell.className = 'border border-slate-200 px-2 py-2';
+                titleCell.appendChild(makeTitleSelect(index));
+                row.appendChild(titleCell);
+
+                appendFieldCells(row, index, nameFields);
+
+                const passengerTypeCell = document.createElement('td');
+                passengerTypeCell.className = 'border border-slate-200 px-2 py-2';
+                passengerTypeCell.appendChild(makePassengerTypeSelect(index));
+                row.appendChild(passengerTypeCell);
+
+                appendFieldCells(row, index, afterPassengerTypeFields);
 
                 return row;
             }
 
             function renumberRows() {
                 [...tableBody.querySelectorAll('.passenger-row')].forEach((row, idx) => {
-                    row.querySelectorAll('input[name^="passengers["]').forEach((input) => {
-                        input.name = input.name.replace(/passengers\[\d+\]/, `passengers[${idx}]`);
+                    row.querySelectorAll('input[name^="passengers["], select[name^="passengers["]').forEach((field) => {
+                        field.name = field.name.replace(/passengers\[\d+\]/, `passengers[${idx}]`);
                     });
                 });
             }
@@ -1183,7 +1266,7 @@
                 ['fare', 'number', 'w-20', '0', '0.01'],
                 ['tax', 'number', 'w-20', '0', '0.01'],
                 ['total_cost', 'number', 'w-24', '0', '0.01'],
-                ['margin', 'number', 'w-20', '0', '0.01'],
+                ['margin', 'number', 'w-20', null, '0.01'],
                 ['sell', 'number', 'w-20', '0', '0.01'],
                 ['supplier', 'text', 'w-24', null, null],
                 ['pnr', 'text', 'w-24', null, null],
@@ -1198,7 +1281,13 @@
                 input.type = type;
                 input.name = `package_costs[${index}][${field}]`;
                 input.className = inputClass(sizeClass);
-                if (minValue != null) {
+                if (field === 'margin') {
+                    input.readOnly = true;
+                    input.tabIndex = -1;
+                    input.className =
+                        `${inputClass(sizeClass)} cursor-not-allowed bg-slate-50/80 text-slate-700`;
+                }
+                if (minValue != null && field !== 'margin') {
                     input.min = minValue;
                 }
                 if (stepValue != null) {
@@ -1245,11 +1334,13 @@
                     tableBody.appendChild(createRow(0));
                 }
                 renumberRows();
+                document.dispatchEvent(new CustomEvent('folder-margin-recalc'));
             }
 
             addButton.addEventListener('click', () => {
                 const nextIndex = tableBody.querySelectorAll('.package-cost-row').length;
                 tableBody.appendChild(createRow(nextIndex));
+                document.dispatchEvent(new CustomEvent('folder-margin-recalc'));
             });
 
             tableBody.addEventListener('click', (event) => {
@@ -1302,7 +1393,13 @@
                 input.type = type;
                 input.name = `hotel_details[${index}][${field}]`;
                 input.className = inputClass(sizeClass);
-                if (minValue != null) {
+                if (field === 'margin') {
+                    input.readOnly = true;
+                    input.tabIndex = -1;
+                    input.className =
+                        `${inputClass(sizeClass)} cursor-not-allowed bg-slate-50/80 text-slate-700`;
+                }
+                if (minValue != null && field !== 'margin') {
                     input.min = minValue;
                 }
                 if (stepValue != null) {
@@ -1349,11 +1446,13 @@
                     tableBody.appendChild(createRow(0));
                 }
                 renumberRows();
+                document.dispatchEvent(new CustomEvent('folder-margin-recalc'));
             }
 
             addButton.addEventListener('click', () => {
                 const nextIndex = tableBody.querySelectorAll('.hotel-detail-row').length;
                 tableBody.appendChild(createRow(nextIndex));
+                document.dispatchEvent(new CustomEvent('folder-margin-recalc'));
             });
 
             tableBody.addEventListener('click', (event) => {
@@ -1377,8 +1476,123 @@
             if (!form) {
                 return;
             }
-            const sectionSaveUrlTemplate = @json(route('agent.folders.sections.save', ['section' => '__SECTION__']));
+            const sectionSaveUrlTemplate = @json(route(($leadRoutePrefix ?? 'agent') . '.folders.sections.save', ['section' => '__SECTION__']));
             const csrfToken = form.querySelector('input[name="_token"]')?.value ?? '';
+
+            (function initAutoMargin() {
+                function parseMoneyInput(el) {
+                    if (!el) {
+                        return null;
+                    }
+                    const raw = String(el.value ?? '').trim().replace(/,/g, '');
+                    if (raw === '') {
+                        return null;
+                    }
+                    const n = parseFloat(raw);
+                    return Number.isFinite(n) ? n : null;
+                }
+
+                function formatMarginValue(n) {
+                    if (!Number.isFinite(n)) {
+                        return '';
+                    }
+                    const rounded = Math.round(n * 100) / 100;
+                    if (Object.is(rounded, -0)) {
+                        return '0';
+                    }
+                    return String(rounded);
+                }
+
+                function syncPackageCostTotal(row) {
+                    if (!row) {
+                        return;
+                    }
+                    const fareIn = row.querySelector('input[name$="[fare]"]');
+                    const taxIn = row.querySelector('input[name$="[tax]"]');
+                    const totalCostIn = row.querySelector('input[name$="[total_cost]"]');
+                    if (!totalCostIn) {
+                        return;
+                    }
+
+                    const fare = parseMoneyInput(fareIn);
+                    const tax = parseMoneyInput(taxIn);
+                    if (fare === null && tax === null) {
+                        totalCostIn.value = '';
+                        return;
+                    }
+
+                    totalCostIn.value = formatMarginValue((fare ?? 0) + (tax ?? 0));
+                }
+
+                function syncPackageCostMargin(row) {
+                    if (!row) {
+                        return;
+                    }
+                    const costIn = row.querySelector('input[name$="[total_cost]"]');
+                    const sellIn = row.querySelector('input[name$="[sell]"]');
+                    const marginIn = row.querySelector('input[name$="[margin]"]');
+                    if (!marginIn) {
+                        return;
+                    }
+                    const c = parseMoneyInput(costIn);
+                    const s = parseMoneyInput(sellIn);
+                    if (c === null && s === null) {
+                        marginIn.value = '';
+                        return;
+                    }
+                    marginIn.value = formatMarginValue((s ?? 0) - (c ?? 0));
+                }
+
+                function syncHotelDetailMargin(row) {
+                    if (!row) {
+                        return;
+                    }
+                    const costIn = row.querySelector('input[name$="[cost]"]');
+                    const sellIn = row.querySelector('input[name$="[sell]"]');
+                    const marginIn = row.querySelector('input[name$="[margin]"]');
+                    if (!marginIn) {
+                        return;
+                    }
+                    const c = parseMoneyInput(costIn);
+                    const s = parseMoneyInput(sellIn);
+                    if (c === null && s === null) {
+                        marginIn.value = '';
+                        return;
+                    }
+                    marginIn.value = formatMarginValue((s ?? 0) - (c ?? 0));
+                }
+
+                function syncAllAutoMargins() {
+                    form.querySelectorAll('.package-cost-row').forEach((row) => {
+                        syncPackageCostTotal(row);
+                        syncPackageCostMargin(row);
+                    });
+                    form.querySelectorAll('.hotel-detail-row').forEach(syncHotelDetailMargin);
+                }
+
+                function onCostOrSellInput(ev) {
+                    const t = ev.target;
+                    if (!(t instanceof HTMLInputElement)) {
+                        return;
+                    }
+                    const n = t.name;
+                    if (n.startsWith('package_costs[') && (n.endsWith('[fare]') || n.endsWith('[tax]') || n
+                            .endsWith('[total_cost]') || n.endsWith('[sell]'))) {
+                        const row = t.closest('.package-cost-row');
+                        syncPackageCostTotal(row);
+                        syncPackageCostMargin(row);
+                        return;
+                    }
+                    if (n.startsWith('hotel_details[') && (n.endsWith('[cost]') || n.endsWith('[sell]'))) {
+                        syncHotelDetailMargin(t.closest('.hotel-detail-row'));
+                    }
+                }
+
+                form.addEventListener('input', onCostOrSellInput);
+                form.addEventListener('change', onCostOrSellInput);
+                document.addEventListener('folder-margin-recalc', syncAllAutoMargins);
+                syncAllAutoMargins();
+            })();
 
             if (!document.getElementById('toastr-css-cdn')) {
                 const link = document.createElement('link');
@@ -1425,7 +1639,6 @@
                 'passenger_type',
                 'email',
                 'phone',
-                'date_of_birth',
             ];
             const packageRequiredFields = [
                 'airline_from',
@@ -1615,9 +1828,10 @@
                 }
             });
 
-            form.addEventListener('input', (event) => {
+            function clearSectionFieldError(event) {
                 const target = event.target;
-                if (!(target instanceof HTMLInputElement)) {
+                if (!(target instanceof HTMLInputElement) && !(target instanceof HTMLSelectElement) &&
+                    !(target instanceof HTMLTextAreaElement)) {
                     return;
                 }
                 if (!target.name.startsWith('itineraries[') &&
@@ -1627,7 +1841,10 @@
                     return;
                 }
                 removeFieldError(target);
-            });
+            }
+
+            form.addEventListener('input', clearSectionFieldError);
+            form.addEventListener('change', clearSectionFieldError);
 
             document.getElementById('save-itineraries-section')?.addEventListener('click', () => {
                 saveSectionDraft('itineraries', '#itinerary-rows .itinerary-row', document.getElementById(

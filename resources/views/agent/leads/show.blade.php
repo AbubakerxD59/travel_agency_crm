@@ -97,6 +97,46 @@
                 <dt class="text-xs uppercase tracking-wide text-concierge-muted">Notes</dt>
                 <dd class="mt-1 whitespace-pre-wrap text-sm font-medium text-concierge-navy">{{ $lead->notes ?? '—' }}</dd>
             </div>
+
+            @if ($lead->status === \App\Models\Lead::STATUS_NOT_CONVERTED)
+                <div class="mt-4 rounded-xl border border-slate-100 bg-slate-50/50 px-4 py-3">
+                    <dt class="text-xs uppercase tracking-wide text-concierge-muted">Not converted reason</dt>
+                    <dd class="mt-1 whitespace-pre-wrap text-sm font-medium text-concierge-navy" data-not-converted-reason>{{ $lead->not_converted_reason ?? '—' }}</dd>
+                </div>
+            @endif
+        </div>
+
+        <div id="not-converted-modal" class="fixed inset-0 z-[100] hidden items-center justify-center bg-slate-900/40 p-4"
+            aria-hidden="true" role="dialog" aria-modal="true" aria-labelledby="not-converted-modal-title">
+            <div class="w-full max-w-lg rounded-2xl border border-slate-200 bg-white shadow-xl">
+                <div class="border-b border-slate-100 px-6 py-4">
+                    <h2 id="not-converted-modal-title" class="text-lg font-semibold text-concierge-navy">Not converted
+                    </h2>
+                    <p class="mt-1 text-sm text-concierge-muted">Please provide a reason. This is saved with the lead.
+                    </p>
+                </div>
+                <div class="space-y-4 px-6 py-5">
+                    <div>
+                        <label for="not-converted-reason-input" class="block text-sm font-medium text-concierge-navy">
+                            Reason <span class="text-rose-600">*</span>
+                        </label>
+                        <textarea id="not-converted-reason-input" rows="4" maxlength="1000"
+                            class="mt-1.5 w-full rounded-xl border border-slate-200 bg-slate-50/80 px-4 py-2.5 text-sm text-concierge-navy placeholder:text-slate-400 focus:border-concierge-accent focus:bg-white focus:outline-none focus:ring-2 focus:ring-concierge-accent/20"
+                            placeholder="e.g. Customer chose another agency, budget constraints…"></textarea>
+                    </div>
+                    <p id="not-converted-modal-error" class="hidden text-sm text-rose-600" role="alert"></p>
+                </div>
+                <div class="flex flex-col-reverse gap-2 border-t border-slate-100 px-6 py-4 sm:flex-row sm:justify-end">
+                    <button type="button" id="not-converted-modal-cancel"
+                        class="inline-flex cursor-pointer items-center justify-center rounded-xl border border-slate-200 px-4 py-2.5 text-sm font-medium text-concierge-navy transition hover:bg-slate-50">
+                        Cancel
+                    </button>
+                    <button type="button" id="not-converted-modal-submit"
+                        class="inline-flex cursor-pointer items-center justify-center rounded-xl bg-concierge-navy px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-concierge-navy-deep">
+                        Update status
+                    </button>
+                </div>
+            </div>
         </div>
     </div>
 @endsection
@@ -134,9 +174,26 @@
                 alert(message);
             }
 
+            function toastError(message) {
+                if (window.toastr) {
+                    window.toastr.error(message);
+                    return;
+                }
+                alert(message);
+            }
+
+            const STATUS_NOT_CONVERTED = 'not_converted';
             const leadId = "{{ $lead->id }}";
             const dropdown = document.getElementById('lead-status-dropdown');
             const toggleButton = document.querySelector('[data-status-toggle]');
+            const notConvertedModal = document.getElementById('not-converted-modal');
+            const notConvertedReasonInput = document.getElementById('not-converted-reason-input');
+            const notConvertedModalError = document.getElementById('not-converted-modal-error');
+            const notConvertedModalCancel = document.getElementById('not-converted-modal-cancel');
+            const notConvertedModalSubmit = document.getElementById('not-converted-modal-submit');
+
+            let notConvertedPendingUrl = '';
+
             if (!dropdown || !toggleButton) {
                 return;
             }
@@ -159,7 +216,55 @@
                 });
             }
 
-            async function updateLeadStatus(url, status) {
+            function hideNotConvertedModalError() {
+                if (!notConvertedModalError) {
+                    return;
+                }
+                notConvertedModalError.classList.add('hidden');
+                notConvertedModalError.textContent = '';
+            }
+
+            function showNotConvertedModalError(message) {
+                if (!notConvertedModalError) {
+                    return;
+                }
+                notConvertedModalError.textContent = message;
+                notConvertedModalError.classList.remove('hidden');
+            }
+
+            function openNotConvertedModal(url) {
+                if (!notConvertedModal || !notConvertedReasonInput) {
+                    return;
+                }
+                notConvertedPendingUrl = url;
+                notConvertedReasonInput.value = '';
+                hideNotConvertedModalError();
+                notConvertedModal.classList.remove('hidden');
+                notConvertedModal.classList.add('flex');
+                notConvertedModal.setAttribute('aria-hidden', 'false');
+                notConvertedReasonInput.focus();
+            }
+
+            function closeNotConvertedModal() {
+                if (!notConvertedModal || !notConvertedReasonInput) {
+                    return;
+                }
+                notConvertedModal.classList.add('hidden');
+                notConvertedModal.classList.remove('flex');
+                notConvertedModal.setAttribute('aria-hidden', 'true');
+                notConvertedPendingUrl = '';
+                notConvertedReasonInput.value = '';
+                hideNotConvertedModalError();
+            }
+
+            async function updateLeadStatus(url, status, notConvertedReason = null) {
+                const body = {
+                    status,
+                };
+                if (status === STATUS_NOT_CONVERTED) {
+                    body.not_converted_reason = notConvertedReason;
+                }
+
                 const response = await fetch(url, {
                     method: 'PATCH',
                     headers: {
@@ -167,17 +272,94 @@
                         'Accept': 'application/json',
                         'X-CSRF-TOKEN': csrfToken ?? '',
                     },
-                    body: JSON.stringify({
-                        status,
-                    }),
+                    body: JSON.stringify(body),
                 });
 
                 if (!response.ok) {
-                    throw new Error('Failed to update lead status.');
+                    let message = 'Failed to update lead status.';
+                    try {
+                        const errorPayload = await response.json();
+                        if (errorPayload?.errors?.not_converted_reason?.[0]) {
+                            message = errorPayload.errors.not_converted_reason[0];
+                        } else if (errorPayload?.message) {
+                            message = errorPayload.message;
+                        }
+                    } catch (error) {
+                        console.log(error);
+                    }
+                    throw new Error(message);
                 }
 
                 return response.json();
             }
+
+            function applyStatusUpdatePayload(payload, status) {
+                document.querySelectorAll(`[data-lead-status-pill="${leadId}"]`).forEach((statusPill) => {
+                    statusPill.textContent = payload.status_label ?? status;
+                    statusPill.className =
+                        `concierge-pill concierge-pill-${payload.status_pill_class ?? 'meta'}`;
+                });
+                toggleButton.setAttribute('data-current-status', payload.status ?? status);
+                setStatusSelection(payload.status ?? status);
+                const notConvertedReasonElement = document.querySelector('[data-not-converted-reason]');
+                if (notConvertedReasonElement) {
+                    notConvertedReasonElement.textContent = payload.status === STATUS_NOT_CONVERTED ?
+                        (payload.not_converted_reason || '—') :
+                        '—';
+                }
+                toastSuccess(payload.message ?? 'Lead status updated successfully.');
+            }
+
+            notConvertedModalCancel?.addEventListener('click', () => {
+                closeNotConvertedModal();
+            });
+
+            notConvertedReasonInput?.addEventListener('input', () => {
+                hideNotConvertedModalError();
+            });
+
+            notConvertedModal?.addEventListener('click', (event) => {
+                if (event.target === notConvertedModal) {
+                    closeNotConvertedModal();
+                }
+            });
+
+            notConvertedModalSubmit?.addEventListener('click', async () => {
+                const reason = (notConvertedReasonInput?.value ?? '').trim();
+                if (!reason) {
+                    showNotConvertedModalError('Please enter a reason.');
+                    return;
+                }
+                hideNotConvertedModalError();
+                const url = notConvertedPendingUrl;
+                if (!url) {
+                    showNotConvertedModalError('Something went wrong. Please try again.');
+                    return;
+                }
+
+                notConvertedModalSubmit.disabled = true;
+                try {
+                    const payload = await updateLeadStatus(url, STATUS_NOT_CONVERTED, reason);
+                    applyStatusUpdatePayload(payload, STATUS_NOT_CONVERTED);
+                    closeNotConvertedModal();
+                } catch (error) {
+                    console.log(error);
+                    showNotConvertedModalError(
+                        error instanceof Error ? error.message :
+                        'Could not update status. Please try again.');
+                } finally {
+                    notConvertedModalSubmit.disabled = false;
+                }
+            });
+
+            document.addEventListener('keydown', (event) => {
+                if (event.key !== 'Escape') {
+                    return;
+                }
+                if (notConvertedModal && !notConvertedModal.classList.contains('hidden')) {
+                    closeNotConvertedModal();
+                }
+            });
 
             document.addEventListener('click', async (event) => {
                 const clickedToggle = event.target.closest('[data-status-toggle]');
@@ -206,23 +388,22 @@
                     return;
                 }
 
+                if (status === STATUS_NOT_CONVERTED) {
+                    closeDropdown();
+                    openNotConvertedModal(url);
+                    return;
+                }
+
                 statusOptionButton.disabled = true;
                 statusOptionButton.classList.add('opacity-60');
 
                 try {
                     const payload = await updateLeadStatus(url, status);
-                    document.querySelectorAll(`[data-lead-status-pill="${leadId}"]`).forEach((
-                    statusPill) => {
-                        statusPill.textContent = payload.status_label ?? status;
-                        statusPill.className =
-                            `concierge-pill concierge-pill-${payload.status_pill_class ?? 'meta'}`;
-                    });
-                    toggleButton.setAttribute('data-current-status', payload.status ?? status);
-                    setStatusSelection(payload.status ?? status);
-                    toastSuccess(payload.message ?? 'Lead status updated successfully.');
+                    applyStatusUpdatePayload(payload, status);
                 } catch (error) {
                     console.log(error);
-                    alert('Could not update status. Please try again.');
+                    toastError(error instanceof Error ? error.message :
+                        'Could not update status. Please try again.');
                 } finally {
                     statusOptionButton.disabled = false;
                     statusOptionButton.classList.remove('opacity-60');

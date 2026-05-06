@@ -7,6 +7,26 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class FolderPassenger extends Model
 {
+    /**
+     * Allowed title values for passengers (delegates to {@see folder_passenger_titles()}).
+     *
+     * @return list<string>
+     */
+    public static function titles(): array
+    {
+        return folder_passenger_titles();
+    }
+
+    /**
+     * Allowed passenger type values (delegates to {@see folder_passenger_types()}).
+     *
+     * @return list<string>
+     */
+    public static function passengerTypes(): array
+    {
+        return folder_passenger_types();
+    }
+
     protected $fillable = [
         'folder_id',
         'title',

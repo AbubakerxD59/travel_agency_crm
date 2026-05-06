@@ -9,6 +9,16 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Folder extends Model
 {
+    /**
+     * Allowed order types for folders (delegates to {@see folder_order_types()}).
+     *
+     * @return list<string>
+     */
+    public static function orderTypes(): array
+    {
+        return folder_order_types();
+    }
+
     protected $fillable = [
         'agent_id',
         'order_type',

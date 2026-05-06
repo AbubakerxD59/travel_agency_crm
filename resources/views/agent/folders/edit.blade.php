@@ -3,7 +3,7 @@
 @section('title', 'Edit folder')
 
 @section('content')
-    <div class="mx-auto max-w-7xl">
+    <div class="mx-auto max-w-8xl">
         <div class="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
             <div>
                 <h1 class="text-2xl font-bold text-concierge-navy lg:text-3xl">Edit folder #{{ $lead->id }}</h1>
@@ -109,14 +109,22 @@
                     if (!is_array($packageCostRows) || count($packageCostRows) === 0) {
                         $packageCostRows = [[]];
                     }
+                    $passengerTitles = \App\Models\FolderPassenger::titles();
+                    $passengerTypes = \App\Models\FolderPassenger::passengerTypes();
                 @endphp
 
                 <div class="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
                     <div class="min-w-0">
                         <label for="lead_order_type" class="block text-sm font-medium text-concierge-navy"><span
                                 class="text-rose-600">*</span> Order type</label>
-                        <input id="lead_order_type" name="order_type" type="text" required
-                            value="{{ old('order_type', $lead->order_type) }}" class="{{ $fieldClass }}">
+                        <select id="lead_order_type" name="order_type" required class="{{ $fieldClass }}">
+                            <option value="" disabled @selected(!old('order_type', $lead->order_type))>Select order type</option>
+                            @foreach (\App\Models\Folder::orderTypes() as $orderType)
+                                <option value="{{ $orderType }}" @selected(old('order_type', $lead->order_type) === $orderType)>
+                                    {{ $orderType }}
+                                </option>
+                            @endforeach
+                        </select>
                     </div>
                     <div class="min-w-0">
                         <label for="lead_vendor_reference" class="block text-sm font-medium text-concierge-navy">Vendor
@@ -300,13 +308,19 @@
                             <thead>
                                 <tr class="bg-slate-100 text-left text-concierge-muted">
                                     <th class="border border-slate-200 px-2 py-2">Action</th>
-                                    <th class="border border-slate-200 px-2 py-2">Title</th>
-                                    <th class="border border-slate-200 px-2 py-2">First name</th>
+                                    <th class="border border-slate-200 px-2 py-2"><span class="text-rose-600">*</span>
+                                        Title</th>
+                                    <th class="border border-slate-200 px-2 py-2"><span class="text-rose-600">*</span>
+                                        First name</th>
                                     <th class="border border-slate-200 px-2 py-2">Middle name</th>
-                                    <th class="border border-slate-200 px-2 py-2">Last name</th>
-                                    <th class="border border-slate-200 px-2 py-2">Passenger type</th>
-                                    <th class="border border-slate-200 px-2 py-2">Email</th>
-                                    <th class="border border-slate-200 px-2 py-2">Phone</th>
+                                    <th class="border border-slate-200 px-2 py-2"><span class="text-rose-600">*</span>
+                                        Last name</th>
+                                    <th class="border border-slate-200 px-2 py-2"><span class="text-rose-600">*</span>
+                                        Passenger type</th>
+                                    <th class="border border-slate-200 px-2 py-2"><span class="text-rose-600">*</span>
+                                        Email</th>
+                                    <th class="border border-slate-200 px-2 py-2"><span class="text-rose-600">*</span>
+                                        Phone</th>
                                     <th class="border border-slate-200 px-2 py-2">Date of birth</th>
                                     <th class="border border-slate-200 px-2 py-2">Passport details</th>
                                 </tr>
@@ -321,9 +335,18 @@
                                             </button>
                                         </td>
                                         <td class="border border-slate-200 px-2 py-2">
-                                            <input type="text" name="passengers[{{ $i }}][title]"
-                                                value="{{ data_get($row, 'title') }}"
-                                                class="w-16 rounded-lg border border-slate-200 bg-white px-2 py-1.5 text-sm">
+                                            @php
+                                                $selTitle = old("passengers.$i.title", data_get($row, 'title'));
+                                                $titleValid = in_array($selTitle, $passengerTitles, true);
+                                            @endphp
+                                            <select name="passengers[{{ $i }}][title]" required
+                                                class="min-w-[8rem] w-full max-w-[10rem] rounded-lg border border-slate-200 bg-white px-2 py-1.5 text-sm focus:border-concierge-accent focus:outline-none focus:ring-2 focus:ring-concierge-accent/20">
+                                                <option value="" disabled @selected(!$titleValid)>Select title</option>
+                                                @foreach ($passengerTitles as $passengerTitle)
+                                                    <option value="{{ $passengerTitle }}"
+                                                        @selected($titleValid && $selTitle === $passengerTitle)>{{ $passengerTitle }}</option>
+                                                @endforeach
+                                            </select>
                                         </td>
                                         <td class="border border-slate-200 px-2 py-2">
                                             <input type="text" name="passengers[{{ $i }}][first_name]"
@@ -341,9 +364,18 @@
                                                 class="w-28 rounded-lg border border-slate-200 bg-white px-2 py-1.5 text-sm">
                                         </td>
                                         <td class="border border-slate-200 px-2 py-2">
-                                            <input type="text" name="passengers[{{ $i }}][passenger_type]"
-                                                value="{{ data_get($row, 'passenger_type') }}"
-                                                class="w-24 rounded-lg border border-slate-200 bg-white px-2 py-1.5 text-sm">
+                                            @php
+                                                $selPassengerType = old("passengers.$i.passenger_type", data_get($row, 'passenger_type'));
+                                                $passengerTypeValid = in_array($selPassengerType, $passengerTypes, true);
+                                            @endphp
+                                            <select name="passengers[{{ $i }}][passenger_type]" required
+                                                class="min-w-[10rem] w-full max-w-[12rem] rounded-lg border border-slate-200 bg-white px-2 py-1.5 text-sm focus:border-concierge-accent focus:outline-none focus:ring-2 focus:ring-concierge-accent/20">
+                                                <option value="" disabled @selected(!$passengerTypeValid)>Select passenger type</option>
+                                                @foreach ($passengerTypes as $passengerType)
+                                                    <option value="{{ $passengerType }}"
+                                                        @selected($passengerTypeValid && $selPassengerType === $passengerType)>{{ $passengerType }}</option>
+                                                @endforeach
+                                            </select>
                                         </td>
                                         <td class="border border-slate-200 px-2 py-2">
                                             <input type="email" name="passengers[{{ $i }}][email]"
@@ -396,7 +428,9 @@
                                     <th class="border border-slate-200 px-2 py-2">Fare</th>
                                     <th class="border border-slate-200 px-2 py-2">Tax</th>
                                     <th class="border border-slate-200 px-2 py-2">Total cost</th>
-                                    <th class="border border-slate-200 px-2 py-2">Margin</th>
+                                    <th class="border border-slate-200 px-2 py-2">Margin <span
+                                            class="block font-normal normal-case text-slate-500">(total cost −
+                                            sell)</span></th>
                                     <th class="border border-slate-200 px-2 py-2">Sell</th>
                                     <th class="border border-slate-200 px-2 py-2">Supplier</th>
                                     <th class="border border-slate-200 px-2 py-2">PNR</th>
@@ -450,10 +484,11 @@
                                                 class="w-24 rounded-lg border border-slate-200 bg-white px-2 py-1.5 text-sm">
                                         </td>
                                         <td class="border border-slate-200 px-2 py-2">
-                                            <input type="number" min="0" step="0.01"
+                                            <input type="number" step="0.01" readonly tabindex="-1"
+                                                title="Margin = total cost − sell (calculated automatically)"
                                                 name="package_costs[{{ $i }}][margin]"
                                                 value="{{ data_get($row, 'margin') }}"
-                                                class="w-20 rounded-lg border border-slate-200 bg-white px-2 py-1.5 text-sm">
+                                                class="w-20 cursor-not-allowed rounded-lg border border-slate-200 bg-slate-50/80 px-2 py-1.5 text-sm text-slate-700">
                                         </td>
                                         <td class="border border-slate-200 px-2 py-2">
                                             <input type="number" min="0" step="0.01"
@@ -600,12 +635,15 @@
                 return;
             }
 
-            const fields = [
-                ['title', 'text', 'w-16', null],
+            const passengerTitleOptions = @json(\App\Models\FolderPassenger::titles());
+            const passengerTypeOptions = @json(\App\Models\FolderPassenger::passengerTypes());
+
+            const nameFields = [
                 ['first_name', 'text', 'w-28', null],
                 ['middle_name', 'text', 'w-28', null],
                 ['last_name', 'text', 'w-28', null],
-                ['passenger_type', 'text', 'w-24', null],
+            ];
+            const afterPassengerTypeFields = [
                 ['email', 'email', 'w-40', null],
                 ['phone', 'text', 'w-32', null],
                 ['date_of_birth', 'date', 'w-36', null],
@@ -614,6 +652,48 @@
 
             function inputClass(sizeClass) {
                 return `${sizeClass} rounded-lg border border-slate-200 bg-white px-2 py-1.5 text-sm`;
+            }
+
+            function makeTitleSelect(index) {
+                const sel = document.createElement('select');
+                sel.name = `passengers[${index}][title]`;
+                sel.required = true;
+                sel.className =
+                    `${inputClass('min-w-[8rem] w-full max-w-[10rem]')} focus:border-concierge-accent focus:outline-none focus:ring-2 focus:ring-concierge-accent/20`;
+                const placeholder = document.createElement('option');
+                placeholder.value = '';
+                placeholder.disabled = true;
+                placeholder.selected = true;
+                placeholder.textContent = 'Select title';
+                sel.appendChild(placeholder);
+                passengerTitleOptions.forEach((t) => {
+                    const opt = document.createElement('option');
+                    opt.value = t;
+                    opt.textContent = t;
+                    sel.appendChild(opt);
+                });
+                return sel;
+            }
+
+            function makePassengerTypeSelect(index) {
+                const sel = document.createElement('select');
+                sel.name = `passengers[${index}][passenger_type]`;
+                sel.required = true;
+                sel.className =
+                    `${inputClass('min-w-[10rem] w-full max-w-[12rem]')} focus:border-concierge-accent focus:outline-none focus:ring-2 focus:ring-concierge-accent/20`;
+                const placeholder = document.createElement('option');
+                placeholder.value = '';
+                placeholder.disabled = true;
+                placeholder.selected = true;
+                placeholder.textContent = 'Select passenger type';
+                sel.appendChild(placeholder);
+                passengerTypeOptions.forEach((t) => {
+                    const opt = document.createElement('option');
+                    opt.value = t;
+                    opt.textContent = t;
+                    sel.appendChild(opt);
+                });
+                return sel;
             }
 
             function makeInput(index, field, type, sizeClass, minValue) {
@@ -625,6 +705,15 @@
                     input.min = minValue;
                 }
                 return input;
+            }
+
+            function appendFieldCells(row, index, fieldDefs) {
+                fieldDefs.forEach(([field, type, sizeClass, minValue]) => {
+                    const cell = document.createElement('td');
+                    cell.className = 'border border-slate-200 px-2 py-2';
+                    cell.appendChild(makeInput(index, field, type, sizeClass, minValue));
+                    row.appendChild(cell);
+                });
             }
 
             function createRow(index) {
@@ -641,20 +730,27 @@
                 actionCell.appendChild(removeBtn);
                 row.appendChild(actionCell);
 
-                fields.forEach(([field, type, sizeClass, minValue]) => {
-                    const cell = document.createElement('td');
-                    cell.className = 'border border-slate-200 px-2 py-2';
-                    cell.appendChild(makeInput(index, field, type, sizeClass, minValue));
-                    row.appendChild(cell);
-                });
+                const titleCell = document.createElement('td');
+                titleCell.className = 'border border-slate-200 px-2 py-2';
+                titleCell.appendChild(makeTitleSelect(index));
+                row.appendChild(titleCell);
+
+                appendFieldCells(row, index, nameFields);
+
+                const passengerTypeCell = document.createElement('td');
+                passengerTypeCell.className = 'border border-slate-200 px-2 py-2';
+                passengerTypeCell.appendChild(makePassengerTypeSelect(index));
+                row.appendChild(passengerTypeCell);
+
+                appendFieldCells(row, index, afterPassengerTypeFields);
 
                 return row;
             }
 
             function renumberRows() {
                 [...tableBody.querySelectorAll('.passenger-row')].forEach((row, idx) => {
-                    row.querySelectorAll('input[name^="passengers["]').forEach((input) => {
-                        input.name = input.name.replace(/passengers\[\d+\]/, `passengers[${idx}]`);
+                    row.querySelectorAll('input[name^="passengers["], select[name^="passengers["]').forEach((field) => {
+                        field.name = field.name.replace(/passengers\[\d+\]/, `passengers[${idx}]`);
                     });
                 });
             }
@@ -702,7 +798,7 @@
                 ['fare', 'number', 'w-20', '0', '0.01'],
                 ['tax', 'number', 'w-20', '0', '0.01'],
                 ['total_cost', 'number', 'w-24', '0', '0.01'],
-                ['margin', 'number', 'w-20', '0', '0.01'],
+                ['margin', 'number', 'w-20', null, '0.01'],
                 ['sell', 'number', 'w-20', '0', '0.01'],
                 ['supplier', 'text', 'w-24', null, null],
                 ['pnr', 'text', 'w-24', null, null],
@@ -717,7 +813,14 @@
                 input.type = type;
                 input.name = `package_costs[${index}][${field}]`;
                 input.className = inputClass(sizeClass);
-                if (minValue != null) {
+                if (field === 'margin') {
+                    input.readOnly = true;
+                    input.tabIndex = -1;
+                    input.title = 'Margin = total cost − sell (calculated automatically)';
+                    input.className =
+                        `${inputClass(sizeClass)} cursor-not-allowed bg-slate-50/80 text-slate-700`;
+                }
+                if (minValue != null && field !== 'margin') {
                     input.min = minValue;
                 }
                 if (stepValue != null) {
@@ -764,11 +867,13 @@
                     tableBody.appendChild(createRow(0));
                 }
                 renumberRows();
+                document.dispatchEvent(new CustomEvent('folder-margin-recalc'));
             }
 
             addButton.addEventListener('click', () => {
                 const nextIndex = tableBody.querySelectorAll('.package-cost-row').length;
                 tableBody.appendChild(createRow(nextIndex));
+                document.dispatchEvent(new CustomEvent('folder-margin-recalc'));
             });
 
             tableBody.addEventListener('click', (event) => {
@@ -792,6 +897,95 @@
             if (!form) {
                 return;
             }
+
+            (function initAutoMargin() {
+                function parseMoneyInput(el) {
+                    if (!el) {
+                        return null;
+                    }
+                    const raw = String(el.value ?? '').trim().replace(/,/g, '');
+                    if (raw === '') {
+                        return null;
+                    }
+                    const n = parseFloat(raw);
+                    return Number.isFinite(n) ? n : null;
+                }
+
+                function formatMarginValue(n) {
+                    if (!Number.isFinite(n)) {
+                        return '';
+                    }
+                    const rounded = Math.round(n * 100) / 100;
+                    if (Object.is(rounded, -0)) {
+                        return '0';
+                    }
+                    return String(rounded);
+                }
+
+                function syncPackageCostMargin(row) {
+                    if (!row) {
+                        return;
+                    }
+                    const costIn = row.querySelector('input[name$="[total_cost]"]');
+                    const sellIn = row.querySelector('input[name$="[sell]"]');
+                    const marginIn = row.querySelector('input[name$="[margin]"]');
+                    if (!marginIn) {
+                        return;
+                    }
+                    const c = parseMoneyInput(costIn);
+                    const s = parseMoneyInput(sellIn);
+                    if (c === null && s === null) {
+                        marginIn.value = '';
+                        return;
+                    }
+                    marginIn.value = formatMarginValue((s ?? 0) - (c ?? 0));
+                }
+
+                function syncHotelDetailMargin(row) {
+                    if (!row) {
+                        return;
+                    }
+                    const costIn = row.querySelector('input[name$="[cost]"]');
+                    const sellIn = row.querySelector('input[name$="[sell]"]');
+                    const marginIn = row.querySelector('input[name$="[margin]"]');
+                    if (!marginIn) {
+                        return;
+                    }
+                    const c = parseMoneyInput(costIn);
+                    const s = parseMoneyInput(sellIn);
+                    if (c === null && s === null) {
+                        marginIn.value = '';
+                        return;
+                    }
+                    marginIn.value = formatMarginValue((s ?? 0) - (c ?? 0));
+                }
+
+                function syncAllAutoMargins() {
+                    form.querySelectorAll('.package-cost-row').forEach(syncPackageCostMargin);
+                    form.querySelectorAll('.hotel-detail-row').forEach(syncHotelDetailMargin);
+                }
+
+                function onCostOrSellInput(ev) {
+                    const t = ev.target;
+                    if (!(t instanceof HTMLInputElement)) {
+                        return;
+                    }
+                    const n = t.name;
+                    if (n.startsWith('package_costs[') && (n.endsWith('[total_cost]') || n.endsWith(
+                            '[sell]'))) {
+                        syncPackageCostMargin(t.closest('.package-cost-row'));
+                        return;
+                    }
+                    if (n.startsWith('hotel_details[') && (n.endsWith('[cost]') || n.endsWith('[sell]'))) {
+                        syncHotelDetailMargin(t.closest('.hotel-detail-row'));
+                    }
+                }
+
+                form.addEventListener('input', onCostOrSellInput);
+                form.addEventListener('change', onCostOrSellInput);
+                document.addEventListener('folder-margin-recalc', syncAllAutoMargins);
+                syncAllAutoMargins();
+            })();
 
             if (!document.getElementById('toastr-css-cdn')) {
                 const link = document.createElement('link');

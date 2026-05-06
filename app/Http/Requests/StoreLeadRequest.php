@@ -55,7 +55,7 @@ class StoreLeadRequest extends FormRequest
             'passengers.*.first_name' => ['nullable', 'string', 'max:100'],
             'passengers.*.middle_name' => ['nullable', 'string', 'max:100'],
             'passengers.*.last_name' => ['nullable', 'string', 'max:100'],
-            'passengers.*.passenger_type' => ['nullable', 'string', 'max:30'],
+            'passengers.*.passenger_type' => ['nullable', 'string', Rule::in(folder_passenger_types())],
             'passengers.*.email' => ['nullable', 'email', 'max:255'],
             'passengers.*.phone' => ['nullable', 'string', 'max:30'],
             'passengers.*.date_of_birth' => ['nullable', 'date'],

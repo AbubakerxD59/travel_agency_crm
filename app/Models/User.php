@@ -30,6 +30,10 @@ class User extends Authenticatable
         'password',
     ];
 
+    protected $appends = [
+        'role_name',
+    ];
+
     /**
      * The attributes that should be hidden for serialization.
      *
@@ -58,10 +62,6 @@ class User extends Authenticatable
      */
     public function defaultRedirectRoute(): string
     {
-        if ($this->hasRole('super-admin')) {
-            return 'admin.dashboard';
-        }
-
         if ($this->hasRole('agent')) {
             if ($this->can('dashboard.access')) {
                 return 'agent.dashboard';
@@ -85,5 +85,13 @@ class User extends Authenticatable
     public function assignedLeads(): HasMany
     {
         return $this->hasMany(Lead::class, 'agent_id');
+    }
+
+    /**
+     * @return HasMany<Folder, $this>
+     */
+    public function roleName(): string
+    {
+        return $this->roles->first()?->name ?? 'agent';
     }
 }

@@ -34,9 +34,7 @@ class LoginController extends Controller
 
         $request->session()->regenerate();
 
-        $home = route(Auth::user()->defaultRedirectRoute());
-
-        return redirect()->intended($home);
+        return redirect()->route(Auth::user()->defaultRedirectRoute());
     }
 
     public function destroy(Request $request): RedirectResponse

@@ -63,7 +63,7 @@
             <input type="hidden" id="lead-date-range-input" name="date_range" value="{{ $selectedDateRange }}">
             <input type="hidden" id="lead-start-date-input" name="start_date" value="{{ $selectedStartDate }}">
             <input type="hidden" id="lead-end-date-input" name="end_date" value="{{ $selectedEndDate }}">
-            <div class="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-4">
+            <div class="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-3">
                 <div>
                     <label for="lead-agent-filter" class="block text-sm font-medium text-concierge-navy">Agent</label>
                     <select id="lead-agent-filter" name="agent_id"
@@ -72,18 +72,6 @@
                         @foreach ($agents as $agent)
                             <option value="{{ $agent->id }}" @selected((string) $selectedAgentId === (string) $agent->id)>
                                 {{ $agent->name }}
-                            </option>
-                        @endforeach
-                    </select>
-                </div>
-                <div>
-                    <label for="lead-company-filter" class="block text-sm font-medium text-concierge-navy">Company</label>
-                    <select id="lead-company-filter" name="company_id"
-                        class="mt-1.5 w-full rounded-xl border border-slate-200 bg-slate-50/80 px-4 py-2.5 text-sm text-slate-800 focus:border-concierge-accent focus:bg-white focus:outline-none focus:ring-2 focus:ring-concierge-accent/20">
-                        <option value="">All companies</option>
-                        @foreach ($companies as $company)
-                            <option value="{{ $company->id }}" @selected((string) $selectedCompanyId === (string) $company->id)>
-                                {{ $company->name }}
                             </option>
                         @endforeach
                     </select>
@@ -153,7 +141,6 @@
                     @if (
                         $search !== '' ||
                             $selectedAgentId ||
-                            $selectedCompanyId ||
                             $selectedSource !== '' ||
                             $selectedStatus !== '' ||
                             $selectedDateRange !== '')

@@ -11,6 +11,8 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Validation\Rule;
+use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
 use Throwable;
 
@@ -19,14 +21,39 @@ class FolderController extends Controller
     public function index(Request $request): View
     {
         $search = trim((string) $request->string('search')->value());
-        $companyId = $request->integer('company_id') ?: null;
         $destinationId = $request->integer('destination_id') ?: null;
+        $travelArrivalFrom = trim((string) $request->query('travel_arrival_from', ''));
+        $travelArrivalTo = trim((string) $request->query('travel_arrival_to', ''));
+        $orderType = trim((string) $request->query('order_type', ''));
+        if ($orderType !== '' && ! in_array($orderType, folder_order_types(), true)) {
+            $orderType = '';
+        }
+        if (! preg_match('/^\d{4}-\d{2}-\d{2}$/', $travelArrivalFrom)) {
+            $travelArrivalFrom = '';
+        }
+        if (! preg_match('/^\d{4}-\d{2}-\d{2}$/', $travelArrivalTo)) {
+            $travelArrivalTo = '';
+        }
 
         $folders = Folder::query()
-            ->with(['agent', 'company', 'destination'])
+            ->with(['agent', 'company', 'destination', 'itineraries'])
+            ->withCount('passengers')
             ->where('agent_id', $request->user()->getAuthIdentifier())
-            ->when($companyId !== null, fn ($query) => $query->where('company_id', $companyId))
             ->when($destinationId !== null, fn ($query) => $query->where('destination_id', $destinationId))
+            ->when($orderType !== '', fn ($query) => $query->where('order_type', $orderType))
+            ->when($travelArrivalFrom !== '' || $travelArrivalTo !== '', function ($query) use ($travelArrivalFrom, $travelArrivalTo) {
+                $query->whereExists(function ($itineraryQuery) use ($travelArrivalFrom, $travelArrivalTo) {
+                    $itineraryQuery
+                        ->selectRaw('1')
+                        ->from('folder_itineraries as fi')
+                        ->whereColumn('fi.folder_id', 'folders.id')
+                        ->whereRaw(
+                            'fi.sr_no = (select min(fi2.sr_no) from folder_itineraries as fi2 where fi2.folder_id = folders.id)'
+                        )
+                        ->when($travelArrivalFrom !== '', fn ($query) => $query->whereDate('fi.departure_date', '>=', $travelArrivalFrom))
+                        ->when($travelArrivalTo !== '', fn ($query) => $query->whereDate('fi.arrival_date', '<=', $travelArrivalTo));
+                });
+            })
             ->when($search !== '', function ($query) use ($search) {
                 $query->where(function ($searchQuery) use ($search) {
                     $searchQuery
@@ -42,9 +69,10 @@ class FolderController extends Controller
         return view('agent.folders.index', [
             'folders' => $folders,
             'search' => $search,
-            'selectedCompanyId' => $companyId,
             'selectedDestinationId' => $destinationId,
-            'companies' => Company::query()->orderBy('name')->get(['id', 'name']),
+            'selectedOrderType' => $orderType,
+            'selectedTravelArrivalFrom' => $travelArrivalFrom,
+            'selectedTravelArrivalTo' => $travelArrivalTo,
             'destinations' => Destination::query()->orderBy('name')->get(['id', 'name']),
         ]);
     }
@@ -246,16 +274,17 @@ class FolderController extends Controller
 
     private function validateFolder(array $payload, Request $request): array
     {
-        return Validator::make($payload, [
+        $validated = Validator::make($payload, [
             'agent_id' => ['nullable', 'integer', 'exists:users,id'],
-            'order_type' => ['required', 'string', 'max:255'],
+            'order_type' => ['required', 'string', Rule::in(folder_order_types())],
             'vendor_reference' => ['required', 'string', 'max:255'],
             'customer_name' => ['required', 'string', 'max:255'],
             'company_id' => ['required', 'integer', 'exists:companies,id'],
             'destination_id' => ['required', 'integer', 'exists:destinations,id'],
             'travel_date' => ['required', 'date'],
             'balance_due_date' => ['required', 'date'],
-            'ziarat_option' => ['nullable', 'string', 'in:makkah,madinah'],
+            'ziarat_option' => ['nullable', 'array'],
+            'ziarat_option.*' => ['string', Rule::in(['makkah', 'madinah'])],
             'itineraries' => ['required', 'array', 'min:1'],
             'itineraries.*.sr_no' => ['required', 'integer', 'min:1'],
             'itineraries.*.airline_code' => ['required', 'string', 'max:20'],
@@ -268,14 +297,14 @@ class FolderController extends Controller
             'itineraries.*.arrival_time' => ['required', 'date_format:H:i:s'],
             'itineraries.*.arrival_date' => ['required', 'date'],
             'passengers' => ['required', 'array', 'min:1'],
-            'passengers.*.title' => ['required', 'string', 'max:20'],
+            'passengers.*.title' => ['required', 'string', Rule::in(folder_passenger_titles())],
             'passengers.*.first_name' => ['required', 'string', 'max:100'],
             'passengers.*.middle_name' => ['nullable', 'string', 'max:100'],
             'passengers.*.last_name' => ['required', 'string', 'max:100'],
-            'passengers.*.passenger_type' => ['required', 'string', 'max:30'],
+            'passengers.*.passenger_type' => ['required', 'string', Rule::in(folder_passenger_types())],
             'passengers.*.email' => ['required', 'email', 'max:255'],
             'passengers.*.phone' => ['required', 'string', 'max:30'],
-            'passengers.*.date_of_birth' => ['required', 'date'],
+            'passengers.*.date_of_birth' => ['nullable', 'date'],
             'passengers.*.passport_details' => ['nullable', 'string', 'max:255'],
             'package_costs' => ['required', 'array', 'min:1'],
             'package_costs.*.ticket_no' => ['nullable', 'string', 'max:50'],
@@ -306,6 +335,25 @@ class FolderController extends Controller
             'hotel_details.*.sell' => ['nullable', 'numeric', 'min:0'],
             'hotel_details.*.hotel_city' => ['required', 'string', 'max:100'],
         ])->validate();
+
+        $itineraries = collect($validated['itineraries'] ?? [])
+            ->sortBy(fn ($itinerary) => (int) ($itinerary['sr_no'] ?? PHP_INT_MAX))
+            ->values();
+        $firstItinerary = $itineraries->first();
+
+        if (is_array($firstItinerary) && isset($firstItinerary['departure_date'])) {
+            $travelDate = (string) ($validated['travel_date'] ?? '');
+            $firstDepartureDate = (string) $firstItinerary['departure_date'];
+
+            if ($travelDate !== '' && $firstDepartureDate !== '' && $travelDate !== $firstDepartureDate) {
+                throw ValidationException::withMessages([
+                    'travel_date' => __('Travel date must match the first itinerary departure date.'),
+                    'itineraries.0.departure_date' => __('First itinerary departure date must match travel date.'),
+                ]);
+            }
+        }
+
+        return $validated;
     }
 
     private function mergeWithDraftSections(Request $request): array
@@ -356,14 +404,14 @@ class FolderController extends Controller
             ],
             'passengers' => [
                 'passengers' => ['required', 'array', 'min:1'],
-                'passengers.*.title' => ['required', 'string', 'max:20'],
+                'passengers.*.title' => ['required', 'string', Rule::in(folder_passenger_titles())],
                 'passengers.*.first_name' => ['required', 'string', 'max:100'],
                 'passengers.*.middle_name' => ['nullable', 'string', 'max:100'],
                 'passengers.*.last_name' => ['required', 'string', 'max:100'],
-                'passengers.*.passenger_type' => ['required', 'string', 'max:30'],
+                'passengers.*.passenger_type' => ['required', 'string', Rule::in(folder_passenger_types())],
                 'passengers.*.email' => ['required', 'email', 'max:255'],
                 'passengers.*.phone' => ['required', 'string', 'max:30'],
-                'passengers.*.date_of_birth' => ['required', 'date'],
+                'passengers.*.date_of_birth' => ['nullable', 'date'],
                 'passengers.*.passport_details' => ['nullable', 'string', 'max:255'],
             ],
             'package_costs' => [
@@ -409,7 +457,9 @@ class FolderController extends Controller
         try {
             DB::transaction(function () use ($validated, &$folder): void {
                 $folderPayload = [
-                    'agent_id' => $validated['agent_id'] ?? request()->user()?->getAuthIdentifier(),
+                    'agent_id' => $folder === null
+                        ? request()->user()?->getAuthIdentifier()
+                        : ($validated['agent_id'] ?? $folder->agent_id),
                     'order_type' => $validated['order_type'],
                     'vendor_reference' => $validated['vendor_reference'] ?? null,
                     'customer_name' => $validated['customer_name'],
@@ -417,8 +467,8 @@ class FolderController extends Controller
                     'destination_id' => $validated['destination_id'],
                     'travel_date' => $validated['travel_date'],
                     'balance_due_date' => $validated['balance_due_date'] ?? null,
-                    'makkah_ziarat' => ($validated['ziarat_option'] ?? null) === 'makkah',
-                    'madinah_ziarat' => ($validated['ziarat_option'] ?? null) === 'madinah',
+                    'makkah_ziarat' => in_array('makkah', $validated['ziarat_option'] ?? [], true),
+                    'madinah_ziarat' => in_array('madinah', $validated['ziarat_option'] ?? [], true),
                 ];
 
                 if ($folder === null) {

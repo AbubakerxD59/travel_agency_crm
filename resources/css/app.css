@@ -62,6 +62,10 @@
         @apply flex min-h-screen min-w-0 flex-1 flex-col lg:ml-72;
     }
 
+    body.folder-form-sidebar-drawer .concierge-layout-content {
+        margin-left: 0 !important;
+    }
+
     .concierge-pill {
         @apply inline-flex rounded-full px-2.5 py-0.5 text-xs font-semibold uppercase tracking-wide;
     }
@@ -209,23 +213,27 @@
 }
 
 @layer utilities {
+    .max-w-8xl {
+        max-width: 95rem;
+    }
+
     .lead-status-update {
         position: fixed;
         top: 52%;
         right: 2%;
     }
 
-    .update-status-dropdown {
+    /* .update-status-dropdown {
         position: fixed;
-        top: 65%;
-        right: 15%;
-    }
+        top: 52%;
+        right: 3%;
+    } */
 
-    .view-update-status-dropdown {
+    /* .view-update-status-dropdown {
         position: fixed;
         top: 25%;
         right: 5%;
-    }
+    } */
 
     .grid-cols-3 {
         grid-template-columns: repeat(3, minmax(0, 1fr));

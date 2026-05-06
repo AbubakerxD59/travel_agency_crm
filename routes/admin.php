@@ -7,7 +7,7 @@ use App\Http\Controllers\Admin\FolderController;
 use App\Http\Controllers\Admin\LeadController;
 use Illuminate\Support\Facades\Route;
 
-Route::prefix('admin')->name('admin.')->group(function () {
+Route::prefix('admin')->name('admin.')->middleware('role:super-admin')->group(function () {
     Route::get('/dashboard', [DashboardController::class, 'index'])
         ->middleware('can:dashboard.access')
         ->name('dashboard');
@@ -44,6 +44,12 @@ Route::prefix('admin')->name('admin.')->group(function () {
     Route::patch('/leads/{lead}', [LeadController::class, 'update'])->name('leads.update');
     Route::delete('/leads/{lead}', [LeadController::class, 'destroy'])->name('leads.destroy');
     Route::get('/folders', [FolderController::class, 'index'])->name('folders.index');
+    Route::get('/folders/create', [FolderController::class, 'create'])->name('folders.create');
+    Route::post('/folders', [FolderController::class, 'store'])->name('folders.store');
+    Route::get('/folders/{folder}/edit', [FolderController::class, 'edit'])->name('folders.edit');
+    Route::patch('/folders/{folder}', [FolderController::class, 'update'])->name('folders.update');
+    Route::post('/folders/sections/{section}/save', [FolderController::class, 'saveSectionDraft'])
+        ->name('folders.sections.save');
     Route::get('/folders/{folder}', [FolderController::class, 'show'])->name('folders.show');
 
     Route::resource('companies', CompanyController::class)->only([

@@ -27,7 +27,8 @@ class Lead extends Model
         'city',
         'source',
         'notes',
-        'status'
+        'status',
+        'not_converted_reason',
     ];
 
     protected $casts = [

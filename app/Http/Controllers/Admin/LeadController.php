@@ -30,7 +30,6 @@ class LeadController extends Controller
     {
         $search = trim((string) $request->query('search', ''));
         $agentId = $request->integer('agent_id') ?: null;
-        $companyId = $request->integer('company_id') ?: null;
         $source = trim((string) $request->query('source', ''));
         $status = trim((string) $request->query('status', ''));
         $dateRange = trim((string) $request->query('date_range', ''));
@@ -83,10 +82,6 @@ class LeadController extends Controller
             ->with(['agent', 'company', 'destination'])
             ->latest();
 
-        if ($companyId !== null) {
-            $leadsQuery->where('company_id', $companyId);
-        }
-
         if ($agentId !== null) {
             $leadsQuery->where('agent_id', $agentId);
         }
@@ -117,9 +112,6 @@ class LeadController extends Controller
             ->withQueryString();
 
         $statsQuery = Lead::query();
-        if ($companyId !== null) {
-            $statsQuery->where('company_id', $companyId);
-        }
         if ($agentId !== null) {
             $statsQuery->where('agent_id', $agentId);
         }
@@ -154,7 +146,6 @@ class LeadController extends Controller
             'leads' => $leads,
             'search' => $search,
             'selectedAgentId' => $agentId,
-            'selectedCompanyId' => $companyId,
             'selectedSource' => $source,
             'selectedStatus' => $status,
             'selectedDateRange' => $dateRange,

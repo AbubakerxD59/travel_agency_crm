@@ -4,14 +4,12 @@ namespace App\Http\Controllers\Agent;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\UpdateLeadRequest;
-use App\Models\Company;
-use App\Models\Destination;
 use App\Models\Lead;
-use App\Models\User;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\ValidationException;
 use Illuminate\Validation\Rule;
 use Illuminate\View\View;
 use Throwable;
@@ -21,7 +19,6 @@ class LeadController extends Controller
     public function index(Request $request): View
     {
         $search = trim((string) $request->query('search', ''));
-        $companyId = $request->integer('company_id') ?: null;
         $source = trim((string) $request->query('source', ''));
         $status = trim((string) $request->query('status', ''));
 
@@ -29,10 +26,6 @@ class LeadController extends Controller
             ->with(['agent', 'company', 'destination'])
             ->where('agent_id', $request->user()->id)
             ->latest();
-
-        if ($companyId !== null) {
-            $leadsQuery->where('company_id', $companyId);
-        }
 
         if ($source !== '') {
             $leadsQuery->where('source', $source);
@@ -58,10 +51,8 @@ class LeadController extends Controller
         return view('agent.leads.index', [
             'leads' => $leads,
             'search' => $search,
-            'selectedCompanyId' => $companyId,
             'selectedSource' => $source,
             'selectedStatus' => $status,
-            'companies' => Company::query()->orderBy('name')->get(['id', 'name']),
             'sources' => Lead::query()
                 ->where('agent_id', $request->user()->id)
                 ->whereNotNull('source')
@@ -100,10 +91,20 @@ class LeadController extends Controller
 
         $validated = $request->validate([
             'status' => ['required', 'string', Rule::in(Lead::statusKeys())],
+            'not_converted_reason' => ['nullable', 'string', 'max:1000', 'required_if:status,'.Lead::STATUS_NOT_CONVERTED],
         ]);
+        $reason = isset($validated['not_converted_reason']) ? trim((string) $validated['not_converted_reason']) : null;
+        if ($validated['status'] === Lead::STATUS_NOT_CONVERTED && $reason === '') {
+            throw ValidationException::withMessages([
+                'not_converted_reason' => __('Please provide a reason for not converted.'),
+            ]);
+        }
 
         $lead->update([
             'status' => $validated['status'],
+            'not_converted_reason' => $validated['status'] === Lead::STATUS_NOT_CONVERTED
+                ? $reason
+                : null,
         ]);
 
         return response()->json([
@@ -111,6 +112,7 @@ class LeadController extends Controller
             'status' => $lead->status,
             'status_label' => $lead->statusLabel(),
             'status_pill_class' => $lead->statusPillClass(),
+            'not_converted_reason' => $lead->not_converted_reason,
         ]);
     }
 }

@@ -62,6 +62,13 @@
                 <dt class="text-xs uppercase tracking-wide text-concierge-muted">Notes</dt>
                 <dd class="mt-1 whitespace-pre-wrap text-sm font-medium text-concierge-navy">{{ $lead->notes ?? '—' }}</dd>
             </div>
+
+            @if ($lead->status === \App\Models\Lead::STATUS_NOT_CONVERTED)  
+            <div class="mt-4 rounded-xl border border-slate-100 bg-slate-50/50 px-4 py-3">
+                <dt class="text-xs uppercase tracking-wide text-concierge-muted">Not converted reason</dt>
+                <dd class="mt-1 whitespace-pre-wrap text-sm font-medium text-concierge-navy">{{ $lead->not_converted_reason ?? '—' }}</dd>
+            </div>
+            @endif
         </div>
     </div>
 @endsection
