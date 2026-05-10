@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Models\Bank;
 use App\Models\Company;
 use App\Models\Destination;
 use App\Models\Folder;
@@ -46,9 +47,9 @@ class FolderController extends Controller
         $folders = Folder::query()
             ->with(['agent', 'company', 'destination', 'itineraries'])
             ->withCount('passengers')
-            ->when($agentId !== null, fn($query) => $query->where('agent_id', $agentId))
-            ->when($destinationId !== null, fn($query) => $query->where('destination_id', $destinationId))
-            ->when($orderType !== '', fn($query) => $query->where('order_type', $orderType))
+            ->when($agentId !== null, fn ($query) => $query->where('agent_id', $agentId))
+            ->when($destinationId !== null, fn ($query) => $query->where('destination_id', $destinationId))
+            ->when($orderType !== '', fn ($query) => $query->where('order_type', $orderType))
             ->when($travelArrivalFrom !== '' || $travelArrivalTo !== '', function ($query) use ($travelArrivalFrom, $travelArrivalTo) {
                 $query->whereExists(function ($itineraryQuery) use ($travelArrivalFrom, $travelArrivalTo) {
                     $itineraryQuery
@@ -58,16 +59,16 @@ class FolderController extends Controller
                         ->whereRaw(
                             'fi.sr_no = (select min(fi2.sr_no) from folder_itineraries as fi2 where fi2.folder_id = folders.id)'
                         )
-                        ->when($travelArrivalFrom !== '', fn($query) => $query->whereDate('fi.departure_date', '>=', $travelArrivalFrom))
-                        ->when($travelArrivalTo !== '', fn($query) => $query->whereDate('fi.arrival_date', '<=', $travelArrivalTo));
+                        ->when($travelArrivalFrom !== '', fn ($query) => $query->whereDate('fi.departure_date', '>=', $travelArrivalFrom))
+                        ->when($travelArrivalTo !== '', fn ($query) => $query->whereDate('fi.arrival_date', '<=', $travelArrivalTo));
                 });
             })
             ->when($search !== '', function ($query) use ($search) {
                 $query->where(function ($searchQuery) use ($search) {
                     $searchQuery
-                        ->where('customer_name', 'like', '%' . $search . '%')
-                        ->orWhere('order_type', 'like', '%' . $search . '%')
-                        ->orWhere('vendor_reference', 'like', '%' . $search . '%');
+                        ->where('customer_name', 'like', '%'.$search.'%')
+                        ->orWhere('order_type', 'like', '%'.$search.'%')
+                        ->orWhere('vendor_reference', 'like', '%'.$search.'%');
                 });
             })
             ->latest()
@@ -95,10 +96,15 @@ class FolderController extends Controller
         return view('agent.folders.create', [
             'companies' => Company::query()->with('country')->orderBy('name')->get(),
             'destinations' => Destination::query()->orderBy('name')->get(),
+            'banks' => Bank::query()->orderBy('name')->get(),
             'draftItineraryRows' => $drafts['itineraries'] ?? [[]],
             'draftPassengerRows' => $drafts['passengers'] ?? [[]],
             'draftPackageCostRows' => $drafts['package_costs'] ?? [[]],
             'draftHotelDetailRows' => $drafts['hotel_details'] ?? [[]],
+            'draftTransportDetailRows' => $drafts['transport_details'] ?? [[]],
+            'draftVisaDetailRows' => $drafts['visa_details'] ?? [[]],
+            'draftOtherDetailRows' => $drafts['other_details'] ?? [[]],
+            'draftPaymentRows' => $drafts['payments'] ?? [[]],
             'leadRoutePrefix' => 'admin',
             'leadRouteResource' => 'folders',
             'leadLayout' => 'layouts.admin',
@@ -128,6 +134,12 @@ class FolderController extends Controller
             abort(404);
         }
 
+        if ($section === 'payments') {
+            $request->merge([
+                'payments' => folder_filter_non_empty_payment_rows($request->input('payments')),
+            ]);
+        }
+
         $validator = Validator::make($request->all(), $rulesBySection[$section]);
         if ($validator->fails()) {
             return response()->json([
@@ -137,6 +149,9 @@ class FolderController extends Controller
         }
 
         $validated = $validator->validated();
+        if ($section === 'payments') {
+            folder_assert_payment_rows_bank_when_required($validated['payments'] ?? []);
+        }
         $drafts = $this->draftSections($request);
         $drafts[$section] = $validated[$section] ?? [];
         $request->session()->put($this->draftSessionKey($request), $drafts);
@@ -148,7 +163,7 @@ class FolderController extends Controller
 
     public function show(Folder $folder): View
     {
-        $folder->load(['agent', 'company', 'destination', 'itineraries', 'passengers', 'packageCosts', 'hotelDetails']);
+        $folder->load(['agent', 'company', 'destination', 'itineraries', 'passengers', 'packageCosts', 'hotelDetails', 'transportDetails', 'visaDetails', 'otherDetails', 'payments.bank']);
 
         return view('admin.folders.show', [
             'folder' => $folder,
@@ -158,15 +173,16 @@ class FolderController extends Controller
 
     public function edit(Request $request, Folder $folder): View
     {
-        $folder->load(['itineraries', 'passengers', 'packageCosts', 'hotelDetails']);
+        $folder->load(['itineraries', 'passengers', 'packageCosts', 'hotelDetails', 'transportDetails', 'visaDetails', 'otherDetails', 'payments']);
         $drafts = $this->draftSections($request);
 
         return view('agent.folders.create', [
             'lead' => $folder,
             'companies' => Company::query()->with('country')->orderBy('name')->get(),
             'destinations' => Destination::query()->orderBy('name')->get(),
+            'banks' => Bank::query()->orderBy('name')->get(),
             'draftItineraryRows' => $drafts['itineraries'] ?? $folder->itineraries
-                ->map(fn($itinerary) => [
+                ->map(fn ($itinerary) => [
                     'sr_no' => $itinerary->sr_no,
                     'airline_code' => $itinerary->airline_code,
                     'airline_number' => $itinerary->airline_number,
@@ -179,7 +195,7 @@ class FolderController extends Controller
                     'arrival_date' => optional($itinerary->arrival_date)->format('Y-m-d'),
                 ])->toArray(),
             'draftPassengerRows' => $drafts['passengers'] ?? $folder->passengers
-                ->map(fn($passenger) => [
+                ->map(fn ($passenger) => [
                     'title' => $passenger->title,
                     'first_name' => $passenger->first_name,
                     'middle_name' => $passenger->middle_name,
@@ -191,7 +207,7 @@ class FolderController extends Controller
                     'passport_details' => $passenger->passport_details,
                 ])->toArray(),
             'draftPackageCostRows' => $drafts['package_costs'] ?? $folder->packageCosts
-                ->map(fn($cost) => [
+                ->map(fn ($cost) => [
                     'ticket_no' => $cost->ticket_no,
                     'ticket_date' => optional($cost->ticket_date)->format('Y-m-d'),
                     'airline_from' => $cost->airline_from,
@@ -205,7 +221,7 @@ class FolderController extends Controller
                     'pnr' => $cost->pnr,
                 ])->toArray(),
             'draftHotelDetailRows' => $drafts['hotel_details'] ?? $folder->hotelDetails
-                ->map(fn($hotel) => [
+                ->map(fn ($hotel) => [
                     'sr_no' => $hotel->sr_no,
                     'supplier' => $hotel->supplier,
                     'hotel_name' => $hotel->hotel_name,
@@ -222,6 +238,47 @@ class FolderController extends Controller
                     'sell' => $hotel->sell,
                     'hotel_city' => $hotel->hotel_city,
                 ])->toArray(),
+            'draftTransportDetailRows' => $drafts['transport_details'] ?? $folder->transportDetails
+                ->map(fn ($t) => [
+                    'supplier' => $t->supplier,
+                    'description' => $t->description,
+                    'origin' => $t->origin,
+                    'destination' => $t->destination,
+                    'service_date' => optional($t->service_date)->format('Y-m-d'),
+                    'pickup_time' => $t->pickup_time,
+                    'vehicle_type' => $t->vehicle_type,
+                    'cost' => $t->cost,
+                    'margin' => $t->margin,
+                    'sell' => $t->sell,
+                    'sar' => $t->sar,
+                ])->toArray(),
+            'draftVisaDetailRows' => $drafts['visa_details'] ?? $folder->visaDetails
+                ->map(fn ($v) => [
+                    'supplier' => $v->supplier,
+                    'description' => $v->description,
+                    'cost' => $v->cost,
+                    'margin' => $v->margin,
+                    'sell' => $v->sell,
+                ])->toArray(),
+            'draftOtherDetailRows' => $drafts['other_details'] ?? $folder->otherDetails
+                ->map(fn ($o) => [
+                    'supplier' => $o->supplier,
+                    'description' => $o->description,
+                    'cost' => $o->cost,
+                    'margin' => $o->margin,
+                    'sell' => $o->sell,
+                ])->toArray(),
+            'draftPaymentRows' => array_key_exists('payments', $drafts)
+                ? $drafts['payments']
+                : ($folder->payments->isEmpty()
+                    ? [[]]
+                    : $folder->payments
+                        ->map(fn ($p) => [
+                            'amount' => $p->amount,
+                            'payment_date' => optional($p->payment_date)->format('Y-m-d'),
+                            'mode_of_payment' => $p->mode_of_payment,
+                            'bank_id' => $p->bank_id,
+                        ])->toArray()),
             'isEditMode' => true,
             'leadRoutePrefix' => 'admin',
             'leadRouteResource' => 'folders',
@@ -247,6 +304,8 @@ class FolderController extends Controller
 
     private function validateFolder(array $payload): array
     {
+        $payload['payments'] = folder_filter_non_empty_payment_rows($payload['payments'] ?? null);
+
         $validated = Validator::make($payload, [
             'agent_id' => ['nullable', 'integer', 'exists:users,id'],
             'order_type' => ['required', 'string', Rule::in(folder_order_types())],
@@ -307,7 +366,38 @@ class FolderController extends Controller
             'hotel_details.*.margin' => ['required', 'numeric'],
             'hotel_details.*.sell' => ['nullable', 'numeric', 'min:0'],
             'hotel_details.*.hotel_city' => ['required', 'string', 'max:100'],
+            'transport_details' => ['required', 'array', 'min:1'],
+            'transport_details.*.supplier' => ['required', 'string', 'max:100'],
+            'transport_details.*.description' => ['required', 'string', 'max:255'],
+            'transport_details.*.origin' => ['required', 'string', 'max:150'],
+            'transport_details.*.destination' => ['required', 'string', 'max:150'],
+            'transport_details.*.service_date' => ['required', 'date'],
+            'transport_details.*.pickup_time' => ['required', 'string', 'max:30'],
+            'transport_details.*.vehicle_type' => ['required', 'string', 'max:100'],
+            'transport_details.*.cost' => ['required', 'numeric', 'min:0'],
+            'transport_details.*.margin' => ['required', 'numeric'],
+            'transport_details.*.sell' => ['nullable', 'numeric', 'min:0'],
+            'transport_details.*.sar' => ['nullable', 'numeric', 'min:0'],
+            'visa_details' => ['required', 'array', 'min:1'],
+            'visa_details.*.supplier' => ['required', 'string', 'max:100'],
+            'visa_details.*.description' => ['required', 'string', 'max:255'],
+            'visa_details.*.cost' => ['required', 'numeric', 'min:0'],
+            'visa_details.*.margin' => ['required', 'numeric'],
+            'visa_details.*.sell' => ['nullable', 'numeric', 'min:0'],
+            'other_details' => ['required', 'array', 'min:1'],
+            'other_details.*.supplier' => ['required', 'string', 'max:100'],
+            'other_details.*.description' => ['required', 'string', 'max:255'],
+            'other_details.*.cost' => ['required', 'numeric', 'min:0'],
+            'other_details.*.margin' => ['required', 'numeric'],
+            'other_details.*.sell' => ['nullable', 'numeric', 'min:0'],
+            'payments' => ['nullable', 'array'],
+            'payments.*.amount' => ['required', 'numeric', 'min:0'],
+            'payments.*.payment_date' => ['required', 'date'],
+            'payments.*.mode_of_payment' => ['required', 'string', Rule::in(folder_payment_modes())],
+            'payments.*.bank_id' => ['nullable', 'integer', 'exists:banks,id'],
         ])->validate();
+
+        folder_assert_payment_rows_bank_when_required($validated['payments'] ?? []);
 
         $itineraries = collect($validated['itineraries'] ?? [])
             ->sortBy(fn ($itinerary) => (int) ($itinerary['sr_no'] ?? PHP_INT_MAX))
@@ -334,10 +424,14 @@ class FolderController extends Controller
         $payload = $request->all();
         $drafts = $this->draftSections($request);
 
-        foreach (['itineraries', 'passengers', 'package_costs', 'hotel_details'] as $section) {
+        foreach (['itineraries', 'passengers', 'package_costs', 'hotel_details', 'transport_details', 'visa_details', 'other_details'] as $section) {
             if (! empty($drafts[$section])) {
                 $payload[$section] = $drafts[$section];
             }
+        }
+
+        if (array_key_exists('payments', $drafts) && is_array($drafts['payments'])) {
+            $payload['payments'] = $drafts['payments'];
         }
 
         return $payload;
@@ -353,7 +447,7 @@ class FolderController extends Controller
 
     private function draftSessionKey(Request $request): string
     {
-        return 'folder_section_drafts.user.' . (string) $request->user()?->getAuthIdentifier();
+        return 'folder_section_drafts.user.'.(string) $request->user()?->getAuthIdentifier();
     }
 
     /**
@@ -419,6 +513,43 @@ class FolderController extends Controller
                 'hotel_details.*.sell' => ['nullable', 'numeric', 'min:0'],
                 'hotel_details.*.hotel_city' => ['required', 'string', 'max:100'],
             ],
+            'transport_details' => [
+                'transport_details' => ['required', 'array', 'min:1'],
+                'transport_details.*.supplier' => ['required', 'string', 'max:100'],
+                'transport_details.*.description' => ['required', 'string', 'max:255'],
+                'transport_details.*.origin' => ['required', 'string', 'max:150'],
+                'transport_details.*.destination' => ['required', 'string', 'max:150'],
+                'transport_details.*.service_date' => ['required', 'date'],
+                'transport_details.*.pickup_time' => ['required', 'string', 'max:30'],
+                'transport_details.*.vehicle_type' => ['required', 'string', 'max:100'],
+                'transport_details.*.cost' => ['required', 'numeric', 'min:0'],
+                'transport_details.*.margin' => ['required', 'numeric'],
+                'transport_details.*.sell' => ['nullable', 'numeric', 'min:0'],
+                'transport_details.*.sar' => ['nullable', 'numeric', 'min:0'],
+            ],
+            'visa_details' => [
+                'visa_details' => ['required', 'array', 'min:1'],
+                'visa_details.*.supplier' => ['required', 'string', 'max:100'],
+                'visa_details.*.description' => ['required', 'string', 'max:255'],
+                'visa_details.*.cost' => ['required', 'numeric', 'min:0'],
+                'visa_details.*.margin' => ['required', 'numeric'],
+                'visa_details.*.sell' => ['nullable', 'numeric', 'min:0'],
+            ],
+            'other_details' => [
+                'other_details' => ['required', 'array', 'min:1'],
+                'other_details.*.supplier' => ['required', 'string', 'max:100'],
+                'other_details.*.description' => ['required', 'string', 'max:255'],
+                'other_details.*.cost' => ['required', 'numeric', 'min:0'],
+                'other_details.*.margin' => ['required', 'numeric'],
+                'other_details.*.sell' => ['nullable', 'numeric', 'min:0'],
+            ],
+            'payments' => [
+                'payments' => ['nullable', 'array'],
+                'payments.*.amount' => ['required', 'numeric', 'min:0'],
+                'payments.*.payment_date' => ['required', 'date'],
+                'payments.*.mode_of_payment' => ['required', 'string', Rule::in(folder_payment_modes())],
+                'payments.*.bank_id' => ['nullable', 'integer', 'exists:banks,id'],
+            ],
         ];
     }
 
@@ -452,12 +583,20 @@ class FolderController extends Controller
                     $folder->passengers()->delete();
                     $folder->packageCosts()->delete();
                     $folder->hotelDetails()->delete();
+                    $folder->transportDetails()->delete();
+                    $folder->visaDetails()->delete();
+                    $folder->otherDetails()->delete();
+                    $folder->payments()->delete();
                 }
 
                 $folder->itineraries()->createMany($validated['itineraries'] ?? []);
                 $folder->passengers()->createMany($validated['passengers'] ?? []);
                 $folder->packageCosts()->createMany($validated['package_costs'] ?? []);
                 $folder->hotelDetails()->createMany($validated['hotel_details'] ?? []);
+                $folder->transportDetails()->createMany($validated['transport_details'] ?? []);
+                $folder->visaDetails()->createMany($validated['visa_details'] ?? []);
+                $folder->otherDetails()->createMany($validated['other_details'] ?? []);
+                $folder->payments()->createMany(folder_normalized_payments_for_storage($validated['payments'] ?? []));
             });
         } catch (Throwable $e) {
             report($e);

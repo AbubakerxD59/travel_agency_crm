@@ -11,10 +11,16 @@
                     <p class="text-xs font-semibold uppercase tracking-[0.16em] text-concierge-muted">Folder Details</p>
                     <h1 class="mt-1 text-2xl font-bold text-concierge-navy lg:text-3xl">Folder #{{ $folder->id }}</h1>
                 </div>
-                <a href="{{ route('agent.folders.index') }}"
-                    class="inline-flex shrink-0 items-center justify-center rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-medium text-concierge-navy shadow-sm transition hover:bg-slate-50">
-                    Back to folders
-                </a>
+                <div>
+                    <a href="{{ route('agent.folders.index') }}"
+                        class="inline-flex shrink-0 items-center justify-center rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-medium text-concierge-navy shadow-sm transition hover:bg-slate-50">
+                        Back to folders
+                    </a>
+                    <a href="{{ route('agent.folders.edit', $folder) }}"
+                        class="inline-flex shrink-0 items-center justify-center rounded-xl bg-concierge-navy px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-concierge-navy-deep">
+                        Edit folder
+                    </a>
+                </div>
             </div>
         </div>
 
@@ -226,6 +232,138 @@
                             </tr>
                         @empty
                             <tr><td class="border border-slate-200 px-3 py-4 text-center text-concierge-muted" colspan="15">No hotel details found.</td></tr>
+                        @endforelse
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <div class="mt-6 rounded-2xl border border-slate-200/80 bg-white p-6 shadow-sm">
+            <h2 class="text-base font-semibold text-concierge-navy">Transport Details</h2>
+            <div class="mt-4 overflow-x-auto">
+                <table class="min-w-[1100px] w-full border-collapse text-xs sm:text-sm">
+                    <thead>
+                        <tr class="bg-slate-100 text-left text-concierge-muted">
+                            <th class="border border-slate-200 px-2 py-2">Supplier</th>
+                            <th class="border border-slate-200 px-2 py-2">Description</th>
+                            <th class="border border-slate-200 px-2 py-2">From</th>
+                            <th class="border border-slate-200 px-2 py-2">To</th>
+                            <th class="border border-slate-200 px-2 py-2">Date</th>
+                            <th class="border border-slate-200 px-2 py-2">Pickup time</th>
+                            <th class="border border-slate-200 px-2 py-2">Vehicle type</th>
+                            <th class="border border-slate-200 px-2 py-2">Cost</th>
+                            <th class="border border-slate-200 px-2 py-2">Margin</th>
+                            <th class="border border-slate-200 px-2 py-2">Sell</th>
+                            <th class="border border-slate-200 px-2 py-2">SAR</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @forelse ($folder->transportDetails as $t)
+                            <tr class="bg-white">
+                                <td class="border border-slate-200 px-2 py-2">{{ $t->supplier ?? '—' }}</td>
+                                <td class="border border-slate-200 px-2 py-2">{{ $t->description ?? '—' }}</td>
+                                <td class="border border-slate-200 px-2 py-2">{{ $t->origin ?? '—' }}</td>
+                                <td class="border border-slate-200 px-2 py-2">{{ $t->destination ?? '—' }}</td>
+                                <td class="border border-slate-200 px-2 py-2">{{ $t->service_date?->format('M j, Y') ?? '—' }}</td>
+                                <td class="border border-slate-200 px-2 py-2">{{ $t->pickup_time ?? '—' }}</td>
+                                <td class="border border-slate-200 px-2 py-2">{{ $t->vehicle_type ?? '—' }}</td>
+                                <td class="border border-slate-200 px-2 py-2">{{ $t->cost ?? '—' }}</td>
+                                <td class="border border-slate-200 px-2 py-2">{{ $t->margin ?? '—' }}</td>
+                                <td class="border border-slate-200 px-2 py-2">{{ $t->sell ?? '—' }}</td>
+                                <td class="border border-slate-200 px-2 py-2">{{ $t->sar ?? '—' }}</td>
+                            </tr>
+                        @empty
+                            <tr><td class="border border-slate-200 px-3 py-4 text-center text-concierge-muted" colspan="11">No transport details found.</td></tr>
+                        @endforelse
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <div class="mt-6 rounded-2xl border border-slate-200/80 bg-white p-6 shadow-sm">
+            <h2 class="text-base font-semibold text-concierge-navy">Visa Details</h2>
+            <div class="mt-4 overflow-x-auto">
+                <table class="min-w-[640px] w-full border-collapse text-xs sm:text-sm">
+                    <thead>
+                        <tr class="bg-slate-100 text-left text-concierge-muted">
+                            <th class="border border-slate-200 px-2 py-2">Supplier</th>
+                            <th class="border border-slate-200 px-2 py-2">Description</th>
+                            <th class="border border-slate-200 px-2 py-2">Cost</th>
+                            <th class="border border-slate-200 px-2 py-2">Margin</th>
+                            <th class="border border-slate-200 px-2 py-2">Sell</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @forelse ($folder->visaDetails as $v)
+                            <tr class="bg-white">
+                                <td class="border border-slate-200 px-2 py-2">{{ $v->supplier ?? '—' }}</td>
+                                <td class="border border-slate-200 px-2 py-2">{{ $v->description ?? '—' }}</td>
+                                <td class="border border-slate-200 px-2 py-2">{{ $v->cost ?? '—' }}</td>
+                                <td class="border border-slate-200 px-2 py-2">{{ $v->margin ?? '—' }}</td>
+                                <td class="border border-slate-200 px-2 py-2">{{ $v->sell ?? '—' }}</td>
+                            </tr>
+                        @empty
+                            <tr><td class="border border-slate-200 px-3 py-4 text-center text-concierge-muted" colspan="5">No visa details found.</td></tr>
+                        @endforelse
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <div class="mt-6 rounded-2xl border border-slate-200/80 bg-white p-6 shadow-sm">
+            <h2 class="text-base font-semibold text-concierge-navy">Other Details</h2>
+            <div class="mt-4 overflow-x-auto">
+                <table class="min-w-[640px] w-full border-collapse text-xs sm:text-sm">
+                    <thead>
+                        <tr class="bg-slate-100 text-left text-concierge-muted">
+                            <th class="border border-slate-200 px-2 py-2">Supplier</th>
+                            <th class="border border-slate-200 px-2 py-2">Description</th>
+                            <th class="border border-slate-200 px-2 py-2">Cost</th>
+                            <th class="border border-slate-200 px-2 py-2">Margin</th>
+                            <th class="border border-slate-200 px-2 py-2">Sell</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @forelse ($folder->otherDetails as $o)
+                            <tr class="bg-white">
+                                <td class="border border-slate-200 px-2 py-2">{{ $o->supplier ?? '—' }}</td>
+                                <td class="border border-slate-200 px-2 py-2">{{ $o->description ?? '—' }}</td>
+                                <td class="border border-slate-200 px-2 py-2">{{ $o->cost ?? '—' }}</td>
+                                <td class="border border-slate-200 px-2 py-2">{{ $o->margin ?? '—' }}</td>
+                                <td class="border border-slate-200 px-2 py-2">{{ $o->sell ?? '—' }}</td>
+                            </tr>
+                        @empty
+                            <tr><td class="border border-slate-200 px-3 py-4 text-center text-concierge-muted" colspan="5">No other details found.</td></tr>
+                        @endforelse
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        @include('agent.folders._show-cost-summary', ['folder' => $folder])
+
+        <div class="mt-6 rounded-2xl border border-slate-200/80 bg-white p-6 shadow-sm">
+            <h2 class="text-base font-semibold text-concierge-navy">Payments</h2>
+            <div class="mt-4 overflow-x-auto">
+                <table class="min-w-[640px] w-full border-collapse text-xs sm:text-sm">
+                    <thead>
+                        <tr class="bg-slate-100 text-left text-concierge-muted">
+                            <th class="border border-slate-200 px-2 py-2">Amount</th>
+                            <th class="border border-slate-200 px-2 py-2">Date of Payment</th>
+                            <th class="border border-slate-200 px-2 py-2">Mode of Payment</th>
+                            <th class="border border-slate-200 px-2 py-2">Bank</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @forelse ($folder->payments as $p)
+                            <tr class="bg-white">
+                                <td class="border border-slate-200 px-2 py-2">{{ $p->amount ?? '—' }}</td>
+                                <td class="border border-slate-200 px-2 py-2">{{ optional($p->payment_date)->format('Y-m-d') ?? '—' }}</td>
+                                <td class="border border-slate-200 px-2 py-2">{{ $p->mode_of_payment ?? '—' }}</td>
+                                <td class="border border-slate-200 px-2 py-2">{{ $p->bank?->name ?? '—' }}</td>
+                            </tr>
+                        @empty
+                            <tr><td class="border border-slate-200 px-3 py-4 text-center text-concierge-muted" colspan="4">No payments recorded.</td></tr>
                         @endforelse
                     </tbody>
                 </table>

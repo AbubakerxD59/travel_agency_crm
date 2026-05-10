@@ -18,9 +18,12 @@ function initAgentPerformanceChart() {
 
     const labels = config.labels ?? [];
     const agents = config.agents ?? [];
+    const agentOptions = Array.isArray(config.agentOptions) ? config.agentOptions : [];
     if (!labels.length || !agents.length) {
         return;
     }
+
+    let chartFilterState = { range: 'year', start: '', end: '' };
 
     const rootStyles = getComputedStyle(document.documentElement);
     const navy = rootStyles.getPropertyValue('--color-concierge-navy').trim() || '#152c49';
@@ -97,11 +100,41 @@ function initAgentPerformanceChart() {
     const filterButton = document.getElementById('admin-agent-chart-filter-button');
     const filterMenu = document.getElementById('admin-agent-chart-filter-menu');
     const filterLabel = document.getElementById('admin-agent-chart-filter-label');
+    const agentFilterWrap = document.getElementById('admin-agent-chart-agent-filter-wrap');
     const chartEndpoint = cfgEl.dataset.chartEndpoint;
     let customDatePicker = null;
+    /** @type {HTMLSelectElement | null} */
+    let agentSelect = null;
 
     if (!filterButton || !filterMenu || !filterLabel) {
         return;
+    }
+
+    if (agentOptions.length && agentFilterWrap) {
+        const agentLabel = document.createElement('label');
+        agentLabel.className = 'mb-1 block text-xs font-medium text-concierge-muted';
+        agentLabel.setAttribute('for', 'admin-agent-chart-agent-select');
+        agentLabel.textContent = 'Agent';
+
+        agentSelect = document.createElement('select');
+        agentSelect.id = 'admin-agent-chart-agent-select';
+        agentSelect.className =
+            'w-full min-w-0 cursor-pointer rounded-xl border border-slate-200 bg-white px-3.5 py-2 text-sm font-medium text-concierge-navy transition hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-concierge-accent/25';
+
+        const optAll = document.createElement('option');
+        optAll.value = '';
+        optAll.textContent = 'All agents';
+        agentSelect.appendChild(optAll);
+
+        agentOptions.forEach((opt) => {
+            const o = document.createElement('option');
+            o.value = String(opt.id);
+            o.textContent = opt.name;
+            agentSelect.appendChild(o);
+        });
+
+        agentFilterWrap.appendChild(agentLabel);
+        agentFilterWrap.appendChild(agentSelect);
     }
 
     function closeMenu() {
@@ -150,6 +183,10 @@ function initAgentPerformanceChart() {
         chart.update();
     }
 
+    function currentAgentIdParam() {
+        return agentSelect?.value?.trim() ?? '';
+    }
+
     async function fetchAndApplyChartData(range, startDate, endDate) {
         if (!chartEndpoint) {
             return false;
@@ -161,6 +198,10 @@ function initAgentPerformanceChart() {
         }
         if (endDate) {
             params.set('end_date', endDate);
+        }
+        const agentId = currentAgentIdParam();
+        if (agentId) {
+            params.set('agent_id', agentId);
         }
 
         try {
@@ -185,10 +226,23 @@ function initAgentPerformanceChart() {
     async function runFilterFetch(filterKey, displayLabel, startDate = '', endDate = '') {
         const originalLabel = filterLabel.textContent;
         filterButton.disabled = true;
+        if (agentSelect) {
+            agentSelect.disabled = true;
+        }
         filterLabel.textContent = 'Loading...';
         const loaded = await fetchAndApplyChartData(filterKey, startDate, endDate);
         filterButton.disabled = false;
+        if (agentSelect) {
+            agentSelect.disabled = false;
+        }
         filterLabel.textContent = loaded ? displayLabel : originalLabel;
+        if (loaded) {
+            chartFilterState = {
+                range: filterKey,
+                start: startDate || '',
+                end: endDate || '',
+            };
+        }
         return loaded;
     }
 
@@ -227,6 +281,20 @@ function initAgentPerformanceChart() {
         return customDatePicker;
     }
 
+    if (agentSelect) {
+        agentSelect.addEventListener('change', async () => {
+            const { range, start, end } = chartFilterState;
+            const labelBefore = filterLabel.textContent;
+            filterButton.disabled = true;
+            agentSelect.disabled = true;
+            filterLabel.textContent = 'Loading...';
+            await fetchAndApplyChartData(range, start, end);
+            filterButton.disabled = false;
+            agentSelect.disabled = false;
+            filterLabel.textContent = labelBefore;
+        });
+    }
+
     filterMenu.querySelectorAll('.admin-agent-chart-filter-option').forEach((option) => {
         option.addEventListener('click', async () => {
             const filterKey = option.dataset.filter || 'month';
@@ -238,7 +306,7 @@ function initAgentPerformanceChart() {
                 return;
             }
 
-            await runFilterFetch(filterKey, displayLabel);
+            await runFilterFetch(filterKey, displayLabel, '', '');
             closeMenu();
         });
     });

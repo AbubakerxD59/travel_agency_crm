@@ -195,6 +195,11 @@
     .loading-dot:nth-child(3) {
         animation-delay: 0.32s;
     }
+
+    /** Folder cost summary: positive / total sale (same color as Tailwind `text-emerald-600`). */
+    .folder-cost-text-emerald-600 {
+        @apply text-emerald-600;
+    }
 }
 
 @keyframes loading-dots {

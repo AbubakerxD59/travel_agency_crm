@@ -514,6 +514,43 @@
                     <p class="text-xs text-concierge-muted">At least one hotel/package cost row is required.</p>
                 </div>
 
+                <div class="space-y-3 rounded-2xl border border-slate-200/80 bg-slate-50/40 p-4 sm:p-5" id="folder-cost-summary">
+                    <h2 class="text-base font-semibold text-concierge-navy">Cost summary</h2>
+                    <div class="overflow-x-auto">
+                        <table class="min-w-[920px] w-full border-collapse text-xs sm:text-sm">
+                            <thead>
+                                <tr class="bg-slate-100 text-left text-concierge-muted">
+                                    <th class="border border-slate-200 px-3 py-2">Total sale</th>
+                                    <th class="border border-slate-200 px-3 py-2">Flight cost</th>
+                                    <th class="border border-slate-200 px-3 py-2">Hotel cost</th>
+                                    <th class="border border-slate-200 px-3 py-2">Transport cost</th>
+                                    <th class="border border-slate-200 px-3 py-2">Visa cost</th>
+                                    <th class="border border-slate-200 px-3 py-2">Others cost</th>
+                                    <th class="border border-slate-200 px-3 py-2">Margin</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr class="bg-white">
+                                    <td class="folder-cost-text-emerald-600 border border-slate-200 px-3 py-2 text-sm font-semibold tabular-nums"
+                                        data-folder-summary="total-sale">—</td>
+                                    <td class="border border-slate-200 px-3 py-2 text-sm font-medium tabular-nums text-rose-600"
+                                        data-folder-summary="flight-cost">—</td>
+                                    <td class="border border-slate-200 px-3 py-2 text-sm font-medium tabular-nums text-rose-600"
+                                        data-folder-summary="hotel-cost">—</td>
+                                    <td class="border border-slate-200 px-3 py-2 text-sm font-medium tabular-nums text-rose-600"
+                                        data-folder-summary="transport-cost">—</td>
+                                    <td class="border border-slate-200 px-3 py-2 text-sm font-medium tabular-nums text-rose-600"
+                                        data-folder-summary="visa-cost">—</td>
+                                    <td class="border border-slate-200 px-3 py-2 text-sm font-medium tabular-nums text-rose-600"
+                                        data-folder-summary="others-cost">—</td>
+                                    <td class="border border-slate-200 px-3 py-2 text-sm font-semibold tabular-nums text-rose-600"
+                                        data-folder-summary="summary-margin">—</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
                 <div class="flex flex-col gap-3 border-t border-slate-100 pt-6 sm:flex-row sm:justify-end">
                     <a href="{{ route(($leadRoutePrefix ?? 'admin') . '.'.($leadRouteResource ?? 'leads').'.index') }}"
                         class="inline-flex cursor-pointer items-center justify-center rounded-xl border border-slate-200 py-2.5 text-center text-sm font-medium text-concierge-navy hover:bg-slate-50 sm:px-6">
@@ -963,6 +1000,73 @@
                 function syncAllAutoMargins() {
                     form.querySelectorAll('.package-cost-row').forEach(syncPackageCostMargin);
                     form.querySelectorAll('.hotel-detail-row').forEach(syncHotelDetailMargin);
+                    syncFolderCostSummary();
+                }
+
+                function sumMoneyInputs(selector) {
+                    let total = 0;
+                    form.querySelectorAll(selector).forEach((el) => {
+                        const v = parseMoneyInput(el);
+                        if (v !== null) {
+                            total += v;
+                        }
+                    });
+                    return total;
+                }
+
+                function formatSummaryCell(n) {
+                    if (!Number.isFinite(n)) {
+                        return '—';
+                    }
+                    const rounded = Math.round(n * 100) / 100;
+                    return rounded.toLocaleString('en-US', {
+                        minimumFractionDigits: 0,
+                        maximumFractionDigits: 2,
+                    });
+                }
+
+                function applyFolderSummaryCellStyle(cell, key, numericValue) {
+                    if (!cell) {
+                        return;
+                    }
+                    const base = 'border border-slate-200 px-3 py-2 text-sm tabular-nums';
+                    if (key === 'total-sale') {
+                        cell.className = `${base} font-semibold folder-cost-text-emerald-600`;
+                        return;
+                    }
+                    if (key === 'summary-margin') {
+                        const positive = Number.isFinite(numericValue) && numericValue > 0;
+                        cell.className = `${base} font-semibold ${positive ? 'folder-cost-text-emerald-600' : 'text-rose-600'}`;
+                        return;
+                    }
+                    cell.className = `${base} font-medium text-rose-600`;
+                }
+
+                function syncFolderCostSummary() {
+                    const totalSale = sumMoneyInputs('input[name^="package_costs["][name$="[sell]"]');
+                    const flightCost = sumMoneyInputs('input[name^="package_costs["][name$="[total_cost]"]');
+                    const hotelCost = sumMoneyInputs('input[name^="hotel_details["][name$="[cost]"]');
+                    const transportCost = sumMoneyInputs('input[name^="transport_details["][name$="[cost]"]');
+                    const visaCost = sumMoneyInputs('input[name^="visa_details["][name$="[cost]"]');
+                    const othersCost = sumMoneyInputs('input[name^="other_details["][name$="[cost]"]');
+                    const summaryMargin = totalSale - flightCost - hotelCost - transportCost - visaCost - othersCost;
+
+                    const cells = {
+                        'total-sale': totalSale,
+                        'flight-cost': flightCost,
+                        'hotel-cost': hotelCost,
+                        'transport-cost': transportCost,
+                        'visa-cost': visaCost,
+                        'others-cost': othersCost,
+                        'summary-margin': summaryMargin,
+                    };
+                    Object.entries(cells).forEach(([key, value]) => {
+                        const cell = form.querySelector(`[data-folder-summary="${key}"]`);
+                        if (cell) {
+                            cell.textContent = formatSummaryCell(value);
+                            applyFolderSummaryCellStyle(cell, key, value);
+                        }
+                    });
                 }
 
                 function onCostOrSellInput(ev) {
@@ -974,11 +1078,10 @@
                     if (n.startsWith('package_costs[') && (n.endsWith('[total_cost]') || n.endsWith(
                             '[sell]'))) {
                         syncPackageCostMargin(t.closest('.package-cost-row'));
-                        return;
-                    }
-                    if (n.startsWith('hotel_details[') && (n.endsWith('[cost]') || n.endsWith('[sell]'))) {
+                    } else if (n.startsWith('hotel_details[') && (n.endsWith('[cost]') || n.endsWith('[sell]'))) {
                         syncHotelDetailMargin(t.closest('.hotel-detail-row'));
                     }
+                    syncFolderCostSummary();
                 }
 
                 form.addEventListener('input', onCostOrSellInput);

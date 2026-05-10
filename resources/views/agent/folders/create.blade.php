@@ -59,6 +59,12 @@
                     $passengerRows = old('passengers', $draftPassengerRows ?? [[]]);
                     $packageCostRows = old('package_costs', $draftPackageCostRows ?? [[]]);
                     $hotelDetailRows = old('hotel_details', $draftHotelDetailRows ?? [[]]);
+                    $transportDetailRows = old('transport_details', $draftTransportDetailRows ?? [[]]);
+                    $visaDetailRows = old('visa_details', $draftVisaDetailRows ?? [[]]);
+                    $otherDetailRows = old('other_details', $draftOtherDetailRows ?? [[]]);
+                    $paymentRows = old('payments', $draftPaymentRows ?? [[]]);
+                    $paymentModes = folder_payment_modes();
+                    $banksForForm = isset($banks) ? $banks : collect();
                     if (!is_array($itineraryRows) || count($itineraryRows) === 0) {
                         $itineraryRows = [[]];
                     }
@@ -70,6 +76,18 @@
                     }
                     if (!is_array($hotelDetailRows) || count($hotelDetailRows) === 0) {
                         $hotelDetailRows = [[]];
+                    }
+                    if (!is_array($transportDetailRows) || count($transportDetailRows) === 0) {
+                        $transportDetailRows = [[]];
+                    }
+                    if (!is_array($visaDetailRows) || count($visaDetailRows) === 0) {
+                        $visaDetailRows = [[]];
+                    }
+                    if (!is_array($otherDetailRows) || count($otherDetailRows) === 0) {
+                        $otherDetailRows = [[]];
+                    }
+                    if (!is_array($paymentRows) || count($paymentRows) === 0) {
+                        $paymentRows = [[]];
                     }
                     $passengerTitles = \App\Models\FolderPassenger::titles();
                     $passengerTypes = \App\Models\FolderPassenger::passengerTypes();
@@ -752,6 +770,448 @@
                             </tbody>
                         </table>
                     </div>
+                    <p class="text-xs text-concierge-muted">At least one hotel details row is required.</p>
+                </div>
+
+                <div class="space-y-3 rounded-2xl border border-slate-200/80 bg-slate-50/40 p-4 sm:p-5">
+                    <div class="flex flex-wrap items-center justify-between gap-3">
+                        <div class="inline-flex items-center gap-2">
+                            <h2 class="text-base font-semibold text-concierge-navy"><span class="text-rose-600">*</span>
+                                Transport Details</h2>
+                            <button type="button" id="save-transport-details-section"
+                                class="inline-flex cursor-pointer items-center justify-center rounded-xl bg-emerald-600 px-3 py-2 text-xs font-semibold text-white hover:bg-emerald-700"
+                                title="Save Transport Details">
+                                <svg width="20" viewBox="0 0 24 24" fill="none"
+                                    xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                                    <path
+                                        d="M19 21H5C4.46957 21 3.96086 20.7893 3.58579 20.4142C3.21071 20.0391 3 19.5304 3 19V5C3 4.46957 3.21071 3.96086 3.58579 3.58579C3.96086 3.21071 4.46957 3 5 3H16L21 8V19C21 19.5304 20.7893 20.0391 20.4142 20.4142C20.0391 20.7893 19.5304 21 19 21Z"
+                                        stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                                        stroke-linejoin="round" />
+                                    <path d="M17 21V13H7V21" stroke="currentColor" stroke-width="2"
+                                        stroke-linejoin="round" />
+                                    <path d="M7 3V8H15" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                                        stroke-linejoin="round" />
+                                </svg>
+                            </button>
+                        </div>
+                        <div class="inline-flex items-center gap-2">
+                            <button type="button" id="add-transport-detail-row"
+                                class="inline-flex cursor-pointer items-center justify-center rounded-xl bg-concierge-navy px-4 py-2 text-xs font-semibold text-white hover:bg-concierge-navy-deep">
+                                Add New Transport
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="overflow-x-auto">
+                        <table class="min-w-[1320px] w-full border-collapse text-xs sm:text-sm">
+                            <thead>
+                                <tr class="bg-slate-100 text-left text-concierge-muted">
+                                    <th class="border border-slate-200 px-2 py-2">Action</th>
+                                    <th class="border border-slate-200 px-2 py-2"><span class="text-rose-600">*</span>
+                                        Supplier</th>
+                                    <th class="border border-slate-200 px-2 py-2"><span class="text-rose-600">*</span>
+                                        Description</th>
+                                    <th class="border border-slate-200 px-2 py-2"><span class="text-rose-600">*</span>
+                                        From</th>
+                                    <th class="border border-slate-200 px-2 py-2"><span class="text-rose-600">*</span>
+                                        To</th>
+                                    <th class="border border-slate-200 px-2 py-2"><span class="text-rose-600">*</span>
+                                        Date</th>
+                                    <th class="border border-slate-200 px-2 py-2"><span class="text-rose-600">*</span>
+                                        Pickup Time</th>
+                                    <th class="border border-slate-200 px-2 py-2"><span class="text-rose-600">*</span>
+                                        Vehicle Type</th>
+                                    <th class="border border-slate-200 px-2 py-2"><span class="text-rose-600">*</span>
+                                        Cost</th>
+                                    <th class="border border-slate-200 px-2 py-2"><span class="text-rose-600">*</span>
+                                        Margin</th>
+                                    <th class="border border-slate-200 px-2 py-2">Sell</th>
+                                    <th class="border border-slate-200 px-2 py-2">SAR</th>
+                                </tr>
+                            </thead>
+                            <tbody id="transport-detail-rows">
+                                @foreach ($transportDetailRows as $i => $row)
+                                    <tr class="transport-detail-row bg-white">
+                                        <td class="border border-slate-200 px-2 py-2 align-top">
+                                            <button type="button"
+                                                class="remove-transport-detail-row inline-flex cursor-pointer items-center justify-center rounded-md border border-rose-200 px-2 py-1 text-xs font-medium text-rose-700 hover:bg-rose-50">
+                                                X
+                                            </button>
+                                        </td>
+                                        <td class="border border-slate-200 px-2 py-2">
+                                            <input type="text" name="transport_details[{{ $i }}][supplier]"
+                                                value="{{ data_get($row, 'supplier') }}"
+                                                class="w-28 rounded-lg border border-slate-200 bg-white px-2 py-1.5 text-sm">
+                                        </td>
+                                        <td class="border border-slate-200 px-2 py-2">
+                                            <input type="text" name="transport_details[{{ $i }}][description]"
+                                                value="{{ data_get($row, 'description') }}"
+                                                class="w-40 rounded-lg border border-slate-200 bg-white px-2 py-1.5 text-sm">
+                                        </td>
+                                        <td class="border border-slate-200 px-2 py-2">
+                                            <input type="text" name="transport_details[{{ $i }}][origin]"
+                                                value="{{ data_get($row, 'origin') }}"
+                                                class="w-32 rounded-lg border border-slate-200 bg-white px-2 py-1.5 text-sm">
+                                        </td>
+                                        <td class="border border-slate-200 px-2 py-2">
+                                            <input type="text" name="transport_details[{{ $i }}][destination]"
+                                                value="{{ data_get($row, 'destination') }}"
+                                                class="w-32 rounded-lg border border-slate-200 bg-white px-2 py-1.5 text-sm">
+                                        </td>
+                                        <td class="border border-slate-200 px-2 py-2">
+                                            <input type="date" name="transport_details[{{ $i }}][service_date]"
+                                                value="{{ data_get($row, 'service_date') }}"
+                                                class="w-36 rounded-lg border border-slate-200 bg-white px-2 py-1.5 text-sm">
+                                        </td>
+                                        <td class="border border-slate-200 px-2 py-2">
+                                            <input type="time" name="transport_details[{{ $i }}][pickup_time]"
+                                                value="{{ data_get($row, 'pickup_time') }}"
+                                                class="w-28 rounded-lg border border-slate-200 bg-white px-2 py-1.5 text-sm">
+                                        </td>
+                                        <td class="border border-slate-200 px-2 py-2">
+                                            <input type="text" name="transport_details[{{ $i }}][vehicle_type]"
+                                                value="{{ data_get($row, 'vehicle_type') }}"
+                                                class="w-24 rounded-lg border border-slate-200 bg-white px-2 py-1.5 text-sm">
+                                        </td>
+                                        <td class="border border-slate-200 px-2 py-2">
+                                            <input type="number" min="0" step="0.01"
+                                                name="transport_details[{{ $i }}][cost]"
+                                                value="{{ data_get($row, 'cost') }}"
+                                                class="w-20 rounded-lg border border-slate-200 bg-white px-2 py-1.5 text-sm">
+                                        </td>
+                                        <td class="border border-slate-200 px-2 py-2">
+                                            <input type="number" step="0.01" readonly tabindex="-1"
+                                                name="transport_details[{{ $i }}][margin]"
+                                                value="{{ data_get($row, 'margin') }}"
+                                                class="w-20 cursor-not-allowed rounded-lg border border-slate-200 bg-slate-50/80 px-2 py-1.5 text-sm text-slate-700">
+                                        </td>
+                                        <td class="border border-slate-200 px-2 py-2">
+                                            <input type="number" min="0" step="0.01"
+                                                name="transport_details[{{ $i }}][sell]"
+                                                value="{{ data_get($row, 'sell') }}"
+                                                class="transport-detail-sell-input w-20 rounded-lg border border-slate-200 bg-white px-2 py-1.5 text-sm">
+                                        </td>
+                                        <td class="border border-slate-200 px-2 py-2">
+                                            <input type="number" min="0" step="0.01"
+                                                name="transport_details[{{ $i }}][sar]"
+                                                value="{{ data_get($row, 'sar') }}"
+                                                class="w-20 rounded-lg border border-slate-200 bg-white px-2 py-1.5 text-sm">
+                                        </td>
+                                    </tr>
+                                @endforeach
+                            </tbody>
+                        </table>
+                    </div>
+                    <p class="text-xs text-concierge-muted">At least one transport row is required. SAR is entered
+                        manually (optional).</p>
+                </div>
+
+                <div class="space-y-3 rounded-2xl border border-slate-200/80 bg-slate-50/40 p-4 sm:p-5">
+                    <div class="flex flex-wrap items-center justify-between gap-3">
+                        <div class="inline-flex items-center gap-2">
+                            <h2 class="text-base font-semibold text-concierge-navy"><span class="text-rose-600">*</span>
+                                Visa Details</h2>
+                            <button type="button" id="save-visa-details-section"
+                                class="inline-flex cursor-pointer items-center justify-center rounded-xl bg-emerald-600 px-3 py-2 text-xs font-semibold text-white hover:bg-emerald-700"
+                                title="Save Visa Details">
+                                <svg width="20" viewBox="0 0 24 24" fill="none"
+                                    xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                                    <path
+                                        d="M19 21H5C4.46957 21 3.96086 20.7893 3.58579 20.4142C3.21071 20.0391 3 19.5304 3 19V5C3 4.46957 3.21071 3.96086 3.58579 3.58579C3.96086 3.21071 4.46957 3 5 3H16L21 8V19C21 19.5304 20.7893 20.0391 20.4142 20.4142C20.0391 20.7893 19.5304 21 19 21Z"
+                                        stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                                        stroke-linejoin="round" />
+                                    <path d="M17 21V13H7V21" stroke="currentColor" stroke-width="2"
+                                        stroke-linejoin="round" />
+                                    <path d="M7 3V8H15" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                                        stroke-linejoin="round" />
+                                </svg>
+                            </button>
+                        </div>
+                        <div class="inline-flex items-center gap-2">
+                            <button type="button" id="add-visa-detail-row"
+                                class="inline-flex cursor-pointer items-center justify-center rounded-xl bg-concierge-navy px-4 py-2 text-xs font-semibold text-white hover:bg-concierge-navy-deep">
+                                Add New Visa
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="overflow-x-auto">
+                        <table class="min-w-[720px] w-full border-collapse text-xs sm:text-sm">
+                            <thead>
+                                <tr class="bg-slate-100 text-left text-concierge-muted">
+                                    <th class="border border-slate-200 px-2 py-2">Action</th>
+                                    <th class="border border-slate-200 px-2 py-2"><span class="text-rose-600">*</span>
+                                        Supplier</th>
+                                    <th class="border border-slate-200 px-2 py-2"><span class="text-rose-600">*</span>
+                                        Description</th>
+                                    <th class="border border-slate-200 px-2 py-2"><span class="text-rose-600">*</span>
+                                        Cost</th>
+                                    <th class="border border-slate-200 px-2 py-2"><span class="text-rose-600">*</span>
+                                        Margin</th>
+                                    <th class="border border-slate-200 px-2 py-2">Sell</th>
+                                </tr>
+                            </thead>
+                            <tbody id="visa-detail-rows">
+                                @foreach ($visaDetailRows as $i => $row)
+                                    <tr class="visa-detail-row bg-white">
+                                        <td class="border border-slate-200 px-2 py-2 align-top">
+                                            <button type="button"
+                                                class="remove-visa-detail-row inline-flex cursor-pointer items-center justify-center rounded-md border border-rose-200 px-2 py-1 text-xs font-medium text-rose-700 hover:bg-rose-50">
+                                                X
+                                            </button>
+                                        </td>
+                                        <td class="border border-slate-200 px-2 py-2">
+                                            <input type="text" name="visa_details[{{ $i }}][supplier]"
+                                                value="{{ data_get($row, 'supplier') }}"
+                                                class="w-full rounded-lg border border-slate-200 bg-white px-2 py-1.5 text-sm">
+                                        </td>
+                                        <td class="border border-slate-200 px-2 py-2">
+                                            <input type="text" name="visa_details[{{ $i }}][description]"
+                                                value="{{ data_get($row, 'description') }}"
+                                                class="w-full rounded-lg border border-slate-200 bg-white px-2 py-1.5 text-sm">
+                                        </td>
+                                        <td class="border border-slate-200 px-2 py-2">
+                                            <input type="number" min="0" step="0.01"
+                                                name="visa_details[{{ $i }}][cost]"
+                                                value="{{ data_get($row, 'cost') }}"
+                                                class="w-full rounded-lg border border-slate-200 bg-white px-2 py-1.5 text-sm">
+                                        </td>
+                                        <td class="border border-slate-200 px-2 py-2">
+                                            <input type="number" step="0.01" readonly tabindex="-1"
+                                                name="visa_details[{{ $i }}][margin]"
+                                                value="{{ data_get($row, 'margin') }}"
+                                                class="w-full cursor-not-allowed rounded-lg border border-slate-200 bg-slate-50/80 px-2 py-1.5 text-sm text-slate-700">
+                                        </td>
+                                        <td class="border border-slate-200 px-2 py-2">
+                                            <input type="number" min="0" step="0.01"
+                                                name="visa_details[{{ $i }}][sell]"
+                                                value="{{ data_get($row, 'sell') }}"
+                                                class="visa-detail-sell-input w-full rounded-lg border border-slate-200 bg-white px-2 py-1.5 text-sm">
+                                        </td>
+                                    </tr>
+                                @endforeach
+                            </tbody>
+                        </table>
+                    </div>
+                    <p class="text-xs text-concierge-muted">At least one visa row is required. Margin is sell minus cost.
+                    </p>
+                </div>
+
+                <div class="space-y-3 rounded-2xl border border-slate-200/80 bg-slate-50/40 p-4 sm:p-5">
+                    <div class="flex flex-wrap items-center justify-between gap-3">
+                        <div class="inline-flex items-center gap-2">
+                            <h2 class="text-base font-semibold text-concierge-navy"><span class="text-rose-600">*</span>
+                                Other Details</h2>
+                            <button type="button" id="save-other-details-section"
+                                class="inline-flex cursor-pointer items-center justify-center rounded-xl bg-emerald-600 px-3 py-2 text-xs font-semibold text-white hover:bg-emerald-700"
+                                title="Save Other Details">
+                                <svg width="20" viewBox="0 0 24 24" fill="none"
+                                    xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                                    <path
+                                        d="M19 21H5C4.46957 21 3.96086 20.7893 3.58579 20.4142C3.21071 20.0391 3 19.5304 3 19V5C3 4.46957 3.21071 3.96086 3.58579 3.58579C3.96086 3.21071 4.46957 3 5 3H16L21 8V19C21 19.5304 20.7893 20.0391 20.4142 20.4142C20.0391 20.7893 19.5304 21 19 21Z"
+                                        stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                                        stroke-linejoin="round" />
+                                    <path d="M17 21V13H7V21" stroke="currentColor" stroke-width="2"
+                                        stroke-linejoin="round" />
+                                    <path d="M7 3V8H15" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                                        stroke-linejoin="round" />
+                                </svg>
+                            </button>
+                        </div>
+                        <div class="inline-flex items-center gap-2">
+                            <button type="button" id="add-other-detail-row"
+                                class="inline-flex cursor-pointer items-center justify-center rounded-xl bg-concierge-navy px-4 py-2 text-xs font-semibold text-white hover:bg-concierge-navy-deep">
+                                Add New Details
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="overflow-x-auto">
+                        <table class="min-w-[720px] w-full border-collapse text-xs sm:text-sm">
+                            <thead>
+                                <tr class="bg-slate-100 text-left text-concierge-muted">
+                                    <th class="border border-slate-200 px-2 py-2">Action</th>
+                                    <th class="border border-slate-200 px-2 py-2"><span class="text-rose-600">*</span>
+                                        Supplier</th>
+                                    <th class="border border-slate-200 px-2 py-2"><span class="text-rose-600">*</span>
+                                        Description</th>
+                                    <th class="border border-slate-200 px-2 py-2"><span class="text-rose-600">*</span>
+                                        Cost</th>
+                                    <th class="border border-slate-200 px-2 py-2"><span class="text-rose-600">*</span>
+                                        Margin</th>
+                                    <th class="border border-slate-200 px-2 py-2">Sell</th>
+                                </tr>
+                            </thead>
+                            <tbody id="other-detail-rows">
+                                @foreach ($otherDetailRows as $i => $row)
+                                    <tr class="other-detail-row bg-white">
+                                        <td class="border border-slate-200 px-2 py-2 align-top">
+                                            <button type="button"
+                                                class="remove-other-detail-row inline-flex cursor-pointer items-center justify-center rounded-md border border-rose-200 px-2 py-1 text-xs font-medium text-rose-700 hover:bg-rose-50">
+                                                X
+                                            </button>
+                                        </td>
+                                        <td class="border border-slate-200 px-2 py-2">
+                                            <input type="text" name="other_details[{{ $i }}][supplier]"
+                                                value="{{ data_get($row, 'supplier') }}"
+                                                class="w-full rounded-lg border border-slate-200 bg-white px-2 py-1.5 text-sm">
+                                        </td>
+                                        <td class="border border-slate-200 px-2 py-2">
+                                            <input type="text" name="other_details[{{ $i }}][description]"
+                                                value="{{ data_get($row, 'description') }}"
+                                                class="w-full rounded-lg border border-slate-200 bg-white px-2 py-1.5 text-sm">
+                                        </td>
+                                        <td class="border border-slate-200 px-2 py-2">
+                                            <input type="number" min="0" step="0.01"
+                                                name="other_details[{{ $i }}][cost]"
+                                                value="{{ data_get($row, 'cost') }}"
+                                                class="w-full rounded-lg border border-slate-200 bg-white px-2 py-1.5 text-sm">
+                                        </td>
+                                        <td class="border border-slate-200 px-2 py-2">
+                                            <input type="number" step="0.01" readonly tabindex="-1"
+                                                name="other_details[{{ $i }}][margin]"
+                                                value="{{ data_get($row, 'margin') }}"
+                                                class="w-full cursor-not-allowed rounded-lg border border-slate-200 bg-slate-50/80 px-2 py-1.5 text-sm text-slate-700">
+                                        </td>
+                                        <td class="border border-slate-200 px-2 py-2">
+                                            <input type="number" min="0" step="0.01"
+                                                name="other_details[{{ $i }}][sell]"
+                                                value="{{ data_get($row, 'sell') }}"
+                                                class="other-detail-sell-input w-full rounded-lg border border-slate-200 bg-white px-2 py-1.5 text-sm">
+                                        </td>
+                                    </tr>
+                                @endforeach
+                            </tbody>
+                        </table>
+                    </div>
+                    <p class="text-xs text-concierge-muted">At least one other details row is required. Margin is sell minus cost.
+                    </p>
+                </div>
+
+                <div class="space-y-3 rounded-2xl border border-slate-200/80 bg-slate-50/40 p-4 sm:p-5" id="folder-cost-summary">
+                    <h2 class="text-base font-semibold text-concierge-navy">Cost summary</h2>
+                    <div class="overflow-x-auto">
+                        <table class="min-w-[920px] w-full border-collapse text-xs sm:text-sm">
+                            <thead>
+                                <tr class="bg-slate-100 text-left text-concierge-muted">
+                                    <th class="border border-slate-200 px-3 py-2">Total sale</th>
+                                    <th class="border border-slate-200 px-3 py-2">Flight cost</th>
+                                    <th class="border border-slate-200 px-3 py-2">Hotel cost</th>
+                                    <th class="border border-slate-200 px-3 py-2">Transport cost</th>
+                                    <th class="border border-slate-200 px-3 py-2">Visa cost</th>
+                                    <th class="border border-slate-200 px-3 py-2">Others cost</th>
+                                    <th class="border border-slate-200 px-3 py-2">Margin</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr class="bg-white">
+                                    <td class="folder-cost-text-emerald-600 border border-slate-200 px-3 py-2 text-sm font-semibold tabular-nums"
+                                        data-folder-summary="total-sale">—</td>
+                                    <td class="border border-slate-200 px-3 py-2 text-sm font-medium tabular-nums text-rose-600"
+                                        data-folder-summary="flight-cost">—</td>
+                                    <td class="border border-slate-200 px-3 py-2 text-sm font-medium tabular-nums text-rose-600"
+                                        data-folder-summary="hotel-cost">—</td>
+                                    <td class="border border-slate-200 px-3 py-2 text-sm font-medium tabular-nums text-rose-600"
+                                        data-folder-summary="transport-cost">—</td>
+                                    <td class="border border-slate-200 px-3 py-2 text-sm font-medium tabular-nums text-rose-600"
+                                        data-folder-summary="visa-cost">—</td>
+                                    <td class="border border-slate-200 px-3 py-2 text-sm font-medium tabular-nums text-rose-600"
+                                        data-folder-summary="others-cost">—</td>
+                                    <td class="border border-slate-200 px-3 py-2 text-sm font-semibold tabular-nums text-rose-600"
+                                        data-folder-summary="summary-margin">—</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <div class="space-y-3 rounded-2xl border border-slate-200/80 bg-slate-50/40 p-4 sm:p-5">
+                    <div class="flex flex-wrap items-center justify-between gap-3">
+                        <div class="inline-flex items-center gap-2">
+                            <h2 class="text-base font-semibold text-concierge-navy">Payments</h2>
+                            <button type="button" id="save-payments-section"
+                                class="inline-flex cursor-pointer items-center justify-center rounded-xl bg-emerald-600 px-3 py-2 text-xs font-semibold text-white hover:bg-emerald-700"
+                                title="Save Payments">
+                                <svg width="20" viewBox="0 0 24 24" fill="none"
+                                    xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                                    <path
+                                        d="M19 21H5C4.46957 21 3.96086 20.7893 3.58579 20.4142C3.21071 20.0391 3 19.5304 3 19V5C3 4.46957 3.21071 3.96086 3.58579 3.58579C3.96086 3.21071 4.46957 3 5 3H16L21 8V19C21 19.5304 20.7893 20.0391 20.4142 20.4142C20.0391 20.7893 19.5304 21 19 21Z"
+                                        stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                                        stroke-linejoin="round" />
+                                    <path d="M17 21V13H7V21" stroke="currentColor" stroke-width="2"
+                                        stroke-linejoin="round" />
+                                    <path d="M7 3V8H15" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                                        stroke-linejoin="round" />
+                                </svg>
+                            </button>
+                        </div>
+                        <div class="inline-flex items-center gap-2">
+                            <button type="button" id="add-payment-row"
+                                class="inline-flex cursor-pointer items-center justify-center rounded-xl bg-concierge-navy px-4 py-2 text-xs font-semibold text-white hover:bg-concierge-navy-deep">
+                                Add New Payment
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="overflow-x-auto">
+                        <table class="min-w-[720px] w-full border-collapse text-xs sm:text-sm">
+                            <thead>
+                                <tr class="bg-slate-100 text-left text-concierge-muted">
+                                    <th class="border border-slate-200 px-2 py-2">Action</th>
+                                    <th class="border border-slate-200 px-2 py-2"><span class="text-rose-600">*</span>
+                                        Amount</th>
+                                    <th class="border border-slate-200 px-2 py-2"><span class="text-rose-600">*</span>
+                                        Date of Payment</th>
+                                    <th class="border border-slate-200 px-2 py-2"><span class="text-rose-600">*</span>
+                                        Mode of Payment</th>
+                                    <th class="border border-slate-200 px-2 py-2">Bank</th>
+                                </tr>
+                            </thead>
+                            <tbody id="payment-rows">
+                                @foreach ($paymentRows as $i => $row)
+                                    <tr class="payment-row bg-white">
+                                        <td class="border border-slate-200 px-2 py-2 align-top">
+                                            <button type="button"
+                                                class="remove-payment-row inline-flex cursor-pointer items-center justify-center rounded-md border border-rose-200 px-2 py-1 text-xs font-medium text-rose-700 hover:bg-rose-50">
+                                                X
+                                            </button>
+                                        </td>
+                                        <td class="border border-slate-200 px-2 py-2">
+                                            <input type="number" min="0" step="0.01"
+                                                name="payments[{{ $i }}][amount]"
+                                                value="{{ data_get($row, 'amount') }}"
+                                                class="w-full rounded-lg border border-slate-200 bg-white px-2 py-1.5 text-sm">
+                                        </td>
+                                        <td class="border border-slate-200 px-2 py-2">
+                                            <input type="date" name="payments[{{ $i }}][payment_date]"
+                                                value="{{ data_get($row, 'payment_date') }}"
+                                                class="w-full rounded-lg border border-slate-200 bg-white px-2 py-1.5 text-sm">
+                                        </td>
+                                        <td class="border border-slate-200 px-2 py-2">
+                                            <select name="payments[{{ $i }}][mode_of_payment]"
+                                                class="payment-mode-select w-full rounded-lg border border-slate-200 bg-white px-2 py-1.5 text-sm">
+                                                <option value="" disabled @selected(!data_get($row, 'mode_of_payment'))>Select mode</option>
+                                                @foreach ($paymentModes as $pm)
+                                                    <option value="{{ $pm }}" @selected(data_get($row, 'mode_of_payment') == $pm)>{{ $pm }}</option>
+                                                @endforeach
+                                            </select>
+                                        </td>
+                                        <td class="border border-slate-200 px-2 py-2">
+                                            <select name="payments[{{ $i }}][bank_id]"
+                                                class="payment-bank-select w-full rounded-lg border border-slate-200 bg-white px-2 py-1.5 text-sm">
+                                                <option value="">—</option>
+                                                @foreach ($banksForForm as $bank)
+                                                    <option value="{{ $bank->id }}" @selected((string) data_get($row, 'bank_id') === (string) $bank->id)>{{ $bank->name }}</option>
+                                                @endforeach
+                                            </select>
+                                        </td>
+                                    </tr>
+                                @endforeach
+                            </tbody>
+                        </table>
+                    </div>
+                    <p class="text-xs text-concierge-muted">Optional. Bank is required for Bank Transfer and Card Payment.
+                    </p>
                 </div>
 
                 <div class="flex flex-col gap-3 border-t border-slate-100 pt-6 sm:flex-row sm:justify-end">
@@ -1472,7 +1932,489 @@
         })();
 
         (() => {
-            const form = document.getElementById('lead-create-form');
+            const tableBody = document.getElementById('transport-detail-rows');
+            const addButton = document.getElementById('add-transport-detail-row');
+            if (!tableBody || !addButton) {
+                return;
+            }
+
+            const fields = [
+                ['supplier', 'text', 'w-28', null, null],
+                ['description', 'text', 'w-40', null, null],
+                ['origin', 'text', 'w-32', null, null],
+                ['destination', 'text', 'w-32', null, null],
+                ['service_date', 'date', 'w-36', null, null],
+                ['pickup_time', 'time', 'w-28', null, null],
+                ['vehicle_type', 'text', 'w-24', null, null],
+                ['cost', 'number', 'w-20', '0', '0.01'],
+                ['margin', 'number', 'w-20', null, '0.01'],
+                ['sell', 'number', 'w-20', '0', '0.01'],
+                ['sar', 'number', 'w-20', '0', '0.01'],
+            ];
+
+            function inputClass(sizeClass) {
+                return `${sizeClass} rounded-lg border border-slate-200 bg-white px-2 py-1.5 text-sm`;
+            }
+
+            function makeInput(index, field, type, sizeClass, minValue, stepValue) {
+                const input = document.createElement('input');
+                input.type = type;
+                input.name = `transport_details[${index}][${field}]`;
+                if (field === 'margin') {
+                    input.readOnly = true;
+                    input.tabIndex = -1;
+                    input.className =
+                        `${inputClass(sizeClass)} cursor-not-allowed bg-slate-50/80 text-slate-700`;
+                } else if (field === 'sell') {
+                    input.className = `${inputClass(sizeClass)} transport-detail-sell-input`;
+                } else {
+                    input.className = inputClass(sizeClass);
+                }
+                if (minValue != null && field !== 'margin') {
+                    input.min = minValue;
+                }
+                if (stepValue != null) {
+                    input.step = stepValue;
+                }
+                return input;
+            }
+
+            function createRow(index) {
+                const row = document.createElement('tr');
+                row.className = 'transport-detail-row bg-white';
+
+                const actionCell = document.createElement('td');
+                actionCell.className = 'border border-slate-200 px-2 py-2 align-top';
+                const removeBtn = document.createElement('button');
+                removeBtn.type = 'button';
+                removeBtn.className =
+                    'remove-transport-detail-row inline-flex cursor-pointer items-center justify-center rounded-md border border-rose-200 px-2 py-1 text-xs font-medium text-rose-700 hover:bg-rose-50';
+                removeBtn.textContent = 'X';
+                actionCell.appendChild(removeBtn);
+                row.appendChild(actionCell);
+
+                fields.forEach(([field, type, sizeClass, minValue, stepValue]) => {
+                    const cell = document.createElement('td');
+                    cell.className = 'border border-slate-200 px-2 py-2';
+                    cell.appendChild(makeInput(index, field, type, sizeClass, minValue, stepValue));
+                    row.appendChild(cell);
+                });
+
+                return row;
+            }
+
+            function renumberRows() {
+                [...tableBody.querySelectorAll('.transport-detail-row')].forEach((row, idx) => {
+                    row.querySelectorAll('input[name^="transport_details["]').forEach((input) => {
+                        input.name = input.name.replace(/transport_details\[\d+\]/,
+                            `transport_details[${idx}]`);
+                    });
+                });
+            }
+
+            function ensureOneRow() {
+                if (tableBody.querySelectorAll('.transport-detail-row').length === 0) {
+                    tableBody.appendChild(createRow(0));
+                }
+                renumberRows();
+                document.dispatchEvent(new CustomEvent('folder-margin-recalc'));
+            }
+
+            addButton.addEventListener('click', () => {
+                const nextIndex = tableBody.querySelectorAll('.transport-detail-row').length;
+                tableBody.appendChild(createRow(nextIndex));
+                document.dispatchEvent(new CustomEvent('folder-margin-recalc'));
+            });
+
+            tableBody.addEventListener('click', (event) => {
+                const target = event.target;
+                if (!(target instanceof Element)) {
+                    return;
+                }
+                const removeBtn = target.closest('.remove-transport-detail-row');
+                if (!removeBtn) {
+                    return;
+                }
+                removeBtn.closest('.transport-detail-row')?.remove();
+                ensureOneRow();
+            });
+
+            ensureOneRow();
+        })();
+
+        (() => {
+            const tableBody = document.getElementById('visa-detail-rows');
+            const addButton = document.getElementById('add-visa-detail-row');
+            if (!tableBody || !addButton) {
+                return;
+            }
+
+            const fields = [
+                ['supplier', 'text', 'w-full', null, null],
+                ['description', 'text', 'w-full', null, null],
+                ['cost', 'number', 'w-full', '0', '0.01'],
+                ['margin', 'number', 'w-full', null, '0.01'],
+                ['sell', 'number', 'w-full', '0', '0.01'],
+            ];
+
+            function inputClass(sizeClass) {
+                return `${sizeClass} rounded-lg border border-slate-200 bg-white px-2 py-1.5 text-sm`;
+            }
+
+            function makeInput(index, field, type, sizeClass, minValue, stepValue) {
+                const input = document.createElement('input');
+                input.type = type;
+                input.name = `visa_details[${index}][${field}]`;
+                if (field === 'margin') {
+                    input.readOnly = true;
+                    input.tabIndex = -1;
+                    input.className =
+                        `${inputClass(sizeClass)} cursor-not-allowed bg-slate-50/80 text-slate-700`;
+                } else if (field === 'sell') {
+                    input.className = `${inputClass(sizeClass)} visa-detail-sell-input`;
+                } else {
+                    input.className = inputClass(sizeClass);
+                }
+                if (minValue != null && field !== 'margin') {
+                    input.min = minValue;
+                }
+                if (stepValue != null) {
+                    input.step = stepValue;
+                }
+                return input;
+            }
+
+            function createRow(index) {
+                const row = document.createElement('tr');
+                row.className = 'visa-detail-row bg-white';
+
+                const actionCell = document.createElement('td');
+                actionCell.className = 'border border-slate-200 px-2 py-2 align-top';
+                const removeBtn = document.createElement('button');
+                removeBtn.type = 'button';
+                removeBtn.className =
+                    'remove-visa-detail-row inline-flex cursor-pointer items-center justify-center rounded-md border border-rose-200 px-2 py-1 text-xs font-medium text-rose-700 hover:bg-rose-50';
+                removeBtn.textContent = 'X';
+                actionCell.appendChild(removeBtn);
+                row.appendChild(actionCell);
+
+                fields.forEach(([field, type, sizeClass, minValue, stepValue]) => {
+                    const cell = document.createElement('td');
+                    cell.className = 'border border-slate-200 px-2 py-2';
+                    cell.appendChild(makeInput(index, field, type, sizeClass, minValue, stepValue));
+                    row.appendChild(cell);
+                });
+
+                return row;
+            }
+
+            function renumberRows() {
+                [...tableBody.querySelectorAll('.visa-detail-row')].forEach((row, idx) => {
+                    row.querySelectorAll('input[name^="visa_details["]').forEach((input) => {
+                        input.name = input.name.replace(/visa_details\[\d+\]/,
+                            `visa_details[${idx}]`);
+                    });
+                });
+            }
+
+            function ensureOneRow() {
+                if (tableBody.querySelectorAll('.visa-detail-row').length === 0) {
+                    tableBody.appendChild(createRow(0));
+                }
+                renumberRows();
+                document.dispatchEvent(new CustomEvent('folder-margin-recalc'));
+            }
+
+            addButton.addEventListener('click', () => {
+                const nextIndex = tableBody.querySelectorAll('.visa-detail-row').length;
+                tableBody.appendChild(createRow(nextIndex));
+                document.dispatchEvent(new CustomEvent('folder-margin-recalc'));
+            });
+
+            tableBody.addEventListener('click', (event) => {
+                const target = event.target;
+                if (!(target instanceof Element)) {
+                    return;
+                }
+                const removeBtn = target.closest('.remove-visa-detail-row');
+                if (!removeBtn) {
+                    return;
+                }
+                removeBtn.closest('.visa-detail-row')?.remove();
+                ensureOneRow();
+            });
+
+            ensureOneRow();
+        })();
+
+        (() => {
+            const tableBody = document.getElementById('other-detail-rows');
+            const addButton = document.getElementById('add-other-detail-row');
+            if (!tableBody || !addButton) {
+                return;
+            }
+
+            const fields = [
+                ['supplier', 'text', 'w-full', null, null],
+                ['description', 'text', 'w-full', null, null],
+                ['cost', 'number', 'w-full', '0', '0.01'],
+                ['margin', 'number', 'w-full', null, '0.01'],
+                ['sell', 'number', 'w-full', '0', '0.01'],
+            ];
+
+            function inputClass(sizeClass) {
+                return `${sizeClass} rounded-lg border border-slate-200 bg-white px-2 py-1.5 text-sm`;
+            }
+
+            function makeInput(index, field, type, sizeClass, minValue, stepValue) {
+                const input = document.createElement('input');
+                input.type = type;
+                input.name = `other_details[${index}][${field}]`;
+                if (field === 'margin') {
+                    input.readOnly = true;
+                    input.tabIndex = -1;
+                    input.className =
+                        `${inputClass(sizeClass)} cursor-not-allowed bg-slate-50/80 text-slate-700`;
+                } else if (field === 'sell') {
+                    input.className = `${inputClass(sizeClass)} other-detail-sell-input`;
+                } else {
+                    input.className = inputClass(sizeClass);
+                }
+                if (minValue != null && field !== 'margin') {
+                    input.min = minValue;
+                }
+                if (stepValue != null) {
+                    input.step = stepValue;
+                }
+                return input;
+            }
+
+            function createRow(index) {
+                const row = document.createElement('tr');
+                row.className = 'other-detail-row bg-white';
+
+                const actionCell = document.createElement('td');
+                actionCell.className = 'border border-slate-200 px-2 py-2 align-top';
+                const removeBtn = document.createElement('button');
+                removeBtn.type = 'button';
+                removeBtn.className =
+                    'remove-other-detail-row inline-flex cursor-pointer items-center justify-center rounded-md border border-rose-200 px-2 py-1 text-xs font-medium text-rose-700 hover:bg-rose-50';
+                removeBtn.textContent = 'X';
+                actionCell.appendChild(removeBtn);
+                row.appendChild(actionCell);
+
+                fields.forEach(([field, type, sizeClass, minValue, stepValue]) => {
+                    const cell = document.createElement('td');
+                    cell.className = 'border border-slate-200 px-2 py-2';
+                    cell.appendChild(makeInput(index, field, type, sizeClass, minValue, stepValue));
+                    row.appendChild(cell);
+                });
+
+                return row;
+            }
+
+            function renumberRows() {
+                [...tableBody.querySelectorAll('.other-detail-row')].forEach((row, idx) => {
+                    row.querySelectorAll('input[name^="other_details["]').forEach((input) => {
+                        input.name = input.name.replace(/other_details\[\d+\]/,
+                            `other_details[${idx}]`);
+                    });
+                });
+            }
+
+            function ensureOneRow() {
+                if (tableBody.querySelectorAll('.other-detail-row').length === 0) {
+                    tableBody.appendChild(createRow(0));
+                }
+                renumberRows();
+                document.dispatchEvent(new CustomEvent('folder-margin-recalc'));
+            }
+
+            addButton.addEventListener('click', () => {
+                const nextIndex = tableBody.querySelectorAll('.other-detail-row').length;
+                tableBody.appendChild(createRow(nextIndex));
+                document.dispatchEvent(new CustomEvent('folder-margin-recalc'));
+            });
+
+            tableBody.addEventListener('click', (event) => {
+                const target = event.target;
+                if (!(target instanceof Element)) {
+                    return;
+                }
+                const removeBtn = target.closest('.remove-other-detail-row');
+                if (!removeBtn) {
+                    return;
+                }
+                removeBtn.closest('.other-detail-row')?.remove();
+                ensureOneRow();
+            });
+
+            ensureOneRow();
+        })();
+
+        (() => {
+            const tableBody = document.getElementById('payment-rows');
+            const addButton = document.getElementById('add-payment-row');
+            if (!tableBody || !addButton) {
+                return;
+            }
+
+            const paymentModes = @json($paymentModes);
+            const bankOptions = @json($banksForForm->map(fn ($b) => ['id' => $b->id, 'name' => $b->name])->values());
+
+            function selectFieldClass() {
+                return 'w-full rounded-lg border border-slate-200 bg-white px-2 py-1.5 text-sm';
+            }
+
+            function syncBankFieldForRow(row) {
+                if (!row) {
+                    return;
+                }
+                const modeEl = row.querySelector('.payment-mode-select');
+                const bankEl = row.querySelector('.payment-bank-select');
+                if (!modeEl || !bankEl) {
+                    return;
+                }
+                const mode = String(modeEl.value || '');
+                const isCash = mode === 'Cash in office';
+                bankEl.disabled = isCash;
+                if (isCash) {
+                    bankEl.value = '';
+                }
+            }
+
+            function makeModeSelect(index) {
+                const sel = document.createElement('select');
+                sel.name = `payments[${index}][mode_of_payment]`;
+                sel.className = `payment-mode-select ${selectFieldClass()}`;
+                const ph = document.createElement('option');
+                ph.value = '';
+                ph.disabled = true;
+                ph.selected = true;
+                ph.textContent = 'Select mode';
+                sel.appendChild(ph);
+                paymentModes.forEach((m) => {
+                    const opt = document.createElement('option');
+                    opt.value = m;
+                    opt.textContent = m;
+                    sel.appendChild(opt);
+                });
+                sel.addEventListener('change', () => syncBankFieldForRow(sel.closest('tr')));
+                return sel;
+            }
+
+            function makeBankSelect(index) {
+                const sel = document.createElement('select');
+                sel.name = `payments[${index}][bank_id]`;
+                sel.className = `payment-bank-select ${selectFieldClass()}`;
+                const empty = document.createElement('option');
+                empty.value = '';
+                empty.textContent = '—';
+                sel.appendChild(empty);
+                bankOptions.forEach((b) => {
+                    const opt = document.createElement('option');
+                    opt.value = String(b.id);
+                    opt.textContent = b.name;
+                    sel.appendChild(opt);
+                });
+                return sel;
+            }
+
+            function createRow(index) {
+                const row = document.createElement('tr');
+                row.className = 'payment-row bg-white';
+
+                const actionCell = document.createElement('td');
+                actionCell.className = 'border border-slate-200 px-2 py-2 align-top';
+                const removeBtn = document.createElement('button');
+                removeBtn.type = 'button';
+                removeBtn.className =
+                    'remove-payment-row inline-flex cursor-pointer items-center justify-center rounded-md border border-rose-200 px-2 py-1 text-xs font-medium text-rose-700 hover:bg-rose-50';
+                removeBtn.textContent = 'X';
+                actionCell.appendChild(removeBtn);
+                row.appendChild(actionCell);
+
+                const amountCell = document.createElement('td');
+                amountCell.className = 'border border-slate-200 px-2 py-2';
+                const amountIn = document.createElement('input');
+                amountIn.type = 'number';
+                amountIn.min = '0';
+                amountIn.step = '0.01';
+                amountIn.name = `payments[${index}][amount]`;
+                amountIn.className = selectFieldClass();
+                amountCell.appendChild(amountIn);
+                row.appendChild(amountCell);
+
+                const dateCell = document.createElement('td');
+                dateCell.className = 'border border-slate-200 px-2 py-2';
+                const dateIn = document.createElement('input');
+                dateIn.type = 'date';
+                dateIn.name = `payments[${index}][payment_date]`;
+                dateIn.className = selectFieldClass();
+                dateCell.appendChild(dateIn);
+                row.appendChild(dateCell);
+
+                const modeCell = document.createElement('td');
+                modeCell.className = 'border border-slate-200 px-2 py-2';
+                modeCell.appendChild(makeModeSelect(index));
+                row.appendChild(modeCell);
+
+                const bankCell = document.createElement('td');
+                bankCell.className = 'border border-slate-200 px-2 py-2';
+                bankCell.appendChild(makeBankSelect(index));
+                row.appendChild(bankCell);
+
+                syncBankFieldForRow(row);
+                return row;
+            }
+
+            function renumberRows() {
+                [...tableBody.querySelectorAll('.payment-row')].forEach((row, idx) => {
+                    row.querySelectorAll('input[name^="payments["], select[name^="payments["]').forEach((field) => {
+                        field.name = field.name.replace(/payments\[\d+\]/, `payments[${idx}]`);
+                    });
+                    syncBankFieldForRow(row);
+                });
+            }
+
+            function ensureOneRow() {
+                if (tableBody.querySelectorAll('.payment-row').length === 0) {
+                    tableBody.appendChild(createRow(0));
+                }
+                renumberRows();
+            }
+
+            addButton.addEventListener('click', () => {
+                const nextIndex = tableBody.querySelectorAll('.payment-row').length;
+                tableBody.appendChild(createRow(nextIndex));
+                renumberRows();
+            });
+
+            tableBody.addEventListener('click', (event) => {
+                const target = event.target;
+                if (!(target instanceof Element)) {
+                    return;
+                }
+                const removeBtn = target.closest('.remove-payment-row');
+                if (!removeBtn) {
+                    return;
+                }
+                removeBtn.closest('.payment-row')?.remove();
+                ensureOneRow();
+            });
+
+            tableBody.addEventListener('change', (event) => {
+                const t = event.target;
+                if (t instanceof HTMLSelectElement && t.classList.contains('payment-mode-select')) {
+                    syncBankFieldForRow(t.closest('tr'));
+                }
+            });
+
+            [...tableBody.querySelectorAll('.payment-row')].forEach(syncBankFieldForRow);
+        })();
+
+        (() => {
+            const form = document.getElementById('lead-create-form') || document.getElementById('lead-edit-form');
             if (!form) {
                 return;
             }
@@ -1562,12 +2504,139 @@
                     marginIn.value = formatMarginValue((s ?? 0) - (c ?? 0));
                 }
 
+                function syncTransportDetailMargin(row) {
+                    if (!row) {
+                        return;
+                    }
+                    const costIn = row.querySelector('input[name$="[cost]"]');
+                    const sellIn = row.querySelector('input[name$="[sell]"]');
+                    const marginIn = row.querySelector('input[name$="[margin]"]');
+                    if (!marginIn) {
+                        return;
+                    }
+                    const c = parseMoneyInput(costIn);
+                    const s = parseMoneyInput(sellIn);
+                    if (c === null && s === null) {
+                        marginIn.value = '';
+                        return;
+                    }
+                    marginIn.value = formatMarginValue((s ?? 0) - (c ?? 0));
+                }
+
+                function syncVisaDetailMargin(row) {
+                    if (!row) {
+                        return;
+                    }
+                    const costIn = row.querySelector('input[name$="[cost]"]');
+                    const sellIn = row.querySelector('input[name$="[sell]"]');
+                    const marginIn = row.querySelector('input[name$="[margin]"]');
+                    if (!marginIn) {
+                        return;
+                    }
+                    const c = parseMoneyInput(costIn);
+                    const s = parseMoneyInput(sellIn);
+                    if (c === null && s === null) {
+                        marginIn.value = '';
+                        return;
+                    }
+                    marginIn.value = formatMarginValue((s ?? 0) - (c ?? 0));
+                }
+
+                function syncOtherDetailMargin(row) {
+                    if (!row) {
+                        return;
+                    }
+                    const costIn = row.querySelector('input[name$="[cost]"]');
+                    const sellIn = row.querySelector('input[name$="[sell]"]');
+                    const marginIn = row.querySelector('input[name$="[margin]"]');
+                    if (!marginIn) {
+                        return;
+                    }
+                    const c = parseMoneyInput(costIn);
+                    const s = parseMoneyInput(sellIn);
+                    if (c === null && s === null) {
+                        marginIn.value = '';
+                        return;
+                    }
+                    marginIn.value = formatMarginValue((s ?? 0) - (c ?? 0));
+                }
+
                 function syncAllAutoMargins() {
                     form.querySelectorAll('.package-cost-row').forEach((row) => {
                         syncPackageCostTotal(row);
                         syncPackageCostMargin(row);
                     });
                     form.querySelectorAll('.hotel-detail-row').forEach(syncHotelDetailMargin);
+                    form.querySelectorAll('.transport-detail-row').forEach(syncTransportDetailMargin);
+                    form.querySelectorAll('.visa-detail-row').forEach(syncVisaDetailMargin);
+                    form.querySelectorAll('.other-detail-row').forEach(syncOtherDetailMargin);
+                    syncFolderCostSummary();
+                }
+
+                function sumMoneyInputs(selector) {
+                    let total = 0;
+                    form.querySelectorAll(selector).forEach((el) => {
+                        const v = parseMoneyInput(el);
+                        if (v !== null) {
+                            total += v;
+                        }
+                    });
+                    return total;
+                }
+
+                function formatSummaryCell(n) {
+                    if (!Number.isFinite(n)) {
+                        return '—';
+                    }
+                    const rounded = Math.round(n * 100) / 100;
+                    return rounded.toLocaleString('en-US', {
+                        minimumFractionDigits: 0,
+                        maximumFractionDigits: 2,
+                    });
+                }
+
+                function applyFolderSummaryCellStyle(cell, key, numericValue) {
+                    if (!cell) {
+                        return;
+                    }
+                    const base = 'border border-slate-200 px-3 py-2 text-sm tabular-nums';
+                    if (key === 'total-sale') {
+                        cell.className = `${base} font-semibold folder-cost-text-emerald-600`;
+                        return;
+                    }
+                    if (key === 'summary-margin') {
+                        const positive = Number.isFinite(numericValue) && numericValue > 0;
+                        cell.className = `${base} font-semibold ${positive ? 'folder-cost-text-emerald-600' : 'text-rose-600'}`;
+                        return;
+                    }
+                    cell.className = `${base} font-medium text-rose-600`;
+                }
+
+                function syncFolderCostSummary() {
+                    const totalSale = sumMoneyInputs('input[name^="package_costs["][name$="[sell]"]');
+                    const flightCost = sumMoneyInputs('input[name^="package_costs["][name$="[total_cost]"]');
+                    const hotelCost = sumMoneyInputs('input[name^="hotel_details["][name$="[cost]"]');
+                    const transportCost = sumMoneyInputs('input[name^="transport_details["][name$="[cost]"]');
+                    const visaCost = sumMoneyInputs('input[name^="visa_details["][name$="[cost]"]');
+                    const othersCost = sumMoneyInputs('input[name^="other_details["][name$="[cost]"]');
+                    const summaryMargin = totalSale - flightCost - hotelCost - transportCost - visaCost - othersCost;
+
+                    const cells = {
+                        'total-sale': totalSale,
+                        'flight-cost': flightCost,
+                        'hotel-cost': hotelCost,
+                        'transport-cost': transportCost,
+                        'visa-cost': visaCost,
+                        'others-cost': othersCost,
+                        'summary-margin': summaryMargin,
+                    };
+                    Object.entries(cells).forEach(([key, value]) => {
+                        const cell = form.querySelector(`[data-folder-summary="${key}"]`);
+                        if (cell) {
+                            cell.textContent = formatSummaryCell(value);
+                            applyFolderSummaryCellStyle(cell, key, value);
+                        }
+                    });
                 }
 
                 function onCostOrSellInput(ev) {
@@ -1581,11 +2650,16 @@
                         const row = t.closest('.package-cost-row');
                         syncPackageCostTotal(row);
                         syncPackageCostMargin(row);
-                        return;
-                    }
-                    if (n.startsWith('hotel_details[') && (n.endsWith('[cost]') || n.endsWith('[sell]'))) {
+                    } else if (n.startsWith('hotel_details[') && (n.endsWith('[cost]') || n.endsWith('[sell]'))) {
                         syncHotelDetailMargin(t.closest('.hotel-detail-row'));
+                    } else if (n.startsWith('transport_details[') && (n.endsWith('[cost]') || n.endsWith('[sell]'))) {
+                        syncTransportDetailMargin(t.closest('.transport-detail-row'));
+                    } else if (n.startsWith('visa_details[') && (n.endsWith('[cost]') || n.endsWith('[sell]'))) {
+                        syncVisaDetailMargin(t.closest('.visa-detail-row'));
+                    } else if (n.startsWith('other_details[') && (n.endsWith('[cost]') || n.endsWith('[sell]'))) {
+                        syncOtherDetailMargin(t.closest('.other-detail-row'));
                     }
+                    syncFolderCostSummary();
                 }
 
                 form.addEventListener('input', onCostOrSellInput);
@@ -1664,6 +2738,29 @@
                 'cost',
                 'margin',
                 'hotel_city',
+            ];
+            const transportRequiredFields = [
+                'supplier',
+                'description',
+                'origin',
+                'destination',
+                'service_date',
+                'pickup_time',
+                'vehicle_type',
+                'cost',
+                'margin',
+            ];
+            const visaRequiredFields = [
+                'supplier',
+                'description',
+                'cost',
+                'margin',
+            ];
+            const otherRequiredFields = [
+                'supplier',
+                'description',
+                'cost',
+                'margin',
             ];
 
             function removeFieldError(field) {
@@ -1826,6 +2923,70 @@
                     showError('Please complete required hotel details fields.');
                     return;
                 }
+
+                if (!sectionHasAtLeastOneFilledRow('#transport-detail-rows .transport-detail-row')) {
+                    event.preventDefault();
+                    showError('Please fill at least one transport details row.');
+                    return;
+                }
+
+                if (!validateRequiredRowFields('#transport-detail-rows .transport-detail-row',
+                        transportRequiredFields, 'transport_details')) {
+                    event.preventDefault();
+                    showError('Please complete required transport details fields.');
+                    return;
+                }
+
+                if (!sectionHasAtLeastOneFilledRow('#visa-detail-rows .visa-detail-row')) {
+                    event.preventDefault();
+                    showError('Please fill at least one visa details row.');
+                    return;
+                }
+
+                if (!validateRequiredRowFields('#visa-detail-rows .visa-detail-row',
+                        visaRequiredFields, 'visa_details')) {
+                    event.preventDefault();
+                    showError('Please complete required visa details fields.');
+                    return;
+                }
+
+                if (!sectionHasAtLeastOneFilledRow('#other-detail-rows .other-detail-row')) {
+                    event.preventDefault();
+                    showError('Please fill at least one other details row.');
+                    return;
+                }
+
+                if (!validateRequiredRowFields('#other-detail-rows .other-detail-row',
+                        otherRequiredFields, 'other_details')) {
+                    event.preventDefault();
+                    showError('Please complete required other details fields.');
+                    return;
+                }
+
+                if (sectionHasAtLeastOneFilledRow('#payment-rows .payment-row')) {
+                    if (!validateRequiredRowFields('#payment-rows .payment-row',
+                            ['amount', 'payment_date', 'mode_of_payment'], 'payments')) {
+                        event.preventDefault();
+                        showError('Please complete required payment fields.');
+                        return;
+                    }
+                    for (const row of document.querySelectorAll('#payment-rows .payment-row')) {
+                        const hasAny = [...row.querySelectorAll('input, select')].some((field) => {
+                            const v = field.value;
+                            return typeof v === 'string' && v.trim() !== '';
+                        });
+                        if (!hasAny) {
+                            continue;
+                        }
+                        const mode = row.querySelector('select[name$="[mode_of_payment]"]')?.value ?? '';
+                        const bank = row.querySelector('select[name$="[bank_id]"]')?.value ?? '';
+                        if (mode !== '' && mode !== 'Cash in office' && bank.trim() === '') {
+                            event.preventDefault();
+                            showError('Please select a bank for Bank Transfer or Card Payment rows.');
+                            return;
+                        }
+                    }
+                }
             });
 
             function clearSectionFieldError(event) {
@@ -1837,7 +2998,11 @@
                 if (!target.name.startsWith('itineraries[') &&
                     !target.name.startsWith('passengers[') &&
                     !target.name.startsWith('package_costs[') &&
-                    !target.name.startsWith('hotel_details[')) {
+                    !target.name.startsWith('hotel_details[') &&
+                    !target.name.startsWith('transport_details[') &&
+                    !target.name.startsWith('visa_details[') &&
+                    !target.name.startsWith('other_details[') &&
+                    !target.name.startsWith('payments[')) {
                     return;
                 }
                 removeFieldError(target);
@@ -1864,6 +3029,26 @@
             document.getElementById('save-hotel-details-section')?.addEventListener('click', () => {
                 saveSectionDraft('hotel_details', '#hotel-detail-rows .hotel-detail-row', document
                     .getElementById('save-hotel-details-section'));
+            });
+
+            document.getElementById('save-transport-details-section')?.addEventListener('click', () => {
+                saveSectionDraft('transport_details', '#transport-detail-rows .transport-detail-row', document
+                    .getElementById('save-transport-details-section'));
+            });
+
+            document.getElementById('save-visa-details-section')?.addEventListener('click', () => {
+                saveSectionDraft('visa_details', '#visa-detail-rows .visa-detail-row', document
+                    .getElementById('save-visa-details-section'));
+            });
+
+            document.getElementById('save-other-details-section')?.addEventListener('click', () => {
+                saveSectionDraft('other_details', '#other-detail-rows .other-detail-row', document
+                    .getElementById('save-other-details-section'));
+            });
+
+            document.getElementById('save-payments-section')?.addEventListener('click', () => {
+                saveSectionDraft('payments', '#payment-rows .payment-row', document.getElementById(
+                    'save-payments-section'));
             });
         })();
     </script>

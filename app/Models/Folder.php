@@ -2,7 +2,6 @@
 
 namespace App\Models;
 
-use App\Models\FolderHotelDetail;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -30,7 +29,7 @@ class Folder extends Model
         'balance_due_date',
         'makkah_ziarat',
         'madinah_ziarat',
-        'status'
+        'status',
     ];
 
     protected function casts(): array
@@ -97,5 +96,63 @@ class Folder extends Model
     public function hotelDetails(): HasMany
     {
         return $this->hasMany(FolderHotelDetail::class);
+    }
+
+    /**
+     * @return HasMany<FolderTransportDetail, $this>
+     */
+    public function transportDetails(): HasMany
+    {
+        return $this->hasMany(FolderTransportDetail::class);
+    }
+
+    /**
+     * @return HasMany<FolderVisaDetail, $this>
+     */
+    public function visaDetails(): HasMany
+    {
+        return $this->hasMany(FolderVisaDetail::class);
+    }
+
+    /**
+     * @return HasMany<FolderOtherDetail, $this>
+     */
+    public function otherDetails(): HasMany
+    {
+        return $this->hasMany(FolderOtherDetail::class);
+    }
+
+    /**
+     * @return HasMany<FolderPayment, $this>
+     */
+    public function payments(): HasMany
+    {
+        return $this->hasMany(FolderPayment::class);
+    }
+
+    /**
+     * Aggregated totals aligned with the folder form cost summary (package sell / total cost, section costs, margin).
+     *
+     * @return array{total_sale: float, flight_cost: float, hotel_cost: float, transport_cost: float, visa_cost: float, others_cost: float, margin: float}
+     */
+    public function costSummary(): array
+    {
+        $totalSale = (float) $this->packageCosts->sum(fn ($c) => (float) ($c->sell ?? 0));
+        $flightCost = (float) $this->packageCosts->sum(fn ($c) => (float) ($c->total_cost ?? 0));
+        $hotelCost = (float) $this->hotelDetails->sum(fn ($h) => (float) ($h->cost ?? 0));
+        $transportCost = (float) $this->transportDetails->sum(fn ($t) => (float) ($t->cost ?? 0));
+        $visaCost = (float) $this->visaDetails->sum(fn ($v) => (float) ($v->cost ?? 0));
+        $othersCost = (float) $this->otherDetails->sum(fn ($o) => (float) ($o->cost ?? 0));
+        $margin = $totalSale - $flightCost - $hotelCost - $transportCost - $visaCost - $othersCost;
+
+        return [
+            'total_sale' => $totalSale,
+            'flight_cost' => $flightCost,
+            'hotel_cost' => $hotelCost,
+            'transport_cost' => $transportCost,
+            'visa_cost' => $visaCost,
+            'others_cost' => $othersCost,
+            'margin' => $margin,
+        ];
     }
 }

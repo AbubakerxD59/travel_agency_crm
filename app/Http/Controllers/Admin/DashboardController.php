@@ -29,7 +29,15 @@ class DashboardController extends Controller
             ? min(100, (int) round(($totalClosed / $totalLeads) * 100))
             : 0;
 
-        $dashboardAgentChart = $this->buildAgentChartData($agents, 'year');
+        $dashboardAgentChart = array_merge(
+            $this->buildAgentChartData($agents, 'year'),
+            [
+                'agentOptions' => $agents->map(fn (User $a) => [
+                    'id' => $a->id,
+                    'name' => $a->name,
+                ])->values()->all(),
+            ],
+        );
 
         return view('admin.dashboard', compact(
             'totalLeads',
@@ -57,11 +65,24 @@ class DashboardController extends Controller
             $customEnd = null;
         }
 
-        $agents = User::role('agent')->orderBy('name')->get(['id', 'name']);
+        $allAgents = User::role('agent')->orderBy('name')->get(['id', 'name']);
+        $filterAgentId = $request->integer('agent_id');
+        $agents = $allAgents;
+        if ($filterAgentId > 0 && $allAgents->contains('id', $filterAgentId)) {
+            $agents = $allAgents->where('id', $filterAgentId)->values();
+        }
 
-        return response()->json(
-            $this->buildAgentChartData($agents, $range, $customStart, $customEnd)
+        $payload = array_merge(
+            $this->buildAgentChartData($agents, $range, $customStart, $customEnd),
+            [
+                'agentOptions' => $allAgents->map(fn (User $a) => [
+                    'id' => $a->id,
+                    'name' => $a->name,
+                ])->values()->all(),
+            ],
         );
+
+        return response()->json($payload);
     }
 
     /**
