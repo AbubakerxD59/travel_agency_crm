@@ -22,7 +22,7 @@
     ]
   },
   "resources/css/app.css": {
-    "file": "assets/app-BkRG3He8.css",
+    "file": "assets/app-BjR3mR-z.css",
     "src": "resources/css/app.css",
     "isEntry": true,
     "name": "app",
@@ -73,7 +73,7 @@
     ]
   },
   "resources/js/dashboard.js": {
-    "file": "assets/dashboard-6VLq9KXI.js",
+    "file": "assets/dashboard-eigs-etb.js",
     "name": "dashboard",
     "src": "resources/js/dashboard.js",
     "isEntry": true,

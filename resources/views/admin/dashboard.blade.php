@@ -40,7 +40,7 @@
                     <p class="mt-0.5 text-sm text-concierge-muted">Monthly successful leads by agent.</p>
                 </div>
                 <div class="flex flex-col gap-2 self-start sm:flex-row sm:items-end sm:gap-3 sm:self-auto">
-                    <div id="admin-agent-chart-agent-filter-wrap" class="min-w-0 sm:min-w-[11rem]"></div>
+                    <div id="admin-agent-chart-agent-filter-wrap" class="min-w-0 sm:min-w-[14rem]"></div>
                     <div class="relative">
                         <button type="button" id="admin-agent-chart-filter-button"
                             class="inline-flex cursor-pointer items-center gap-2 rounded-xl border border-slate-200 bg-white px-3.5 py-2 text-sm font-medium text-concierge-navy transition hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-concierge-accent/25"

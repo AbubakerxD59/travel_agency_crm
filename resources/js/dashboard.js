@@ -103,38 +103,18 @@ function initAgentPerformanceChart() {
     const agentFilterWrap = document.getElementById('admin-agent-chart-agent-filter-wrap');
     const chartEndpoint = cfgEl.dataset.chartEndpoint;
     let customDatePicker = null;
-    /** @type {HTMLSelectElement | null} */
-    let agentSelect = null;
+
+    /**
+     * @type {{ getAgentId: () => string, setDisabled: (v: boolean) => void } | null}
+     */
+    let agentCombobox = null;
 
     if (!filterButton || !filterMenu || !filterLabel) {
         return;
     }
 
     if (agentOptions.length && agentFilterWrap) {
-        const agentLabel = document.createElement('label');
-        agentLabel.className = 'mb-1 block text-xs font-medium text-concierge-muted';
-        agentLabel.setAttribute('for', 'admin-agent-chart-agent-select');
-        agentLabel.textContent = 'Agent';
-
-        agentSelect = document.createElement('select');
-        agentSelect.id = 'admin-agent-chart-agent-select';
-        agentSelect.className =
-            'w-full min-w-0 cursor-pointer rounded-xl border border-slate-200 bg-white px-3.5 py-2 text-sm font-medium text-concierge-navy transition hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-concierge-accent/25';
-
-        const optAll = document.createElement('option');
-        optAll.value = '';
-        optAll.textContent = 'All agents';
-        agentSelect.appendChild(optAll);
-
-        agentOptions.forEach((opt) => {
-            const o = document.createElement('option');
-            o.value = String(opt.id);
-            o.textContent = opt.name;
-            agentSelect.appendChild(o);
-        });
-
-        agentFilterWrap.appendChild(agentLabel);
-        agentFilterWrap.appendChild(agentSelect);
+        agentCombobox = createSearchableAgentCombobox(agentFilterWrap, agentOptions);
     }
 
     function closeMenu() {
@@ -184,7 +164,7 @@ function initAgentPerformanceChart() {
     }
 
     function currentAgentIdParam() {
-        return agentSelect?.value?.trim() ?? '';
+        return agentCombobox?.getAgentId() ?? '';
     }
 
     async function fetchAndApplyChartData(range, startDate, endDate) {
@@ -226,15 +206,11 @@ function initAgentPerformanceChart() {
     async function runFilterFetch(filterKey, displayLabel, startDate = '', endDate = '') {
         const originalLabel = filterLabel.textContent;
         filterButton.disabled = true;
-        if (agentSelect) {
-            agentSelect.disabled = true;
-        }
+        agentCombobox?.setDisabled(true);
         filterLabel.textContent = 'Loading...';
         const loaded = await fetchAndApplyChartData(filterKey, startDate, endDate);
         filterButton.disabled = false;
-        if (agentSelect) {
-            agentSelect.disabled = false;
-        }
+        agentCombobox?.setDisabled(false);
         filterLabel.textContent = loaded ? displayLabel : originalLabel;
         if (loaded) {
             chartFilterState = {
@@ -281,19 +257,17 @@ function initAgentPerformanceChart() {
         return customDatePicker;
     }
 
-    if (agentSelect) {
-        agentSelect.addEventListener('change', async () => {
-            const { range, start, end } = chartFilterState;
-            const labelBefore = filterLabel.textContent;
-            filterButton.disabled = true;
-            agentSelect.disabled = true;
-            filterLabel.textContent = 'Loading...';
-            await fetchAndApplyChartData(range, start, end);
-            filterButton.disabled = false;
-            agentSelect.disabled = false;
-            filterLabel.textContent = labelBefore;
-        });
-    }
+    agentCombobox?.onSelectionCommit(async () => {
+        const { range, start, end } = chartFilterState;
+        const labelBefore = filterLabel.textContent;
+        filterButton.disabled = true;
+        agentCombobox?.setDisabled(true);
+        filterLabel.textContent = 'Loading...';
+        await fetchAndApplyChartData(range, start, end);
+        filterButton.disabled = false;
+        agentCombobox?.setDisabled(false);
+        filterLabel.textContent = labelBefore;
+    });
 
     filterMenu.querySelectorAll('.admin-agent-chart-filter-option').forEach((option) => {
         option.addEventListener('click', async () => {
@@ -320,6 +294,288 @@ function initAgentPerformanceChart() {
         }
         closeMenu();
     });
+}
+
+/**
+ * Searchable agent filter (combobox pattern) for the admin performance chart.
+ *
+ * @param {HTMLElement} mountEl
+ * @param {Array<{ id: number, name: string }>} agents
+ */
+function createSearchableAgentCombobox(mountEl, agents) {
+    const inputClass =
+        'w-full min-w-0 rounded-xl border border-slate-200 bg-white px-3.5 py-2 pr-9 text-sm font-medium text-concierge-navy placeholder:text-concierge-muted transition hover:bg-slate-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-concierge-accent/25';
+
+    /** @type {string} numeric id as string or '' */
+    let selectedAgentId = '';
+    let selectedAgentName = '';
+    let listOpen = false;
+    /** @type {(() => Promise<void>) | null} */
+    let onCommitCallback = null;
+
+    const normalized = [...agents].sort((a, b) =>
+        String(a.name).localeCompare(String(b.name), undefined, {
+            sensitivity: 'base',
+        }),
+    );
+
+    const allChoices = [{ id: '', name: 'All agents' }, ...normalized.map((a) => ({ id: String(a.id), name: String(a.name) }))];
+
+    const labelEl = document.createElement('label');
+    labelEl.className = 'mb-1 block text-xs font-medium text-concierge-muted';
+    labelEl.setAttribute('for', 'admin-agent-chart-agent-combobox');
+    labelEl.textContent = 'Agent';
+
+    const root = document.createElement('div');
+    root.className = 'relative w-full min-w-0';
+
+    const inputWrap = document.createElement('div');
+    inputWrap.className = 'relative';
+
+    const input = document.createElement('input');
+    input.type = 'search';
+    input.id = 'admin-agent-chart-agent-combobox';
+    input.name = 'admin_agent_performance_agent';
+    input.autocomplete = 'off';
+    input.autocapitalize = 'off';
+    input.spellcheck = false;
+    input.placeholder = 'All agents';
+    input.setAttribute('role', 'combobox');
+    input.setAttribute('aria-autocomplete', 'list');
+    input.setAttribute('aria-expanded', 'false');
+    input.setAttribute('aria-controls', 'admin-agent-chart-agent-listbox');
+    input.className = inputClass;
+
+    const chevronBtn = document.createElement('button');
+    chevronBtn.type = 'button';
+    chevronBtn.tabIndex = -1;
+    chevronBtn.setAttribute('aria-label', 'Open agent list');
+    chevronBtn.className =
+        'pointer-events-none absolute right-2 top-1/2 z-[1] -translate-y-1/2 rounded p-1 text-concierge-muted';
+
+    chevronBtn.innerHTML =
+        '<svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="m19 9-7 7-7-7"/></svg>';
+
+    const listEl = document.createElement('ul');
+    listEl.id = 'admin-agent-chart-agent-listbox';
+    listEl.role = 'listbox';
+    listEl.className =
+        'absolute z-30 mt-1 max-h-56 w-full overflow-auto rounded-xl border border-slate-200 bg-white py-1 shadow-lg ring-1 ring-black/5';
+
+    /** @type {HTMLLIElement[]} */
+    let optionEls = [];
+    /** @type {number} */
+    let activeIndex = -1;
+
+    inputWrap.appendChild(input);
+    inputWrap.appendChild(chevronBtn);
+    root.appendChild(inputWrap);
+    root.appendChild(listEl);
+    mountEl.appendChild(labelEl);
+    mountEl.appendChild(root);
+
+    function filteredChoices() {
+        const q = input.value.trim().toLowerCase();
+        if (!q) {
+            return allChoices;
+        }
+        return allChoices.filter((c) => c.name.toLowerCase().includes(q));
+    }
+
+    function closeList(commitDisplay = true) {
+        listOpen = false;
+        activeIndex = -1;
+        listEl.classList.add('hidden');
+        chevronBtn.setAttribute('aria-label', 'Open agent list');
+        input.setAttribute('aria-expanded', 'false');
+        if (commitDisplay) {
+            syncInputToSelection();
+        }
+    }
+
+    function openList() {
+        listOpen = true;
+        listEl.classList.remove('hidden');
+        chevronBtn.setAttribute('aria-label', 'Close agent list');
+        input.setAttribute('aria-expanded', 'true');
+        const items = filteredChoices();
+        if (!items.length) {
+            activeIndex = -1;
+            renderOptions();
+            return;
+        }
+        const idx = items.findIndex((c) => c.id === selectedAgentId);
+        activeIndex = idx >= 0 ? idx : 0;
+        renderOptions();
+        scrollActiveOptionIntoView();
+    }
+
+    function syncInputToSelection() {
+        input.value = selectedAgentId === '' ? '' : selectedAgentName;
+        input.placeholder = 'All agents';
+    }
+
+    function selectChoice(choice) {
+        selectedAgentId = choice.id;
+        selectedAgentName = choice.id === '' ? '' : choice.name;
+        closeList(true);
+        void onCommitCallback?.();
+    }
+
+    function renderOptions() {
+        listEl.replaceChildren();
+        optionEls = [];
+        const items = filteredChoices();
+        items.forEach((choice, idx) => {
+            const li = document.createElement('li');
+            li.role = 'option';
+            li.tabIndex = -1;
+            li.dataset.agentId = choice.id;
+            li.className =
+                'cursor-pointer px-3.5 py-2 text-sm text-concierge-navy transition hover:bg-slate-50 aria-selected:bg-slate-100';
+            li.textContent = choice.name;
+            const isSel = selectedAgentId === choice.id;
+            li.setAttribute('aria-selected', String(isSel));
+            if (idx === activeIndex && activeIndex >= 0) {
+                li.classList.add('bg-slate-100');
+            }
+            li.addEventListener('mousedown', (event) => {
+                event.preventDefault();
+            });
+            li.addEventListener('click', () => {
+                selectChoice(choice);
+            });
+            listEl.appendChild(li);
+            optionEls.push(li);
+        });
+        if (items.length === 0) {
+            const empty = document.createElement('li');
+            empty.className = 'cursor-default px-3.5 py-2 text-sm text-concierge-muted';
+            empty.textContent = 'No agents match.';
+            empty.setAttribute('role', 'presentation');
+            listEl.appendChild(empty);
+        }
+    }
+
+    function scrollActiveOptionIntoView() {
+        const el = optionEls[activeIndex];
+        el?.scrollIntoView({ block: 'nearest' });
+    }
+
+    input.addEventListener('focus', () => {
+        if (!listOpen) {
+            input.select();
+            openList();
+        }
+    });
+
+    input.addEventListener('input', () => {
+        if (!listOpen) {
+            openList();
+            return;
+        }
+        const items = filteredChoices();
+        activeIndex = items.length ? 0 : -1;
+        renderOptions();
+        scrollActiveOptionIntoView();
+    });
+
+    input.addEventListener('keydown', (event) => {
+        if (event.key === 'Escape') {
+            event.preventDefault();
+            syncInputToSelection();
+            closeList(true);
+            return;
+        }
+
+        if (event.key === 'ArrowDown') {
+            event.preventDefault();
+            if (!listOpen) {
+                openList();
+                return;
+            }
+            const items = filteredChoices();
+            if (!items.length) {
+                return;
+            }
+            if (activeIndex < 0) {
+                activeIndex = 0;
+            } else {
+                activeIndex = Math.min(activeIndex + 1, items.length - 1);
+            }
+            renderOptions();
+            scrollActiveOptionIntoView();
+            return;
+        }
+
+        if (event.key === 'ArrowUp') {
+            event.preventDefault();
+            if (!listOpen) {
+                openList();
+                return;
+            }
+            const items = filteredChoices();
+            if (!items.length) {
+                return;
+            }
+            if (activeIndex < 0) {
+                activeIndex = Math.max(0, items.length - 1);
+            } else {
+                activeIndex = Math.max(0, activeIndex - 1);
+            }
+            renderOptions();
+            scrollActiveOptionIntoView();
+            return;
+        }
+
+        if (event.key === 'Enter' && listOpen) {
+            event.preventDefault();
+            const items = filteredChoices();
+            if (activeIndex >= 0 && activeIndex < items.length) {
+                selectChoice(items[activeIndex]);
+            }
+            return;
+        }
+
+        if (event.key === 'Tab') {
+            closeList(true);
+        }
+    });
+
+    document.addEventListener('pointerdown', (event) => {
+        if (!(event.target instanceof Node)) {
+            return;
+        }
+        if (root.contains(event.target)) {
+            return;
+        }
+        if (listOpen) {
+            syncInputToSelection();
+            closeList(true);
+        }
+    });
+
+    listEl.classList.add('hidden');
+    syncInputToSelection();
+
+    return {
+        getAgentId() {
+            return selectedAgentId;
+        },
+        setDisabled(v) {
+            input.disabled = v;
+            if (v && listOpen) {
+                syncInputToSelection();
+                closeList(false);
+                input.placeholder = 'All agents';
+            }
+            chevronBtn.classList.toggle('opacity-40', Boolean(v));
+        },
+        /** @param {() => Promise<void>} cb */
+        onSelectionCommit(cb) {
+            onCommitCallback = cb;
+        },
+    };
 }
 
 if (document.readyState === 'loading') {
