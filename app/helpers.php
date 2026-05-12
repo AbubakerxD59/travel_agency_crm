@@ -5,6 +5,41 @@ declare(strict_types=1);
 use Illuminate\Validation\ValidationException;
 
 /**
+ * Lead source options for dropdowns: stored key => display label.
+ *
+ * @return array<string, string>
+ */
+function getSources(): array
+{
+    return [
+        'google' => 'Google',
+        'meta' => 'Meta',
+        'direct_whatsapp_chat' => 'Direct WhatsApp Chat',
+        'direct_call' => 'Direct Call',
+        'referral' => 'Referral',
+    ];
+}
+
+/**
+ * Display label for a stored lead source key (handles legacy slugs).
+ *
+ * @return string
+ */
+function getSourceLabel(?string $key): string
+{
+    if ($key === null || $key === '') {
+        return '';
+    }
+
+    $sources = getSources();
+
+    return $sources[$key] ?? match ($key) {
+        'whatsapp' => 'Direct WhatsApp Chat',
+        default => $key,
+    };
+}
+
+/**
  * Allowed folder order type values stored in `folders.order_type`.
  *
  * @return list<string>
@@ -63,6 +98,46 @@ function folder_payment_modes(): array
         'Cash in office',
         'Bank Transfer',
         'Card Payment',
+    ];
+}
+
+/**
+ * Hotel detail row status options for `folder_hotel_details.status`: stored key => display label.
+ *
+ * @return array<string, string>
+ */
+function folder_hotel_detail_statuses(): array
+{
+    return [
+        'issued' => 'Issued',
+        'reserved' => 'Reserved',
+        'issue_later' => 'Issue later',
+    ];
+}
+
+/**
+ * Display label for a stored folder hotel detail status key.
+ */
+function getFolderHotelDetailStatusLabel(?string $key): string
+{
+    if ($key === null || $key === '') {
+        return '';
+    }
+
+    return folder_hotel_detail_statuses()[$key] ?? $key;
+}
+
+/**
+ * Folder list "booking status" filter: query param value => display label.
+ * Incomplete = folder has at least one hotel detail with status {@see folder_hotel_detail_statuses()} key `issue_later`.
+ *
+ * @return array<string, string>
+ */
+function folder_booking_status_filter_options(): array
+{
+    return [
+        'successful' => 'Successful Bookings',
+        'incomplete' => 'Incomplete Bookings',
     ];
 }
 

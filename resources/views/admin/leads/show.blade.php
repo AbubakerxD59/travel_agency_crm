@@ -47,8 +47,14 @@
                     <dd class="mt-1 text-sm font-medium text-concierge-navy">{{ $lead->city ?? '—' }}</dd>
                 </div>
                 <div class="rounded-xl border border-slate-100 bg-slate-50/50 px-4 py-3">
+                    <dt class="text-xs uppercase tracking-wide text-concierge-muted">Total passengers</dt>
+                    <dd class="mt-1 text-sm font-medium text-concierge-navy">
+                        {{ $lead->total_passengers !== null ? number_format((int) $lead->total_passengers) : '—' }}
+                    </dd>
+                </div>
+                <div class="rounded-xl border border-slate-100 bg-slate-50/50 px-4 py-3">
                     <dt class="text-xs uppercase tracking-wide text-concierge-muted">Source</dt>
-                    <dd class="mt-1 text-sm font-medium text-concierge-navy">{{ $lead->source ?? '—' }}</dd>
+                    <dd class="mt-1 text-sm font-medium text-concierge-navy">{{ getSourceLabel($lead->source) ?: '—' }}</dd>
                 </div>
                 <div class="rounded-xl border border-slate-100 bg-slate-50/50 px-4 py-3">
                     <dt class="text-xs uppercase tracking-wide text-concierge-muted">Created</dt>

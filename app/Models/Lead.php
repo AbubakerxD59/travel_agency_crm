@@ -25,6 +25,7 @@ class Lead extends Model
         'email',
         'company_id',
         'city',
+        'total_passengers',
         'source',
         'notes',
         'status',
@@ -33,6 +34,7 @@ class Lead extends Model
 
     protected $casts = [
         'lead_assign_date' => 'datetime',
+        'total_passengers' => 'integer',
     ];
 
     /**

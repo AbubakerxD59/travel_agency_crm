@@ -20,6 +20,7 @@ class FolderHotelDetail extends Model
         'date_out',
         'nights',
         'supplier_ref',
+        'status',
         'cost',
         'margin',
         'sell',

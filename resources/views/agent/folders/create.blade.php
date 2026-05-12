@@ -530,7 +530,8 @@
                                         Sell</th>
                                     <th class="border border-slate-200 px-2 py-2"><span class="text-rose-600">*</span>
                                         Supplier</th>
-                                    <th class="border border-slate-200 px-2 py-2">PNR</th>
+                                    <th class="border border-slate-200 px-2 py-2"><span class="text-rose-600">*</span>
+                                        PNR</th>
                                 </tr>
                             </thead>
                             <tbody id="package-cost-rows">
@@ -638,8 +639,11 @@
                         </div>
                     </div>
 
+                    @php
+                        $hotelDetailStatuses = folder_hotel_detail_statuses();
+                    @endphp
                     <div class="overflow-x-auto">
-                        <table class="min-w-[1650px] w-full border-collapse text-xs sm:text-sm">
+                        <table class="min-w-[1780px] w-full border-collapse text-xs sm:text-sm">
                             <thead>
                                 <tr class="bg-slate-100 text-left text-concierge-muted">
                                     <th class="border border-slate-200 px-2 py-2">Action</th>
@@ -665,6 +669,8 @@
                                         Nights</th>
                                     <th class="border border-slate-200 px-2 py-2"><span class="text-rose-600">*</span>
                                         Supplier ref</th>
+                                    <th class="border border-slate-200 px-2 py-2"><span class="text-rose-600">*</span>
+                                        Status</th>
                                     <th class="border border-slate-200 px-2 py-2"><span class="text-rose-600">*</span>
                                         Cost</th>
                                     <th class="border border-slate-200 px-2 py-2"><span class="text-rose-600">*</span>
@@ -743,6 +749,15 @@
                                                 class="w-24 rounded-lg border border-slate-200 bg-white px-2 py-1.5 text-sm">
                                         </td>
                                         <td class="border border-slate-200 px-2 py-2">
+                                            <select name="hotel_details[{{ $i }}][status]"
+                                                class="w-36 rounded-lg border border-slate-200 bg-white px-2 py-1.5 text-sm">
+                                                @foreach ($hotelDetailStatuses as $statusValue => $statusLabel)
+                                                    <option value="{{ $statusValue }}"
+                                                        @selected((string) data_get($row, 'status', 'issue_later') === (string) $statusValue)>{{ $statusLabel }}</option>
+                                                @endforeach
+                                            </select>
+                                        </td>
+                                        <td class="border border-slate-200 px-2 py-2">
                                             <input type="number" min="0" step="0.01"
                                                 name="hotel_details[{{ $i }}][cost]"
                                                 value="{{ data_get($row, 'cost') }}"
@@ -770,6 +785,14 @@
                             </tbody>
                         </table>
                     </div>
+                    <template id="hotel-detail-status-select-skeleton">
+                        <select
+                            class="w-36 rounded-lg border border-slate-200 bg-white px-2 py-1.5 text-sm">
+                            @foreach ($hotelDetailStatuses as $statusValue => $statusLabel)
+                                <option value="{{ $statusValue }}">{{ $statusLabel }}</option>
+                            @endforeach
+                        </select>
+                    </template>
                     <p class="text-xs text-concierge-muted">At least one hotel details row is required.</p>
                 </div>
 
@@ -1826,7 +1849,7 @@
                 return;
             }
 
-            const fields = [
+            const fieldsBeforeStatus = [
                 ['sr_no', 'number', 'w-12', '1', null],
                 ['supplier', 'text', 'w-24', null, null],
                 ['hotel_name', 'text', 'w-32', null, null],
@@ -1838,11 +1861,31 @@
                 ['date_out', 'date', 'w-36', null, null],
                 ['nights', 'number', 'w-16', '0', null],
                 ['supplier_ref', 'text', 'w-24', null, null],
+            ];
+
+            const fieldsAfterStatus = [
                 ['cost', 'number', 'w-20', '0', '0.01'],
                 ['margin', 'number', 'w-20', null, '0.01'],
                 ['sell', 'number', 'w-20', '0', '0.01'],
                 ['hotel_city', 'text', 'w-24', null, null],
             ];
+
+            const statusSelectTemplate = document.getElementById('hotel-detail-status-select-skeleton');
+
+            function makeStatusSelect(index) {
+                const select = statusSelectTemplate?.content?.querySelector('select')?.cloneNode(true);
+                if (!select) {
+                    const fallback = document.createElement('select');
+                    fallback.name = `hotel_details[${index}][status]`;
+                    fallback.className = inputClass('w-36');
+                    fallback.innerHTML =
+                        '<option value="issued">Issued</option><option value="reserved">Reserved</option><option value="issue_later" selected>Issue later</option>';
+                    return fallback;
+                }
+                select.name = `hotel_details[${index}][status]`;
+                select.value = 'issue_later';
+                return select;
+            }
 
             function inputClass(sizeClass) {
                 return `${sizeClass} rounded-lg border border-slate-200 bg-white px-2 py-1.5 text-sm`;
@@ -1882,7 +1925,19 @@
                 actionCell.appendChild(removeBtn);
                 row.appendChild(actionCell);
 
-                fields.forEach(([field, type, sizeClass, minValue, stepValue]) => {
+                fieldsBeforeStatus.forEach(([field, type, sizeClass, minValue, stepValue]) => {
+                    const cell = document.createElement('td');
+                    cell.className = 'border border-slate-200 px-2 py-2';
+                    cell.appendChild(makeInput(index, field, type, sizeClass, minValue, stepValue));
+                    row.appendChild(cell);
+                });
+
+                const statusCell = document.createElement('td');
+                statusCell.className = 'border border-slate-200 px-2 py-2';
+                statusCell.appendChild(makeStatusSelect(index));
+                row.appendChild(statusCell);
+
+                fieldsAfterStatus.forEach(([field, type, sizeClass, minValue, stepValue]) => {
                     const cell = document.createElement('td');
                     cell.className = 'border border-slate-200 px-2 py-2';
                     cell.appendChild(makeInput(index, field, type, sizeClass, minValue, stepValue));
@@ -1894,7 +1949,7 @@
 
             function renumberRows() {
                 [...tableBody.querySelectorAll('.hotel-detail-row')].forEach((row, idx) => {
-                    row.querySelectorAll('input[name^="hotel_details["]').forEach((input) => {
+                    row.querySelectorAll('input[name^="hotel_details["], select[name^="hotel_details["]').forEach((input) => {
                         input.name = input.name.replace(/hotel_details\[\d+\]/,
                             `hotel_details[${idx}]`);
                     });
@@ -2722,6 +2777,7 @@
                 'margin',
                 'sell',
                 'supplier',
+                'pnr',
             ];
             const hotelRequiredFields = [
                 'sr_no',
@@ -2735,6 +2791,7 @@
                 'date_out',
                 'nights',
                 'supplier_ref',
+                'status',
                 'cost',
                 'margin',
                 'hotel_city',

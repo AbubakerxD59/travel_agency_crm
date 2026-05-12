@@ -34,5 +34,8 @@ Route::prefix('agent')->name('agent.')->middleware('role:agent')->group(function
     Route::post('/folders/sections/{section}/save', [AgentFolderController::class, 'saveSectionDraft'])
         ->middleware('can:folders.access')
         ->name('folders.sections.save');
+    Route::get('/folders/upcoming', [AgentFolderController::class, 'upcoming'])
+        ->middleware('can:folders.access')
+        ->name('folders.upcoming');
     Route::resource('folders', AgentFolderController::class)->middleware('can:folders.access');
 });

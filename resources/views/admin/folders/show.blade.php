@@ -191,7 +191,7 @@
         <div class="mt-6 rounded-2xl border border-slate-200/80 bg-white p-6 shadow-sm">
             <h2 class="text-base font-semibold text-concierge-navy">Hotel Details</h2>
             <div class="mt-4 overflow-x-auto">
-                <table class="min-w-[1400px] w-full border-collapse text-xs sm:text-sm">
+                <table class="min-w-[1500px] w-full border-collapse text-xs sm:text-sm">
                     <thead>
                         <tr class="bg-slate-100 text-left text-concierge-muted">
                             <th class="border border-slate-200 px-2 py-2">Sr. No.</th>
@@ -205,6 +205,7 @@
                             <th class="border border-slate-200 px-2 py-2">Date out</th>
                             <th class="border border-slate-200 px-2 py-2">Nights</th>
                             <th class="border border-slate-200 px-2 py-2">Supplier ref</th>
+                            <th class="border border-slate-200 px-2 py-2">Status</th>
                             <th class="border border-slate-200 px-2 py-2">Cost</th>
                             <th class="border border-slate-200 px-2 py-2">Margin</th>
                             <th class="border border-slate-200 px-2 py-2">Sell</th>
@@ -225,13 +226,14 @@
                                 <td class="border border-slate-200 px-2 py-2">{{ $hotel->date_out?->format('M j, Y') ?? '—' }}</td>
                                 <td class="border border-slate-200 px-2 py-2">{{ $hotel->nights ?? '—' }}</td>
                                 <td class="border border-slate-200 px-2 py-2">{{ $hotel->supplier_ref ?? '—' }}</td>
+                                <td class="border border-slate-200 px-2 py-2">{{ getFolderHotelDetailStatusLabel($hotel->status) ?: '—' }}</td>
                                 <td class="border border-slate-200 px-2 py-2">{{ $hotel->cost ?? '—' }}</td>
                                 <td class="border border-slate-200 px-2 py-2">{{ $hotel->margin ?? '—' }}</td>
                                 <td class="border border-slate-200 px-2 py-2">{{ $hotel->sell ?? '—' }}</td>
                                 <td class="border border-slate-200 px-2 py-2">{{ $hotel->hotel_city ?? '—' }}</td>
                             </tr>
                         @empty
-                            <tr><td class="border border-slate-200 px-3 py-4 text-center text-concierge-muted" colspan="15">No hotel details found.</td></tr>
+                            <tr><td class="border border-slate-200 px-3 py-4 text-center text-concierge-muted" colspan="16">No hotel details found.</td></tr>
                         @endforelse
                     </tbody>
                 </table>

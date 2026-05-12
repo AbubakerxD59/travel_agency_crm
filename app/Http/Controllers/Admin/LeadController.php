@@ -153,13 +153,6 @@ class LeadController extends Controller
             'selectedEndDate' => $endDate,
             'selectedDateFilterLabel' => $selectedDateFilterLabel,
             'companies' => Company::query()->orderBy('name')->get(['id', 'name']),
-            'sources' => Lead::query()
-                ->whereNotNull('source')
-                ->where('source', '!=', '')
-                ->distinct()
-                ->orderBy('source')
-                ->pluck('source')
-                ->values(),
             'statuses' => Lead::statusLabels(),
             'agents' => User::role('agent')->orderBy('name')->get(['id', 'name']),
             'canCreateLeads' => $request->user()->hasRole('super-admin'),
@@ -193,6 +186,7 @@ class LeadController extends Controller
             'email' => $data['email'] ?? null,
             'company_id' => $companyId,
             'city' => $data['city'] ?? null,
+            'total_passengers' => $data['total_passengers'] ?? null,
             'source' => $data['source'] ?? null,
             'notes' => $data['notes'] ?? null,
             'order_type' => 'Assigned',
@@ -234,6 +228,7 @@ class LeadController extends Controller
             'email' => $data['email'] ?? null,
             'company_id' => $companyId,
             'city' => $data['city'] ?? null,
+            'total_passengers' => $data['total_passengers'] ?? null,
             'source' => $data['source'] ?? null,
             'notes' => $data['notes'] ?? null,
         ]);

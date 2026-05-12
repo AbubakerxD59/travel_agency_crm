@@ -44,6 +44,7 @@ Route::prefix('admin')->name('admin.')->middleware('role:super-admin')->group(fu
     Route::patch('/leads/{lead}', [LeadController::class, 'update'])->name('leads.update');
     Route::delete('/leads/{lead}', [LeadController::class, 'destroy'])->name('leads.destroy');
     Route::get('/folders', [FolderController::class, 'index'])->name('folders.index');
+    Route::get('/folders/upcoming', [FolderController::class, 'upcoming'])->name('folders.upcoming');
     Route::get('/folders/create', [FolderController::class, 'create'])->name('folders.create');
     Route::post('/folders', [FolderController::class, 'store'])->name('folders.store');
     Route::get('/folders/{folder}/edit', [FolderController::class, 'edit'])->name('folders.edit');

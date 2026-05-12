@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
@@ -18,6 +19,23 @@ class Folder extends Model
         return folder_order_types();
     }
 
+    /**
+     * Folders whose {@see Folder::$travel_date} falls between today and today + $daysFromToday (inclusive).
+     *
+     * @param  Builder<Folder>  $query
+     * @return Builder<Folder>
+     */
+    public function scopeUpcomingByTravelDate(Builder $query, int $daysFromToday = 20): Builder
+    {
+        $from = now()->startOfDay();
+        $to = now()->addDays($daysFromToday)->startOfDay();
+
+        return $query
+            ->whereNotNull('travel_date')
+            ->whereDate('travel_date', '>=', $from)
+            ->whereDate('travel_date', '<=', $to);
+    }
+
     protected $fillable = [
         'agent_id',
         'order_type',
@@ -29,6 +47,9 @@ class Folder extends Model
         'balance_due_date',
         'makkah_ziarat',
         'madinah_ziarat',
+    ];
+
+    protected $appends = [
         'status',
     ];
 
@@ -137,12 +158,12 @@ class Folder extends Model
      */
     public function costSummary(): array
     {
-        $totalSale = (float) $this->packageCosts->sum(fn ($c) => (float) ($c->sell ?? 0));
-        $flightCost = (float) $this->packageCosts->sum(fn ($c) => (float) ($c->total_cost ?? 0));
-        $hotelCost = (float) $this->hotelDetails->sum(fn ($h) => (float) ($h->cost ?? 0));
-        $transportCost = (float) $this->transportDetails->sum(fn ($t) => (float) ($t->cost ?? 0));
-        $visaCost = (float) $this->visaDetails->sum(fn ($v) => (float) ($v->cost ?? 0));
-        $othersCost = (float) $this->otherDetails->sum(fn ($o) => (float) ($o->cost ?? 0));
+        $totalSale = (float) $this->packageCosts->sum(fn($c) => (float) ($c->sell ?? 0));
+        $flightCost = (float) $this->packageCosts->sum(fn($c) => (float) ($c->total_cost ?? 0));
+        $hotelCost = (float) $this->hotelDetails->sum(fn($h) => (float) ($h->cost ?? 0));
+        $transportCost = (float) $this->transportDetails->sum(fn($t) => (float) ($t->cost ?? 0));
+        $visaCost = (float) $this->visaDetails->sum(fn($v) => (float) ($v->cost ?? 0));
+        $othersCost = (float) $this->otherDetails->sum(fn($o) => (float) ($o->cost ?? 0));
         $margin = $totalSale - $flightCost - $hotelCost - $transportCost - $visaCost - $othersCost;
 
         return [
@@ -154,5 +175,10 @@ class Folder extends Model
             'others_cost' => $othersCost,
             'margin' => $margin,
         ];
+    }
+
+    public function getStatusAttribute(): string
+    {
+        return $this->hotelDetails->some(fn($h) => $h->status === 'issue_later') ? 'Incomplete' : 'Successful';
     }
 }

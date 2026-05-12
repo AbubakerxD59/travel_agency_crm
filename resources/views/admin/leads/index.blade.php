@@ -81,9 +81,9 @@
                     <select id="lead-source-filter" name="source"
                         class="mt-1.5 w-full rounded-xl border border-slate-200 bg-slate-50/80 px-4 py-2.5 text-sm text-slate-800 focus:border-concierge-accent focus:bg-white focus:outline-none focus:ring-2 focus:ring-concierge-accent/20">
                         <option value="">All sources</option>
-                        @foreach ($sources as $sourceOption)
-                            <option value="{{ $sourceOption }}" @selected($selectedSource === $sourceOption)>
-                                {{ $sourceOption }}
+                        @foreach (getSources() as $sourceKey => $sourceLabelOption)
+                            <option value="{{ $sourceKey }}" @selected($selectedSource === $sourceKey)>
+                                {{ $sourceLabelOption }}
                             </option>
                         @endforeach
                     </select>
@@ -165,6 +165,7 @@
                             <th class="px-4 py-4 lg:px-6">Email</th>
                             <th class="px-4 py-4 lg:px-6">Company Name</th>
                             <th class="px-4 py-4 lg:px-6">City</th>
+                            <th class="px-4 py-4 lg:px-6">Passengers</th>
                             <th class="px-4 py-4 lg:px-6">Source</th>
                             <th class="px-4 py-4 lg:px-6">Status</th>
                             <th class="px-4 py-4 text-right lg:px-6">Action</th>
@@ -188,7 +189,10 @@
                                 <td class="px-4 py-4 text-concierge-muted lg:px-6">{{ $lead->email ?? '—' }}</td>
                                 <td class="px-4 py-4 text-concierge-navy lg:px-6">{{ $lead->company?->name ?? '—' }}</td>
                                 <td class="px-4 py-4 text-concierge-muted lg:px-6">{{ $lead->city ?? '—' }}</td>
-                                <td class="px-4 py-4 text-concierge-muted lg:px-6">{{ $lead->source ?? '—' }}</td>
+                                <td class="whitespace-nowrap px-4 py-4 text-concierge-muted lg:px-6">
+                                    {{ $lead->total_passengers !== null ? number_format((int) $lead->total_passengers) : '—' }}
+                                </td>
+                                <td class="px-4 py-4 text-concierge-muted lg:px-6">{{ getSourceLabel($lead->source) ?: '—' }}</td>
                                 <td class="px-4 py-4 lg:px-6">
                                     <span
                                         class="concierge-pill concierge-pill-{{ $lead->statusPillClass() }}">{{ $lead->statusLabel() }}</span>
@@ -205,6 +209,7 @@
                                                 data-email="{{ $lead->email ?? '' }}"
                                                 data-company-id="{{ $lead->company_id ?? '' }}"
                                                 data-city="{{ $lead->city ?? '' }}"
+                                                data-total-passengers="{{ $lead->total_passengers !== null ? (int) $lead->total_passengers : '' }}"
                                                 data-source="{{ $lead->source ?? '' }}"
                                                 data-notes="{{ $lead->notes ?? '' }}" title="Edit" aria-label="Edit">
                                                 <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none"
@@ -260,7 +265,7 @@
                             </tr>
                         @empty
                             <tr>
-                                <td colspan="9" class="px-6 py-10 text-center text-sm text-concierge-muted">
+                                <td colspan="10" class="px-6 py-10 text-center text-sm text-concierge-muted">
                                     @if ($canCreateLeads)
                                         No leads yet. Use “Assign Lead” to create one.
                                     @else
@@ -350,14 +355,22 @@
                                 class="mt-1.5 w-full rounded-xl border border-slate-200 bg-slate-50/80 px-4 py-2.5 text-sm focus:border-concierge-accent focus:bg-white focus:outline-none focus:ring-2 focus:ring-concierge-accent/20">
                         </div>
                         <div>
+                            <label for="assign_total_passengers" class="block text-sm font-medium text-concierge-navy">Total
+                                Passengers</label>
+                            <input id="assign_total_passengers" name="total_passengers" type="number" min="1" max="500"
+                                step="1" value="{{ old('total_passengers') }}"
+                                class="mt-1.5 w-full rounded-xl border border-slate-200 bg-slate-50/80 px-4 py-2.5 text-sm focus:border-concierge-accent focus:bg-white focus:outline-none focus:ring-2 focus:ring-concierge-accent/20"
+                                placeholder="e.g. 4">
+                        </div>
+                        <div>
                             <label for="assign_source"
                                 class="block text-sm font-medium text-concierge-navy">Source</label>
                             <select id="assign_source" name="source"
                                 class="mt-1.5 w-full rounded-xl border border-slate-200 bg-slate-50/80 px-4 py-2.5 text-sm focus:border-concierge-accent focus:bg-white focus:outline-none focus:ring-2 focus:ring-concierge-accent/20">
                                 <option value="">Select source</option>
-                                @foreach (['meta', 'google', 'whatsapp', 'referral'] as $source)
-                                    <option value="{{ $source }}" @selected(old('source') === $source)>
-                                        {{ ucfirst($source) }}</option>
+                                @foreach (getSources() as $sourceKey => $sourceLabelOption)
+                                    <option value="{{ $sourceKey }}" @selected(old('source') === $sourceKey)>
+                                        {{ $sourceLabelOption }}</option>
                                 @endforeach
                             </select>
                         </div>
@@ -501,6 +514,7 @@
                 document.getElementById('assign_email').value = button.dataset.email ?? '';
                 document.getElementById('assign_company_id').value = button.dataset.companyId ?? '';
                 document.getElementById('assign_city').value = button.dataset.city ?? '';
+                document.getElementById('assign_total_passengers').value = button.dataset.totalPassengers ?? '';
                 document.getElementById('assign_source').value = button.dataset.source ?? '';
                 document.getElementById('assign_notes').value = button.dataset.notes ?? '';
 

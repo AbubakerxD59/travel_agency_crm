@@ -53,14 +53,6 @@ class LeadController extends Controller
             'search' => $search,
             'selectedSource' => $source,
             'selectedStatus' => $status,
-            'sources' => Lead::query()
-                ->where('agent_id', $request->user()->id)
-                ->whereNotNull('source')
-                ->where('source', '!=', '')
-                ->distinct()
-                ->orderBy('source')
-                ->pluck('source')
-                ->values(),
             'statuses' => Lead::statusLabels(),
             'canCreateLeads' => true,
         ]);

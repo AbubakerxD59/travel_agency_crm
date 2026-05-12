@@ -433,7 +433,8 @@
                                             sell)</span></th>
                                     <th class="border border-slate-200 px-2 py-2">Sell</th>
                                     <th class="border border-slate-200 px-2 py-2">Supplier</th>
-                                    <th class="border border-slate-200 px-2 py-2">PNR</th>
+                                    <th class="border border-slate-200 px-2 py-2"><span class="text-rose-600">*</span>
+                                        PNR</th>
                                 </tr>
                             </thead>
                             <tbody id="package-cost-rows">

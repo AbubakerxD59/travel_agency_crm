@@ -8,6 +8,14 @@ use Illuminate\Validation\Rule;
 
 class AssignLeadRequest extends FormRequest
 {
+    protected function prepareForValidation(): void
+    {
+        $total = $this->input('total_passengers');
+        $this->merge([
+            'total_passengers' => $total === '' || $total === null ? null : $total,
+        ]);
+    }
+
     public function authorize(): bool
     {
         return (bool) $this->user()?->hasRole('super-admin');
@@ -35,7 +43,8 @@ class AssignLeadRequest extends FormRequest
             'email' => ['nullable', 'email', 'max:255'],
             'company_id' => ['nullable', 'integer', 'exists:companies,id'],
             'city' => ['nullable', 'string', 'max:120'],
-            'source' => ['nullable', 'string', Rule::in(['meta', 'google', 'whatsapp', 'referral'])],
+            'total_passengers' => ['nullable', 'integer', 'min:1', 'max:500'],
+            'source' => ['nullable', 'string', Rule::in(array_keys(getSources()))],
             'notes' => ['nullable', 'string'],
         ];
     }

@@ -7,9 +7,11 @@ use App\Models\Bank;
 use App\Models\Company;
 use App\Models\Destination;
 use App\Models\Folder;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\Rule;
@@ -21,59 +23,68 @@ class FolderController extends Controller
 {
     public function index(Request $request): View
     {
-        $search = trim((string) $request->string('search')->value());
-        $destinationId = $request->integer('destination_id') ?: null;
-        $travelArrivalFrom = trim((string) $request->query('travel_arrival_from', ''));
-        $travelArrivalTo = trim((string) $request->query('travel_arrival_to', ''));
-        $orderType = trim((string) $request->query('order_type', ''));
-        if ($orderType !== '' && ! in_array($orderType, folder_order_types(), true)) {
-            $orderType = '';
-        }
-        if (! preg_match('/^\d{4}-\d{2}-\d{2}$/', $travelArrivalFrom)) {
-            $travelArrivalFrom = '';
-        }
-        if (! preg_match('/^\d{4}-\d{2}-\d{2}$/', $travelArrivalTo)) {
-            $travelArrivalTo = '';
-        }
+        $params = $this->agentFolderFilterParams($request);
 
         $folders = Folder::query()
             ->with(['agent', 'company', 'destination', 'itineraries'])
             ->withCount('passengers')
-            ->where('agent_id', $request->user()->getAuthIdentifier())
-            ->when($destinationId !== null, fn ($query) => $query->where('destination_id', $destinationId))
-            ->when($orderType !== '', fn ($query) => $query->where('order_type', $orderType))
-            ->when($travelArrivalFrom !== '' || $travelArrivalTo !== '', function ($query) use ($travelArrivalFrom, $travelArrivalTo) {
-                $query->whereExists(function ($itineraryQuery) use ($travelArrivalFrom, $travelArrivalTo) {
-                    $itineraryQuery
-                        ->selectRaw('1')
-                        ->from('folder_itineraries as fi')
-                        ->whereColumn('fi.folder_id', 'folders.id')
-                        ->whereRaw(
-                            'fi.sr_no = (select min(fi2.sr_no) from folder_itineraries as fi2 where fi2.folder_id = folders.id)'
-                        )
-                        ->when($travelArrivalFrom !== '', fn ($query) => $query->whereDate('fi.departure_date', '>=', $travelArrivalFrom))
-                        ->when($travelArrivalTo !== '', fn ($query) => $query->whereDate('fi.arrival_date', '<=', $travelArrivalTo));
-                });
-            })
-            ->when($search !== '', function ($query) use ($search) {
-                $query->where(function ($searchQuery) use ($search) {
-                    $searchQuery
-                        ->where('customer_name', 'like', '%'.$search.'%')
-                        ->orWhere('order_type', 'like', '%'.$search.'%')
-                        ->orWhere('vendor_reference', 'like', '%'.$search.'%');
-                });
-            })
+            ->where('agent_id', $request->user()->getAuthIdentifier());
+        $this->applyAgentFolderListFilters(
+            $folders,
+            $params['search'],
+            $params['destinationId'],
+            $params['orderType'],
+            $params['travelArrivalFrom'],
+            $params['travelArrivalTo'],
+            $params['bookingStatus'],
+        );
+        $folders = $folders
             ->latest()
             ->paginate(15)
             ->withQueryString();
 
         return view('agent.folders.index', [
             'folders' => $folders,
-            'search' => $search,
-            'selectedDestinationId' => $destinationId,
-            'selectedOrderType' => $orderType,
-            'selectedTravelArrivalFrom' => $travelArrivalFrom,
-            'selectedTravelArrivalTo' => $travelArrivalTo,
+            'search' => $params['search'],
+            'selectedDestinationId' => $params['destinationId'],
+            'selectedOrderType' => $params['orderType'],
+            'selectedTravelArrivalFrom' => $params['travelArrivalFrom'],
+            'selectedTravelArrivalTo' => $params['travelArrivalTo'],
+            'selectedBookingStatus' => $params['bookingStatus'],
+            'destinations' => Destination::query()->orderBy('name')->get(['id', 'name']),
+        ]);
+    }
+
+    public function upcoming(Request $request): View
+    {
+        $params = $this->agentFolderFilterParams($request);
+
+        $folders = Folder::query()
+            ->with(['agent', 'company', 'destination', 'itineraries'])
+            ->withCount('passengers')
+            ->where('agent_id', $request->user()->getAuthIdentifier())
+            ->upcomingByTravelDate(20);
+        $this->applyAgentFolderListFilters(
+            $folders,
+            $params['search'],
+            $params['destinationId'],
+            $params['orderType'],
+            '',
+            '',
+            $params['bookingStatus'],
+        );
+        $folders = $folders
+            ->orderBy('travel_date')
+            ->orderBy('id')
+            ->paginate(15);
+        $folders->appends(Arr::except($request->query(), ['travel_arrival_from', 'travel_arrival_to']));
+
+        return view('agent.folders.upcoming', [
+            'folders' => $folders,
+            'search' => $params['search'],
+            'selectedDestinationId' => $params['destinationId'],
+            'selectedOrderType' => $params['orderType'],
+            'selectedBookingStatus' => $params['bookingStatus'],
             'destinations' => Destination::query()->orderBy('name')->get(['id', 'name']),
         ]);
     }
@@ -239,6 +250,7 @@ class FolderController extends Controller
                     'date_out' => optional($hotel->date_out)->format('Y-m-d'),
                     'nights' => $hotel->nights,
                     'supplier_ref' => $hotel->supplier_ref,
+                    'status' => $hotel->status,
                     'cost' => $hotel->cost,
                     'margin' => $hotel->margin,
                     'sell' => $hotel->sell,
@@ -380,7 +392,7 @@ class FolderController extends Controller
             'package_costs.*.margin' => ['required', 'numeric', 'min:0'],
             'package_costs.*.sell' => ['required', 'numeric', 'min:0'],
             'package_costs.*.supplier' => ['required', 'string', 'max:100'],
-            'package_costs.*.pnr' => ['nullable', 'string', 'max:50'],
+            'package_costs.*.pnr' => ['required', 'string', 'max:50'],
             'hotel_details' => ['required', 'array', 'min:1'],
             'hotel_details.*.sr_no' => ['required', 'integer', 'min:1'],
             'hotel_details.*.supplier' => ['required', 'string', 'max:100'],
@@ -393,6 +405,7 @@ class FolderController extends Controller
             'hotel_details.*.date_out' => ['required', 'date'],
             'hotel_details.*.nights' => ['required', 'integer', 'min:0'],
             'hotel_details.*.supplier_ref' => ['required', 'string', 'max:100'],
+            'hotel_details.*.status' => ['required', 'string', Rule::in(array_keys(folder_hotel_detail_statuses()))],
             'hotel_details.*.cost' => ['required', 'numeric', 'min:0'],
             'hotel_details.*.margin' => ['required', 'numeric'],
             'hotel_details.*.sell' => ['nullable', 'numeric', 'min:0'],
@@ -528,7 +541,7 @@ class FolderController extends Controller
                 'package_costs.*.margin' => ['required', 'numeric', 'min:0'],
                 'package_costs.*.sell' => ['required', 'numeric', 'min:0'],
                 'package_costs.*.supplier' => ['required', 'string', 'max:100'],
-                'package_costs.*.pnr' => ['nullable', 'string', 'max:50'],
+                'package_costs.*.pnr' => ['required', 'string', 'max:50'],
             ],
             'hotel_details' => [
                 'hotel_details' => ['required', 'array', 'min:1'],
@@ -543,6 +556,7 @@ class FolderController extends Controller
                 'hotel_details.*.date_out' => ['required', 'date'],
                 'hotel_details.*.nights' => ['required', 'integer', 'min:0'],
                 'hotel_details.*.supplier_ref' => ['required', 'string', 'max:100'],
+                'hotel_details.*.status' => ['required', 'string', Rule::in(array_keys(folder_hotel_detail_statuses()))],
                 'hotel_details.*.cost' => ['required', 'numeric', 'min:0'],
                 'hotel_details.*.margin' => ['required', 'numeric'],
                 'hotel_details.*.sell' => ['nullable', 'numeric', 'min:0'],
@@ -642,5 +656,79 @@ class FolderController extends Controller
         request()->session()->forget($this->draftSessionKey(request()));
 
         return ['status', __('Folder saved successfully.')];
+    }
+
+    /**
+     * @return array{search: string, destinationId: int|null, orderType: string, travelArrivalFrom: string, travelArrivalTo: string, bookingStatus: string}
+     */
+    private function agentFolderFilterParams(Request $request): array
+    {
+        $search = trim((string) $request->string('search')->value());
+        $destinationId = $request->integer('destination_id') ?: null;
+        $travelArrivalFrom = trim((string) $request->query('travel_arrival_from', ''));
+        $travelArrivalTo = trim((string) $request->query('travel_arrival_to', ''));
+        $orderType = trim((string) $request->query('order_type', ''));
+        if ($orderType !== '' && ! in_array($orderType, folder_order_types(), true)) {
+            $orderType = '';
+        }
+        $bookingStatus = trim((string) $request->query('booking_status', ''));
+        if ($bookingStatus !== '' && ! array_key_exists($bookingStatus, folder_booking_status_filter_options())) {
+            $bookingStatus = '';
+        }
+        if (! preg_match('/^\d{4}-\d{2}-\d{2}$/', $travelArrivalFrom)) {
+            $travelArrivalFrom = '';
+        }
+        if (! preg_match('/^\d{4}-\d{2}-\d{2}$/', $travelArrivalTo)) {
+            $travelArrivalTo = '';
+        }
+
+        return [
+            'search' => $search,
+            'destinationId' => $destinationId,
+            'orderType' => $orderType,
+            'travelArrivalFrom' => $travelArrivalFrom,
+            'travelArrivalTo' => $travelArrivalTo,
+            'bookingStatus' => $bookingStatus,
+        ];
+    }
+
+    /**
+     * @param  Builder<\App\Models\Folder>  $query
+     */
+    private function applyAgentFolderListFilters(
+        Builder $query,
+        string $search,
+        ?int $destinationId,
+        string $orderType,
+        string $travelArrivalFrom,
+        string $travelArrivalTo,
+        string $bookingStatus,
+    ): void {
+        $query
+            ->when($destinationId !== null, fn ($q) => $q->where('destination_id', $destinationId))
+            ->when($orderType !== '', fn ($q) => $q->where('order_type', $orderType))
+            ->when($bookingStatus === 'incomplete', fn ($q) => $q->whereHas('hotelDetails', fn ($hq) => $hq->where('status', 'issue_later')))
+            ->when($bookingStatus === 'successful', fn ($q) => $q->whereDoesntHave('hotelDetails', fn ($hq) => $hq->where('status', 'issue_later')))
+            ->when($travelArrivalFrom !== '' || $travelArrivalTo !== '', function ($q) use ($travelArrivalFrom, $travelArrivalTo) {
+                $q->whereExists(function ($itineraryQuery) use ($travelArrivalFrom, $travelArrivalTo) {
+                    $itineraryQuery
+                        ->selectRaw('1')
+                        ->from('folder_itineraries as fi')
+                        ->whereColumn('fi.folder_id', 'folders.id')
+                        ->whereRaw(
+                            'fi.sr_no = (select min(fi2.sr_no) from folder_itineraries as fi2 where fi2.folder_id = folders.id)'
+                        )
+                        ->when($travelArrivalFrom !== '', fn ($sub) => $sub->whereDate('fi.departure_date', '>=', $travelArrivalFrom))
+                        ->when($travelArrivalTo !== '', fn ($sub) => $sub->whereDate('fi.arrival_date', '<=', $travelArrivalTo));
+                });
+            })
+            ->when($search !== '', function ($q) use ($search) {
+                $q->where(function ($searchQuery) use ($search) {
+                    $searchQuery
+                        ->where('customer_name', 'like', '%'.$search.'%')
+                        ->orWhere('order_type', 'like', '%'.$search.'%')
+                        ->orWhere('vendor_reference', 'like', '%'.$search.'%');
+                });
+            });
     }
 }

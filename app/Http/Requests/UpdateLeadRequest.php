@@ -86,7 +86,7 @@ class UpdateLeadRequest extends FormRequest
             'package_costs.*.margin' => ['nullable', 'numeric', 'min:0'],
             'package_costs.*.sell' => ['nullable', 'numeric', 'min:0'],
             'package_costs.*.supplier' => ['nullable', 'string', 'max:100'],
-            'package_costs.*.pnr' => ['nullable', 'string', 'max:50'],
+            'package_costs.*.pnr' => ['required', 'string', 'max:50'],
             'ziarat_makkah' => ['sometimes', 'boolean'],
             'ziarat_madinah' => ['sometimes', 'boolean'],
         ];
