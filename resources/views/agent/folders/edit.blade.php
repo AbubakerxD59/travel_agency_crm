@@ -422,7 +422,8 @@
                                 <tr class="bg-slate-100 text-left text-concierge-muted">
                                     <th class="border border-slate-200 px-2 py-2">Action</th>
                                     <th class="border border-slate-200 px-2 py-2">Ticket no</th>
-                                    <th class="border border-slate-200 px-2 py-2">Ticket date</th>
+                                    <th class="border border-slate-200 px-2 py-2"><span class="text-rose-600">*</span>
+                                        Ticket date</th>
                                     <th class="border border-slate-200 px-2 py-2">Airline from</th>
                                     <th class="border border-slate-200 px-2 py-2">Airline to</th>
                                     <th class="border border-slate-200 px-2 py-2">Fare</th>
@@ -453,7 +454,7 @@
                                         </td>
                                         <td class="border border-slate-200 px-2 py-2">
                                             <input type="date" name="package_costs[{{ $i }}][ticket_date]"
-                                                value="{{ data_get($row, 'ticket_date') }}"
+                                                value="{{ data_get($row, 'ticket_date') }}" required
                                                 class="w-36 rounded-lg border border-slate-200 bg-white px-2 py-1.5 text-sm">
                                         </td>
                                         <td class="border border-slate-200 px-2 py-2">
@@ -863,6 +864,9 @@
                 }
                 if (stepValue != null) {
                     input.step = stepValue;
+                }
+                if (field === 'ticket_date') {
+                    input.required = true;
                 }
                 return input;
             }

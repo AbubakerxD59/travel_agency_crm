@@ -116,7 +116,7 @@ class FolderController extends Controller
             'draftHotelDetailRows' => $drafts['hotel_details'] ?? [[]],
             'draftTransportDetailRows' => $drafts['transport_details'] ?? [[]],
             'draftVisaDetailRows' => $drafts['visa_details'] ?? [[]],
-            'draftOtherDetailRows' => $drafts['other_details'] ?? [[]],
+            'draftOtherDetailRows' => $drafts['other_details'] ?? [],
             'draftPaymentRows' => $drafts['payments'] ?? [[]],
             'leadRoutePrefix' => 'admin',
             'leadRouteResource' => 'folders',
@@ -127,7 +127,7 @@ class FolderController extends Controller
     public function store(Request $request): RedirectResponse
     {
         $validated = $this->validateFolder($this->mergeWithDraftSections($request));
-        [$flashType, $flashMessage] = $this->persistFolder($validated, null, $request);
+        [$flashType, $flashMessage, $_folder] = $this->persistFolder($validated, null, $request);
 
         if ($flashType === 'error') {
             return back()
@@ -150,6 +150,12 @@ class FolderController extends Controller
         if ($section === 'payments') {
             $request->merge([
                 'payments' => folder_filter_non_empty_payment_rows($request->input('payments')),
+            ]);
+        }
+
+        if ($section === 'other_details') {
+            $request->merge([
+                'other_details' => folder_filter_non_empty_other_detail_rows($request->input('other_details')),
             ]);
         }
 
@@ -289,6 +295,7 @@ class FolderController extends Controller
                     : $folder->payments
                         ->map(fn ($p) => [
                             'amount' => $p->amount,
+                            'reference_no' => $p->reference_no,
                             'payment_date' => optional($p->payment_date)->format('Y-m-d'),
                             'mode_of_payment' => $p->mode_of_payment,
                             'bank_id' => $p->bank_id,
@@ -303,7 +310,7 @@ class FolderController extends Controller
     public function update(Request $request, Folder $folder): RedirectResponse
     {
         $validated = $this->validateFolder($this->mergeWithDraftSections($request));
-        [$flashType, $flashMessage] = $this->persistFolder($validated, $folder, $request);
+        [$flashType, $flashMessage, $_folder] = $this->persistFolder($validated, $folder, $request);
 
         if ($flashType === 'error') {
             return back()
@@ -319,6 +326,7 @@ class FolderController extends Controller
     private function validateFolder(array $payload): array
     {
         $payload['payments'] = folder_filter_non_empty_payment_rows($payload['payments'] ?? null);
+        $payload['other_details'] = folder_filter_non_empty_other_detail_rows($payload['other_details'] ?? null);
 
         $validated = Validator::make($payload, [
             'agent_id' => ['nullable', 'integer', 'exists:users,id'],
@@ -354,7 +362,7 @@ class FolderController extends Controller
             'passengers.*.passport_details' => ['nullable', 'string', 'max:255'],
             'package_costs' => ['required', 'array', 'min:1'],
             'package_costs.*.ticket_no' => ['nullable', 'string', 'max:50'],
-            'package_costs.*.ticket_date' => ['nullable', 'date'],
+            'package_costs.*.ticket_date' => ['required', 'date'],
             'package_costs.*.airline_from' => ['required', 'string', 'max:30'],
             'package_costs.*.airline_to' => ['required', 'string', 'max:30'],
             'package_costs.*.fare' => ['required', 'numeric', 'min:0'],
@@ -380,7 +388,7 @@ class FolderController extends Controller
             'hotel_details.*.cost' => ['required', 'numeric', 'min:0'],
             'hotel_details.*.margin' => ['required', 'numeric'],
             'hotel_details.*.sell' => ['nullable', 'numeric', 'min:0'],
-            'hotel_details.*.hotel_city' => ['required', 'string', 'max:100'],
+            'hotel_details.*.hotel_city' => ['required', 'string', 'max:100', Rule::in(folder_hotel_cities())],
             'transport_details' => ['required', 'array', 'min:1'],
             'transport_details.*.supplier' => ['required', 'string', 'max:100'],
             'transport_details.*.description' => ['required', 'string', 'max:255'],
@@ -392,21 +400,22 @@ class FolderController extends Controller
             'transport_details.*.cost' => ['required', 'numeric', 'min:0'],
             'transport_details.*.margin' => ['required', 'numeric'],
             'transport_details.*.sell' => ['nullable', 'numeric', 'min:0'],
-            'transport_details.*.sar' => ['nullable', 'numeric', 'min:0'],
+            'transport_details.*.sar' => ['required', 'numeric', 'min:0'],
             'visa_details' => ['required', 'array', 'min:1'],
             'visa_details.*.supplier' => ['required', 'string', 'max:100'],
             'visa_details.*.description' => ['required', 'string', 'max:255'],
             'visa_details.*.cost' => ['required', 'numeric', 'min:0'],
             'visa_details.*.margin' => ['required', 'numeric'],
             'visa_details.*.sell' => ['nullable', 'numeric', 'min:0'],
-            'other_details' => ['required', 'array', 'min:1'],
-            'other_details.*.supplier' => ['required', 'string', 'max:100'],
-            'other_details.*.description' => ['required', 'string', 'max:255'],
-            'other_details.*.cost' => ['required', 'numeric', 'min:0'],
-            'other_details.*.margin' => ['required', 'numeric'],
+            'other_details' => ['nullable', 'array'],
+            'other_details.*.supplier' => ['nullable', 'string', 'max:100'],
+            'other_details.*.description' => ['nullable', 'string', 'max:255'],
+            'other_details.*.cost' => ['nullable', 'numeric', 'min:0'],
+            'other_details.*.margin' => ['nullable', 'numeric'],
             'other_details.*.sell' => ['nullable', 'numeric', 'min:0'],
             'payments' => ['nullable', 'array'],
             'payments.*.amount' => ['required', 'numeric', 'min:0'],
+            'payments.*.reference_no' => ['nullable', 'string', 'max:100'],
             'payments.*.payment_date' => ['required', 'date'],
             'payments.*.mode_of_payment' => ['required', 'string', Rule::in(folder_payment_modes())],
             'payments.*.bank_id' => ['nullable', 'integer', 'exists:banks,id'],
@@ -499,7 +508,7 @@ class FolderController extends Controller
             'package_costs' => [
                 'package_costs' => ['required', 'array', 'min:1'],
                 'package_costs.*.ticket_no' => ['nullable', 'string', 'max:50'],
-                'package_costs.*.ticket_date' => ['nullable', 'date'],
+                'package_costs.*.ticket_date' => ['required', 'date'],
                 'package_costs.*.airline_from' => ['required', 'string', 'max:30'],
                 'package_costs.*.airline_to' => ['required', 'string', 'max:30'],
                 'package_costs.*.fare' => ['required', 'numeric', 'min:0'],
@@ -527,7 +536,7 @@ class FolderController extends Controller
                 'hotel_details.*.cost' => ['required', 'numeric', 'min:0'],
                 'hotel_details.*.margin' => ['required', 'numeric'],
                 'hotel_details.*.sell' => ['nullable', 'numeric', 'min:0'],
-                'hotel_details.*.hotel_city' => ['required', 'string', 'max:100'],
+                'hotel_details.*.hotel_city' => ['required', 'string', 'max:100', Rule::in(folder_hotel_cities())],
             ],
             'transport_details' => [
                 'transport_details' => ['required', 'array', 'min:1'],
@@ -541,7 +550,7 @@ class FolderController extends Controller
                 'transport_details.*.cost' => ['required', 'numeric', 'min:0'],
                 'transport_details.*.margin' => ['required', 'numeric'],
                 'transport_details.*.sell' => ['nullable', 'numeric', 'min:0'],
-                'transport_details.*.sar' => ['nullable', 'numeric', 'min:0'],
+                'transport_details.*.sar' => ['required', 'numeric', 'min:0'],
             ],
             'visa_details' => [
                 'visa_details' => ['required', 'array', 'min:1'],
@@ -552,16 +561,17 @@ class FolderController extends Controller
                 'visa_details.*.sell' => ['nullable', 'numeric', 'min:0'],
             ],
             'other_details' => [
-                'other_details' => ['required', 'array', 'min:1'],
-                'other_details.*.supplier' => ['required', 'string', 'max:100'],
-                'other_details.*.description' => ['required', 'string', 'max:255'],
-                'other_details.*.cost' => ['required', 'numeric', 'min:0'],
-                'other_details.*.margin' => ['required', 'numeric'],
+                'other_details' => ['nullable', 'array'],
+                'other_details.*.supplier' => ['nullable', 'string', 'max:100'],
+                'other_details.*.description' => ['nullable', 'string', 'max:255'],
+                'other_details.*.cost' => ['nullable', 'numeric', 'min:0'],
+                'other_details.*.margin' => ['nullable', 'numeric'],
                 'other_details.*.sell' => ['nullable', 'numeric', 'min:0'],
             ],
             'payments' => [
                 'payments' => ['nullable', 'array'],
                 'payments.*.amount' => ['required', 'numeric', 'min:0'],
+                'payments.*.reference_no' => ['nullable', 'string', 'max:100'],
                 'payments.*.payment_date' => ['required', 'date'],
                 'payments.*.mode_of_payment' => ['required', 'string', Rule::in(folder_payment_modes())],
                 'payments.*.bank_id' => ['nullable', 'integer', 'exists:banks,id'],
@@ -570,7 +580,7 @@ class FolderController extends Controller
     }
 
     /**
-     * @return array{0: string, 1: string}
+     * @return array{0: string, 1: string, 2: ?Folder}
      */
     private function persistFolder(array $validated, ?Folder $folder, Request $request): array
     {
@@ -611,18 +621,18 @@ class FolderController extends Controller
                 $folder->hotelDetails()->createMany($validated['hotel_details'] ?? []);
                 $folder->transportDetails()->createMany($validated['transport_details'] ?? []);
                 $folder->visaDetails()->createMany($validated['visa_details'] ?? []);
-                $folder->otherDetails()->createMany($validated['other_details'] ?? []);
-                $folder->payments()->createMany(folder_normalized_payments_for_storage($validated['payments'] ?? []));
+                $folder->otherDetails()->createMany(folder_other_details_for_storage($validated['other_details'] ?? null));
+                $folder->payments()->createMany(folder_normalized_payments_for_storage($validated['payments'] ?? [], 'approved'));
             });
         } catch (Throwable $e) {
             report($e);
 
-            return ['error', __('Could not save folder. Please try again.')];
+            return ['error', __('Could not save folder. Please try again.'), null];
         }
 
         $request->session()->forget($this->draftSessionKey($request));
 
-        return ['status', __('Folder saved successfully.')];
+        return ['status', __('Folder saved successfully.'), $folder];
     }
 
     /**
@@ -662,7 +672,7 @@ class FolderController extends Controller
     }
 
     /**
-     * @param  Builder<\App\Models\Folder>  $query
+     * @param  Builder<Folder>  $query
      */
     private function applyAdminFolderListFilters(
         Builder $query,

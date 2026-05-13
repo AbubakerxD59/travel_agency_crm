@@ -61,7 +61,7 @@
                     $hotelDetailRows = old('hotel_details', $draftHotelDetailRows ?? [[]]);
                     $transportDetailRows = old('transport_details', $draftTransportDetailRows ?? [[]]);
                     $visaDetailRows = old('visa_details', $draftVisaDetailRows ?? [[]]);
-                    $otherDetailRows = old('other_details', $draftOtherDetailRows ?? [[]]);
+                    $otherDetailRows = old('other_details', $draftOtherDetailRows ?? []);
                     $paymentRows = old('payments', $draftPaymentRows ?? [[]]);
                     $paymentModes = folder_payment_modes();
                     $banksForForm = isset($banks) ? $banks : collect();
@@ -514,7 +514,8 @@
                                 <tr class="bg-slate-100 text-left text-concierge-muted">
                                     <th class="border border-slate-200 px-2 py-2">Action</th>
                                     <th class="border border-slate-200 px-2 py-2">Ticket no</th>
-                                    <th class="border border-slate-200 px-2 py-2">Ticket date</th>
+                                    <th class="border border-slate-200 px-2 py-2"><span class="text-rose-600">*</span>
+                                        Ticket date</th>
                                     <th class="border border-slate-200 px-2 py-2"><span class="text-rose-600">*</span>
                                         Airline from</th>
                                     <th class="border border-slate-200 px-2 py-2"><span class="text-rose-600">*</span>
@@ -550,7 +551,7 @@
                                         </td>
                                         <td class="border border-slate-200 px-2 py-2">
                                             <input type="date" name="package_costs[{{ $i }}][ticket_date]"
-                                                value="{{ data_get($row, 'ticket_date') }}"
+                                                value="{{ data_get($row, 'ticket_date') }}" required
                                                 class="w-36 rounded-lg border border-slate-200 bg-white px-2 py-1.5 text-sm">
                                         </td>
                                         <td class="border border-slate-200 px-2 py-2">
@@ -641,6 +642,7 @@
 
                     @php
                         $hotelDetailStatuses = folder_hotel_detail_statuses();
+                        $hotelCities = folder_hotel_cities();
                     @endphp
                     <div class="overflow-x-auto">
                         <table class="min-w-[1780px] w-full border-collapse text-xs sm:text-sm">
@@ -776,9 +778,18 @@
                                                 class="w-20 rounded-lg border border-slate-200 bg-white px-2 py-1.5 text-sm">
                                         </td>
                                         <td class="border border-slate-200 px-2 py-2">
-                                            <input type="text" name="hotel_details[{{ $i }}][hotel_city]"
-                                                value="{{ data_get($row, 'hotel_city') }}"
-                                                class="w-24 rounded-lg border border-slate-200 bg-white px-2 py-1.5 text-sm">
+                                            @php
+                                                $hotelCityValue = (string) data_get($row, 'hotel_city');
+                                            @endphp
+                                            <select name="hotel_details[{{ $i }}][hotel_city]" required
+                                                class="w-36 rounded-lg border border-slate-200 bg-white px-2 py-1.5 text-sm">
+                                                <option value="" @selected($hotelCityValue === '')>
+                                                    {{ __('Select city') }}</option>
+                                                @foreach ($hotelCities as $city)
+                                                    <option value="{{ $city }}" @selected($hotelCityValue === $city)>
+                                                        {{ $city }}</option>
+                                                @endforeach
+                                            </select>
                                         </td>
                                     </tr>
                                 @endforeach
@@ -790,6 +801,15 @@
                             class="w-36 rounded-lg border border-slate-200 bg-white px-2 py-1.5 text-sm">
                             @foreach ($hotelDetailStatuses as $statusValue => $statusLabel)
                                 <option value="{{ $statusValue }}">{{ $statusLabel }}</option>
+                            @endforeach
+                        </select>
+                    </template>
+                    <template id="hotel-detail-city-select-skeleton">
+                        <select required
+                            class="w-36 rounded-lg border border-slate-200 bg-white px-2 py-1.5 text-sm">
+                            <option value="" selected>{{ __('Select city') }}</option>
+                            @foreach ($hotelCities as $city)
+                                <option value="{{ $city }}">{{ $city }}</option>
                             @endforeach
                         </select>
                     </template>
@@ -849,7 +869,8 @@
                                     <th class="border border-slate-200 px-2 py-2"><span class="text-rose-600">*</span>
                                         Margin</th>
                                     <th class="border border-slate-200 px-2 py-2">Sell</th>
-                                    <th class="border border-slate-200 px-2 py-2">SAR</th>
+                                    <th class="border border-slate-200 px-2 py-2"><span class="text-rose-600">*</span>
+                                        SAR</th>
                                 </tr>
                             </thead>
                             <tbody id="transport-detail-rows">
@@ -915,7 +936,7 @@
                                                 class="transport-detail-sell-input w-20 rounded-lg border border-slate-200 bg-white px-2 py-1.5 text-sm">
                                         </td>
                                         <td class="border border-slate-200 px-2 py-2">
-                                            <input type="number" min="0" step="0.01"
+                                            <input type="number" min="0" step="0.01" required
                                                 name="transport_details[{{ $i }}][sar]"
                                                 value="{{ data_get($row, 'sar') }}"
                                                 class="w-20 rounded-lg border border-slate-200 bg-white px-2 py-1.5 text-sm">
@@ -925,8 +946,8 @@
                             </tbody>
                         </table>
                     </div>
-                    <p class="text-xs text-concierge-muted">At least one transport row is required. SAR is entered
-                        manually (optional).</p>
+                    <p class="text-xs text-concierge-muted">At least one transport row is required. SAR is required for
+                        each row.</p>
                 </div>
 
                 <div class="space-y-3 rounded-2xl border border-slate-200/80 bg-slate-50/40 p-4 sm:p-5">
@@ -1023,8 +1044,7 @@
                 <div class="space-y-3 rounded-2xl border border-slate-200/80 bg-slate-50/40 p-4 sm:p-5">
                     <div class="flex flex-wrap items-center justify-between gap-3">
                         <div class="inline-flex items-center gap-2">
-                            <h2 class="text-base font-semibold text-concierge-navy"><span class="text-rose-600">*</span>
-                                Other Details</h2>
+                            <h2 class="text-base font-semibold text-concierge-navy">Other Details</h2>
                             <button type="button" id="save-other-details-section"
                                 class="inline-flex cursor-pointer items-center justify-center rounded-xl bg-emerald-600 px-3 py-2 text-xs font-semibold text-white hover:bg-emerald-700"
                                 title="Save Other Details">
@@ -1054,14 +1074,10 @@
                             <thead>
                                 <tr class="bg-slate-100 text-left text-concierge-muted">
                                     <th class="border border-slate-200 px-2 py-2">Action</th>
-                                    <th class="border border-slate-200 px-2 py-2"><span class="text-rose-600">*</span>
-                                        Supplier</th>
-                                    <th class="border border-slate-200 px-2 py-2"><span class="text-rose-600">*</span>
-                                        Description</th>
-                                    <th class="border border-slate-200 px-2 py-2"><span class="text-rose-600">*</span>
-                                        Cost</th>
-                                    <th class="border border-slate-200 px-2 py-2"><span class="text-rose-600">*</span>
-                                        Margin</th>
+                                    <th class="border border-slate-200 px-2 py-2">Supplier</th>
+                                    <th class="border border-slate-200 px-2 py-2">Description</th>
+                                    <th class="border border-slate-200 px-2 py-2">Cost</th>
+                                    <th class="border border-slate-200 px-2 py-2">Margin</th>
                                     <th class="border border-slate-200 px-2 py-2">Sell</th>
                                 </tr>
                             </thead>
@@ -1107,8 +1123,8 @@
                             </tbody>
                         </table>
                     </div>
-                    <p class="text-xs text-concierge-muted">At least one other details row is required. Margin is sell minus cost.
-                    </p>
+                    <p class="text-xs text-concierge-muted">Other details are optional. Add rows as needed. Margin is
+                        sell minus cost.</p>
                 </div>
 
                 <div class="space-y-3 rounded-2xl border border-slate-200/80 bg-slate-50/40 p-4 sm:p-5" id="folder-cost-summary">
@@ -1183,6 +1199,7 @@
                                     <th class="border border-slate-200 px-2 py-2">Action</th>
                                     <th class="border border-slate-200 px-2 py-2"><span class="text-rose-600">*</span>
                                         Amount</th>
+                                    <th class="border border-slate-200 px-2 py-2">Reference No</th>
                                     <th class="border border-slate-200 px-2 py-2"><span class="text-rose-600">*</span>
                                         Date of Payment</th>
                                     <th class="border border-slate-200 px-2 py-2"><span class="text-rose-600">*</span>
@@ -1203,6 +1220,12 @@
                                             <input type="number" min="0" step="0.01"
                                                 name="payments[{{ $i }}][amount]"
                                                 value="{{ data_get($row, 'amount') }}"
+                                                class="w-full rounded-lg border border-slate-200 bg-white px-2 py-1.5 text-sm">
+                                        </td>
+                                        <td class="border border-slate-200 px-2 py-2">
+                                            <input type="text" name="payments[{{ $i }}][reference_no]"
+                                                value="{{ data_get($row, 'reference_no') }}"
+                                                maxlength="100"
                                                 class="w-full rounded-lg border border-slate-200 bg-white px-2 py-1.5 text-sm">
                                         </td>
                                         <td class="border border-slate-200 px-2 py-2">
@@ -1776,6 +1799,9 @@
                 if (stepValue != null) {
                     input.step = stepValue;
                 }
+                if (field === 'ticket_date') {
+                    input.required = true;
+                }
                 return input;
             }
 
@@ -1867,10 +1893,10 @@
                 ['cost', 'number', 'w-20', '0', '0.01'],
                 ['margin', 'number', 'w-20', null, '0.01'],
                 ['sell', 'number', 'w-20', '0', '0.01'],
-                ['hotel_city', 'text', 'w-24', null, null],
             ];
 
             const statusSelectTemplate = document.getElementById('hotel-detail-status-select-skeleton');
+            const citySelectTemplate = document.getElementById('hotel-detail-city-select-skeleton');
 
             function makeStatusSelect(index) {
                 const select = statusSelectTemplate?.content?.querySelector('select')?.cloneNode(true);
@@ -1884,6 +1910,23 @@
                 }
                 select.name = `hotel_details[${index}][status]`;
                 select.value = 'issue_later';
+                return select;
+            }
+
+            function makeHotelCitySelect(index) {
+                const select = citySelectTemplate?.content?.querySelector('select')?.cloneNode(true);
+                if (!select) {
+                    const fallback = document.createElement('select');
+                    fallback.name = `hotel_details[${index}][hotel_city]`;
+                    fallback.required = true;
+                    fallback.className =
+                        'w-36 rounded-lg border border-slate-200 bg-white px-2 py-1.5 text-sm';
+                    fallback.innerHTML =
+                        '<option value="" selected>Select city</option>';
+                    return fallback;
+                }
+                select.name = `hotel_details[${index}][hotel_city]`;
+                select.value = '';
                 return select;
             }
 
@@ -1943,6 +1986,11 @@
                     cell.appendChild(makeInput(index, field, type, sizeClass, minValue, stepValue));
                     row.appendChild(cell);
                 });
+
+                const cityCell = document.createElement('td');
+                cityCell.className = 'border border-slate-200 px-2 py-2';
+                cityCell.appendChild(makeHotelCitySelect(index));
+                row.appendChild(cityCell);
 
                 return row;
             }
@@ -2030,6 +2078,9 @@
                 }
                 if (stepValue != null) {
                     input.step = stepValue;
+                }
+                if (field === 'sar') {
+                    input.required = true;
                 }
                 return input;
             }
@@ -2277,14 +2328,6 @@
                 });
             }
 
-            function ensureOneRow() {
-                if (tableBody.querySelectorAll('.other-detail-row').length === 0) {
-                    tableBody.appendChild(createRow(0));
-                }
-                renumberRows();
-                document.dispatchEvent(new CustomEvent('folder-margin-recalc'));
-            }
-
             addButton.addEventListener('click', () => {
                 const nextIndex = tableBody.querySelectorAll('.other-detail-row').length;
                 tableBody.appendChild(createRow(nextIndex));
@@ -2301,10 +2344,11 @@
                     return;
                 }
                 removeBtn.closest('.other-detail-row')?.remove();
-                ensureOneRow();
+                renumberRows();
+                document.dispatchEvent(new CustomEvent('folder-margin-recalc'));
             });
 
-            ensureOneRow();
+            document.dispatchEvent(new CustomEvent('folder-margin-recalc'));
         })();
 
         (() => {
@@ -2399,6 +2443,16 @@
                 amountIn.className = selectFieldClass();
                 amountCell.appendChild(amountIn);
                 row.appendChild(amountCell);
+
+                const refCell = document.createElement('td');
+                refCell.className = 'border border-slate-200 px-2 py-2';
+                const refIn = document.createElement('input');
+                refIn.type = 'text';
+                refIn.name = `payments[${index}][reference_no]`;
+                refIn.maxLength = 100;
+                refIn.className = selectFieldClass();
+                refCell.appendChild(refIn);
+                row.appendChild(refCell);
 
                 const dateCell = document.createElement('td');
                 dateCell.className = 'border border-slate-200 px-2 py-2';
@@ -2806,14 +2860,9 @@
                 'vehicle_type',
                 'cost',
                 'margin',
+                'sar',
             ];
             const visaRequiredFields = [
-                'supplier',
-                'description',
-                'cost',
-                'margin',
-            ];
-            const otherRequiredFields = [
                 'supplier',
                 'description',
                 'cost',
@@ -3004,19 +3053,6 @@
                         visaRequiredFields, 'visa_details')) {
                     event.preventDefault();
                     showError('Please complete required visa details fields.');
-                    return;
-                }
-
-                if (!sectionHasAtLeastOneFilledRow('#other-detail-rows .other-detail-row')) {
-                    event.preventDefault();
-                    showError('Please fill at least one other details row.');
-                    return;
-                }
-
-                if (!validateRequiredRowFields('#other-detail-rows .other-detail-row',
-                        otherRequiredFields, 'other_details')) {
-                    event.preventDefault();
-                    showError('Please complete required other details fields.');
                     return;
                 }
 

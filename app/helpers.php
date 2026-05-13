@@ -22,8 +22,6 @@ function getSources(): array
 
 /**
  * Display label for a stored lead source key (handles legacy slugs).
- *
- * @return string
  */
 function getSourceLabel(?string $key): string
 {
@@ -116,6 +114,31 @@ function folder_hotel_detail_statuses(): array
 }
 
 /**
+ * Hotel city options for folder hotel detail rows (`folder_hotel_details.hotel_city`): stored value = label.
+ *
+ * @return list<string>
+ */
+function folder_hotel_cities(): array
+{
+    return [
+        'Makkah',
+        'Madinah',
+        'Jeddah',
+        'Istanbul',
+        'Cairo',
+        'Doha',
+        'Dubai',
+        'Morocco',
+        'Abu Dhabi',
+        'Riyadh',
+        'Singapore',
+        'Maldives',
+        'Bangkok',
+        'Kuala Lumpur',
+    ];
+}
+
+/**
  * Display label for a stored folder hotel detail status key.
  */
 function getFolderHotelDetailStatusLabel(?string $key): string
@@ -158,7 +181,7 @@ function folder_filter_non_empty_payment_rows(?array $rows): array
             if (! is_array($row)) {
                 return false;
             }
-            foreach (['amount', 'payment_date', 'mode_of_payment', 'bank_id'] as $field) {
+            foreach (['amount', 'reference_no', 'payment_date', 'mode_of_payment', 'bank_id'] as $field) {
                 $v = $row[$field] ?? null;
                 if ($v === null) {
                     continue;
@@ -174,6 +197,78 @@ function folder_filter_non_empty_payment_rows(?array $rows): array
             return false;
         })
         ->values()
+        ->all();
+}
+
+/**
+ * Keep only other-details rows where at least one field is non-empty (trimmed strings or numeric).
+ *
+ * @param  array<int, mixed>|null  $rows
+ * @return list<array<string, mixed>>
+ */
+function folder_filter_non_empty_other_detail_rows(?array $rows): array
+{
+    if (! is_array($rows)) {
+        return [];
+    }
+
+    return collect($rows)
+        ->filter(function ($row): bool {
+            if (! is_array($row)) {
+                return false;
+            }
+            foreach (['supplier', 'description', 'cost', 'margin', 'sell'] as $field) {
+                $v = $row[$field] ?? null;
+                if ($v === null) {
+                    continue;
+                }
+                if (is_string($v) && trim($v) !== '') {
+                    return true;
+                }
+                if (is_numeric($v)) {
+                    return true;
+                }
+            }
+
+            return false;
+        })
+        ->values()
+        ->all();
+}
+
+/**
+ * Filter empty other-details rows and normalize values for {@see FolderOtherDetail} persistence.
+ *
+ * @param  array<int, mixed>|null  $rows
+ * @return list<array{supplier: string, description: string|null, cost: mixed, margin: mixed, sell: mixed}>
+ */
+function folder_other_details_for_storage(?array $rows): array
+{
+    return collect(folder_filter_non_empty_other_detail_rows($rows))
+        ->map(function (array $row): array {
+            $desc = $row['description'] ?? null;
+            $description = null;
+            if (is_string($desc) && trim($desc) !== '') {
+                $description = $desc;
+            }
+
+            $numericOrNull = static function (string $key) use ($row): mixed {
+                $v = $row[$key] ?? null;
+                if ($v === null || $v === '') {
+                    return null;
+                }
+
+                return is_numeric($v) ? $v + 0 : null;
+            };
+
+            return [
+                'supplier' => trim((string) ($row['supplier'] ?? '')),
+                'description' => $description,
+                'cost' => $numericOrNull('cost'),
+                'margin' => $numericOrNull('margin'),
+                'sell' => $numericOrNull('sell'),
+            ];
+        })
         ->all();
 }
 
@@ -197,11 +292,11 @@ function folder_assert_payment_rows_bank_when_required(array $payments): void
 
 /**
  * @param  list<array<string, mixed>>  $rows
- * @return list<array{amount: mixed, payment_date: mixed, mode_of_payment: string, bank_id: int|null}>
+ * @return list<array{amount: mixed, reference_no: string|null, payment_date: mixed, mode_of_payment: string, bank_id: int|null, approval_status: string}>
  */
-function folder_normalized_payments_for_storage(array $rows): array
+function folder_normalized_payments_for_storage(array $rows, string $approvalStatus = 'approved'): array
 {
-    return collect($rows)->map(function (array $row): array {
+    return collect($rows)->map(function (array $row) use ($approvalStatus): array {
         $mode = (string) ($row['mode_of_payment'] ?? '');
         $bankId = $row['bank_id'] ?? null;
         if ($mode === 'Cash in office') {
@@ -210,11 +305,16 @@ function folder_normalized_payments_for_storage(array $rows): array
             $bankId = $bankId !== '' && $bankId !== null ? (int) $bankId : null;
         }
 
+        $ref = $row['reference_no'] ?? null;
+        $referenceNo = is_string($ref) && trim($ref) !== '' ? trim($ref) : null;
+
         return [
             'amount' => $row['amount'],
+            'reference_no' => $referenceNo,
             'payment_date' => $row['payment_date'],
             'mode_of_payment' => $mode,
             'bank_id' => $bankId,
+            'approval_status' => $approvalStatus,
         ];
     })->all();
 }

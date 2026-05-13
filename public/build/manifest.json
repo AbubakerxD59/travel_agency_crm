@@ -22,7 +22,7 @@
     ]
   },
   "resources/css/app.css": {
-    "file": "assets/app-BjR3mR-z.css",
+    "file": "assets/app-DMM4KCwg.css",
     "src": "resources/css/app.css",
     "isEntry": true,
     "name": "app",
@@ -38,6 +38,12 @@
     "imports": [
       "_flatpickr.min-Cc3t1Oke.js"
     ]
+  },
+  "resources/js/admin-notifications-poller.js": {
+    "file": "assets/admin-notifications-poller-gMEe8Crl.js",
+    "name": "admin-notifications-poller",
+    "src": "resources/js/admin-notifications-poller.js",
+    "isEntry": true
   },
   "resources/js/agent-notifications-poller.js": {
     "file": "assets/agent-notifications-poller-DcIyBRf-.js",

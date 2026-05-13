@@ -351,21 +351,33 @@
                     <thead>
                         <tr class="bg-slate-100 text-left text-concierge-muted">
                             <th class="border border-slate-200 px-2 py-2">Amount</th>
+                            <th class="border border-slate-200 px-2 py-2">Reference No</th>
                             <th class="border border-slate-200 px-2 py-2">Date of Payment</th>
                             <th class="border border-slate-200 px-2 py-2">Mode of Payment</th>
                             <th class="border border-slate-200 px-2 py-2">Bank</th>
+                            <th class="border border-slate-200 px-2 py-2">Status</th>
                         </tr>
                     </thead>
                     <tbody>
                         @forelse ($folder->payments as $p)
                             <tr class="bg-white">
                                 <td class="border border-slate-200 px-2 py-2">{{ $p->amount ?? '—' }}</td>
+                                <td class="border border-slate-200 px-2 py-2">{{ $p->reference_no ?: '—' }}</td>
                                 <td class="border border-slate-200 px-2 py-2">{{ optional($p->payment_date)->format('Y-m-d') ?? '—' }}</td>
                                 <td class="border border-slate-200 px-2 py-2">{{ $p->mode_of_payment ?? '—' }}</td>
                                 <td class="border border-slate-200 px-2 py-2">{{ $p->bank?->name ?? '—' }}</td>
+                                <td class="border border-slate-200 px-2 py-2">
+                                    @if (($p->approval_status ?? 'approved') === 'pending')
+                                        <span class="font-medium text-amber-700">Pending</span>
+                                    @elseif (($p->approval_status ?? '') === 'rejected')
+                                        <span class="font-medium text-rose-700">Rejected</span>
+                                    @else
+                                        <span class="text-concierge-muted">Approved</span>
+                                    @endif
+                                </td>
                             </tr>
                         @empty
-                            <tr><td class="border border-slate-200 px-3 py-4 text-center text-concierge-muted" colspan="4">No payments recorded.</td></tr>
+                            <tr><td class="border border-slate-200 px-3 py-4 text-center text-concierge-muted" colspan="6">No payments recorded.</td></tr>
                         @endforelse
                     </tbody>
                 </table>

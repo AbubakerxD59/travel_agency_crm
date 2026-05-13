@@ -49,6 +49,36 @@
                     </div>
                 </div>
             @endif
+            @if (auth()->user()?->hasRole('super-admin'))
+                @php
+                    $adminUnreadCount = auth()->user()->unreadNotifications()->count();
+                @endphp
+                <div class="relative">
+                    <button type="button" id="admin-notification-icon"
+                        data-poll-url="{{ route('admin.notifications.poll') }}"
+                        class="relative inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-slate-300/80 bg-slate-100 text-concierge-navy shadow-sm transition hover:bg-slate-200"
+                        aria-label="Notifications" aria-expanded="false" aria-controls="admin-notification-dropdown"
+                        title="Notifications">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24"
+                            stroke="currentColor" stroke-width="1.8" aria-hidden="true">
+                            <path stroke-linecap="round" stroke-linejoin="round"
+                                d="M14.857 17.082a23.848 23.848 0 005.454-1.31A8.967 8.967 0 0118 9.75V9A6 6 0 006 9v.75a8.967 8.967 0 01-2.312 6.022c1.733.64 3.56 1.08 5.454 1.31m5.715 0a24.255 24.255 0 01-5.715 0m5.715 0a3 3 0 11-5.715 0" />
+                        </svg>
+                        <span id="admin-notification-dot"
+                            class="{{ $adminUnreadCount > 0 ? 'inline-flex' : 'hidden' }} absolute -right-1 -top-1 h-3.5 w-3.5 rounded-full border-2 border-white bg-emerald-500"
+                            aria-hidden="true"></span>
+                    </button>
+                    <div id="admin-notification-dropdown"
+                        class="absolute right-0 z-20 mt-2 hidden w-80 max-w-[90vw] overflow-hidden rounded-2xl border border-slate-300 bg-slate-100 shadow-xl">
+                        <div class="border-b border-slate-100 px-4 py-3">
+                            <p class="text-base font-semibold text-concierge-navy">Notifications</p>
+                        </div>
+                        <div id="admin-notification-dropdown-list" class="max-h-80 overflow-y-auto">
+                            <p class="px-4 py-6 text-center text-sm text-concierge-muted">No notifications yet.</p>
+                        </div>
+                    </div>
+                </div>
+            @endif
             <div class="hidden text-right text-sm sm:block">
                 <p class="font-semibold text-concierge-navy">{{ auth()->user()->name }}</p>
                 <p class="text-xs text-concierge-muted">{{ auth()->user()->getRoleNames()->first() ?? 'User' }}</p>

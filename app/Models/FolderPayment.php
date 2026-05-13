@@ -10,9 +10,11 @@ class FolderPayment extends Model
     protected $fillable = [
         'folder_id',
         'amount',
+        'reference_no',
         'payment_date',
         'mode_of_payment',
         'bank_id',
+        'approval_status',
     ];
 
     protected function casts(): array

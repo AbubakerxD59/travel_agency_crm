@@ -12,6 +12,7 @@ export default defineConfig({
                 'resources/js/companies.js',
                 'resources/js/admin-leads-filters.js',
                 'resources/js/agent-notifications-poller.js',
+                'resources/js/admin-notifications-poller.js',
                 'resources/js/dashboard.js',
             ],
             refresh: true,

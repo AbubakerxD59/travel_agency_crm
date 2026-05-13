@@ -10,10 +10,7 @@ class BankSeeder extends Seeder
     public function run(): void
     {
         $names = [
-            'Al Rajhi Bank',
-            'Saudi National Bank',
-            'Riyad Bank',
-            'Bank Albilad',
+            'HSBS / Account 01114646 Sort 40-11-56',
         ];
 
         foreach ($names as $name) {

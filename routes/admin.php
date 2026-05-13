@@ -4,10 +4,22 @@ use App\Http\Controllers\Admin\AgentController;
 use App\Http\Controllers\Admin\CompanyController;
 use App\Http\Controllers\Admin\DashboardController;
 use App\Http\Controllers\Admin\FolderController;
+use App\Http\Controllers\Admin\FolderPaymentController;
 use App\Http\Controllers\Admin\LeadController;
+use App\Http\Controllers\Admin\NotificationController;
 use Illuminate\Support\Facades\Route;
 
 Route::prefix('admin')->name('admin.')->middleware('role:super-admin')->group(function () {
+    Route::get('/notifications/poll', [NotificationController::class, 'poll'])->name('notifications.poll');
+    Route::get('/notifications/{notificationId}/open', [NotificationController::class, 'open'])
+        ->name('notifications.open');
+
+    Route::get('/folder-payments', [FolderPaymentController::class, 'index'])->name('folder-payments.index');
+    Route::post('/folder-payments/{folder_payment}/approve', [FolderPaymentController::class, 'approve'])
+        ->name('folder-payments.approve');
+    Route::post('/folder-payments/{folder_payment}/reject', [FolderPaymentController::class, 'reject'])
+        ->name('folder-payments.reject');
+
     Route::get('/dashboard', [DashboardController::class, 'index'])
         ->middleware('can:dashboard.access')
         ->name('dashboard');
