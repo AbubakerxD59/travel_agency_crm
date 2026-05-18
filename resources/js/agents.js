@@ -1,5 +1,6 @@
 import $ from 'jquery';
 import toastr from 'toastr';
+import { setButtonLoading } from './travel-loader';
 
 import 'toastr/build/toastr.min.css';
 
@@ -404,31 +405,6 @@ function toastValidationErrors(data) {
         return true;
     }
     return false;
-}
-
-function setButtonLoading(button, isLoading) {
-    if (!(button instanceof HTMLButtonElement)) {
-        return;
-    }
-
-    if (isLoading) {
-        if (button.dataset.loading === '1') {
-            return;
-        }
-        button.dataset.loading = '1';
-        button.dataset.originalHtml = button.innerHTML;
-        button.disabled = true;
-        button.innerHTML =
-            '<span class="inline-flex items-center justify-center gap-1" aria-hidden="true"><span class="loading-dot"></span><span class="loading-dot"></span><span class="loading-dot"></span></span>';
-        return;
-    }
-
-    if (button.dataset.originalHtml) {
-        button.innerHTML = button.dataset.originalHtml;
-    }
-    delete button.dataset.originalHtml;
-    delete button.dataset.loading;
-    button.disabled = false;
 }
 
 agentListFilterInput?.addEventListener('input', applyAgentListFilter);

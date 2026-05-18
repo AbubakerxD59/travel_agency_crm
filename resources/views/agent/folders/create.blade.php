@@ -2946,7 +2946,9 @@
                 const rows = collectSectionRows(sectionName, rowSelector);
                 const url = sectionSaveUrlTemplate.replace('__SECTION__', sectionName);
 
-                buttonElement?.setAttribute('disabled', 'disabled');
+                if (buttonElement instanceof HTMLButtonElement) {
+                    window.TravelLoader?.setButtonLoading(buttonElement, true);
+                }
                 try {
                     const response = await fetch(url, {
                         method: 'POST',
@@ -2973,7 +2975,9 @@
                 } catch (error) {
                     showError('Could not save section right now. Please try again.');
                 } finally {
-                    buttonElement?.removeAttribute('disabled');
+                    if (buttonElement instanceof HTMLButtonElement) {
+                        window.TravelLoader?.setButtonLoading(buttonElement, false);
+                    }
                 }
             }
 

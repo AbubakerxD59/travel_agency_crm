@@ -29,6 +29,7 @@
             </main>
         </div>
     </div>
+    @include('partials.travel-loader-overlay')
     @stack('scripts')
 </body>
 </html>

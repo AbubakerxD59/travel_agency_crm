@@ -6,7 +6,7 @@
 <aside id="admin-sidebar" class="concierge-fixed-sidebar" aria-label="Main navigation">
     <div class="mb-10 flex items-start justify-between gap-2 px-2">
         <div class="min-w-0">
-            <p class="text-lg font-bold tracking-tight text-concierge-navy">NAZIRSONS</p>
+            <p class="text-lg font-bold tracking-tight text-concierge-navy">{{ config('app.name') }}</p>
             <p class="mt-0.5 text-[11px] font-medium uppercase tracking-widest text-concierge-muted">Agent Panel</p>
         </div>
         <button type="button"

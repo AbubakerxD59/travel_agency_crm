@@ -67,7 +67,7 @@
                     </div>
                 </div>
             </div>
-            <div class="relative h-72 w-full min-w-0 md:h-80">
+            <div id="dashboard-agent-chart-host" class="relative h-72 w-full min-w-0 md:h-80">
                 <canvas id="dashboard-agent-performance-chart"
                     aria-label="Line chart of agent performance over months"></canvas>
             </div>

@@ -414,30 +414,8 @@
         const assignLeadSubmitBtn = document.getElementById('assign-lead-submit-btn');
         const assignLeadUpdateUrlTemplate = "{{ url('/admin/leads') }}/__LEAD_ID__/assign";
 
-        function setButtonLoading(button, isLoading) {
-            if (!(button instanceof HTMLButtonElement)) {
-                return;
-            }
-
-            if (isLoading) {
-                if (button.dataset.loading === '1') {
-                    return;
-                }
-                button.dataset.loading = '1';
-                button.dataset.originalHtml = button.innerHTML;
-                button.disabled = true;
-                button.innerHTML =
-                    '<span class="inline-flex items-center justify-center gap-1" aria-hidden="true"><span class="loading-dot"></span><span class="loading-dot"></span><span class="loading-dot"></span></span>';
-                return;
-            }
-
-            if (button.dataset.originalHtml) {
-                button.innerHTML = button.dataset.originalHtml;
-            }
-            delete button.dataset.originalHtml;
-            delete button.dataset.loading;
-            button.disabled = false;
-        }
+        const setButtonLoading = (button, isLoading) =>
+            window.TravelLoader?.setButtonLoading(button, isLoading);
 
         function resetAssignLeadModalToCreate() {
             if (!assignLeadForm) {

@@ -1,11 +1,14 @@
 import Chart from 'chart.js/auto';
 import flatpickr from 'flatpickr';
 import 'flatpickr/dist/flatpickr.min.css';
+import { hideFromContainer, showInContainer } from './travel-loader';
 import './admin-dashboard-folder-calendar';
 
 function initAgentPerformanceChart() {
     const cfgEl = document.getElementById('dashboard-agent-chart-config');
     const canvas = document.getElementById('dashboard-agent-performance-chart');
+    const chartHost =
+        document.getElementById('dashboard-agent-chart-host') ?? canvas?.parentElement ?? null;
     if (!cfgEl || !canvas) {
         return;
     }
@@ -208,8 +211,9 @@ function initAgentPerformanceChart() {
         const originalLabel = filterLabel.textContent;
         filterButton.disabled = true;
         agentCombobox?.setDisabled(true);
-        filterLabel.textContent = 'Loading...';
+        showInContainer(chartHost, 'Updating chart…');
         const loaded = await fetchAndApplyChartData(filterKey, startDate, endDate);
+        hideFromContainer(chartHost);
         filterButton.disabled = false;
         agentCombobox?.setDisabled(false);
         filterLabel.textContent = loaded ? displayLabel : originalLabel;
@@ -263,8 +267,9 @@ function initAgentPerformanceChart() {
         const labelBefore = filterLabel.textContent;
         filterButton.disabled = true;
         agentCombobox?.setDisabled(true);
-        filterLabel.textContent = 'Loading...';
+        showInContainer(chartHost, 'Updating chart…');
         await fetchAndApplyChartData(range, start, end);
+        hideFromContainer(chartHost);
         filterButton.disabled = false;
         agentCombobox?.setDisabled(false);
         filterLabel.textContent = labelBefore;

@@ -5,7 +5,7 @@
 <aside id="admin-sidebar" class="concierge-fixed-sidebar" aria-label="Main navigation">
     <div class="mb-10 flex items-start justify-between gap-2 px-2">
         <div class="min-w-0">
-            <p class="text-lg font-bold tracking-tight text-concierge-navy">NAZIRSONS</p>
+            <p class="text-lg font-bold tracking-tight text-concierge-navy">{{ config('app.name') }}</p>
         </div>
         <button type="button"
             class="admin-sidebar-close -mr-1 -mt-1 flex shrink-0 cursor-pointer items-center justify-center rounded-lg border border-slate-200/80 bg-white/90 p-2 text-concierge-navy shadow-sm transition hover:bg-white hover:text-concierge-navy-deep lg:hidden"

@@ -376,7 +376,7 @@
                     return;
                 }
 
-                notConvertedModalSubmit.disabled = true;
+                window.TravelLoader?.setButtonLoading(notConvertedModalSubmit, true);
                 try {
                     const payload = await updateLeadStatus(url, STATUS_NOT_CONVERTED, reason);
                     applyStatusUpdatePayload(leadId, payload, STATUS_NOT_CONVERTED);
@@ -386,7 +386,7 @@
                     showNotConvertedModalError(
                         error instanceof Error ? error.message : 'Could not update status. Please try again.');
                 } finally {
-                    notConvertedModalSubmit.disabled = false;
+                    window.TravelLoader?.setButtonLoading(notConvertedModalSubmit, false);
                 }
             });
 
@@ -450,8 +450,7 @@
                     return;
                 }
 
-                statusOptionButton.disabled = true;
-                statusOptionButton.classList.add('opacity-60');
+                window.TravelLoader?.setButtonLoading(statusOptionButton, true);
 
                 try {
                     const payload = await updateLeadStatus(url, status);
@@ -460,8 +459,7 @@
                     console.log(error);
                     toastError(error instanceof Error ? error.message : 'Could not update status. Please try again.');
                 } finally {
-                    statusOptionButton.disabled = false;
-                    statusOptionButton.classList.remove('opacity-60');
+                    window.TravelLoader?.setButtonLoading(statusOptionButton, false);
                     closeAllDropdowns();
                 }
             });

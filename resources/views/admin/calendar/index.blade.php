@@ -38,8 +38,11 @@
                 </a>
             </div>
             <div id="dash-folder-calendar-details-loading"
-                class="hidden px-5 py-10 text-center text-sm text-concierge-muted md:px-6">
-                Loading folder details…
+                class="hidden flex justify-center px-5 py-10 md:px-6">
+                @include('partials.travel-loader', [
+                    'size' => 'md',
+                    'message' => 'Loading folder details…',
+                ])
             </div>
             <div id="dash-folder-calendar-details" class="p-5 md:p-6"></div>
         </section>

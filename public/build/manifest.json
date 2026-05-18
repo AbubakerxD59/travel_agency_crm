@@ -21,8 +21,12 @@
       "assets/toastr-DxWENf-B.css"
     ]
   },
+  "_travel-loader-D-z_2TTK.js": {
+    "file": "assets/travel-loader-D-z_2TTK.js",
+    "name": "travel-loader"
+  },
   "resources/css/app.css": {
-    "file": "assets/app-BpVuTsnA.css",
+    "file": "assets/app-CEobBK9P.css",
     "src": "resources/css/app.css",
     "isEntry": true,
     "name": "app",
@@ -58,39 +62,43 @@
     "isEntry": true
   },
   "resources/js/agents.js": {
-    "file": "assets/agents-BgQNGArw.js",
+    "file": "assets/agents-BfCZwl5m.js",
     "name": "agents",
     "src": "resources/js/agents.js",
     "isEntry": true,
     "imports": [
-      "_toastr.min-CvKyK_W0.js"
+      "_toastr.min-CvKyK_W0.js",
+      "_travel-loader-D-z_2TTK.js"
     ]
   },
   "resources/js/app.js": {
-    "file": "assets/app-DB4j2olb.js",
+    "file": "assets/app-DYto_-h_.js",
     "name": "app",
     "src": "resources/js/app.js",
     "isEntry": true,
     "imports": [
+      "_travel-loader-D-z_2TTK.js",
       "_flatpickr.min-Cc3t1Oke.js"
     ]
   },
   "resources/js/companies.js": {
-    "file": "assets/companies-Dj0IfuA4.js",
+    "file": "assets/companies-DlQkQShZ.js",
     "name": "companies",
     "src": "resources/js/companies.js",
     "isEntry": true,
     "imports": [
-      "_toastr.min-CvKyK_W0.js"
+      "_toastr.min-CvKyK_W0.js",
+      "_travel-loader-D-z_2TTK.js"
     ]
   },
   "resources/js/dashboard.js": {
-    "file": "assets/dashboard-C1acXLgc.js",
+    "file": "assets/dashboard-DLsl-9MN.js",
     "name": "dashboard",
     "src": "resources/js/dashboard.js",
     "isEntry": true,
     "imports": [
       "_flatpickr.min-Cc3t1Oke.js",
+      "_travel-loader-D-z_2TTK.js",
       "resources/js/admin-dashboard-folder-calendar.js"
     ]
   }

@@ -1,9 +1,11 @@
 import './bootstrap';
 import Swal from 'sweetalert2';
+import { TravelLoader } from './travel-loader';
 import './folder-date-range-picker';
 import './folder-form-date-pickers';
 
 window.Swal = Swal;
+window.TravelLoader = TravelLoader;
 
 function initAdminSidebar() {
     const html = document.documentElement;
