@@ -14,6 +14,7 @@ export default defineConfig({
                 'resources/js/agent-notifications-poller.js',
                 'resources/js/admin-notifications-poller.js',
                 'resources/js/dashboard.js',
+                'resources/js/admin-dashboard-folder-calendar.js',
             ],
             refresh: true,
         }),

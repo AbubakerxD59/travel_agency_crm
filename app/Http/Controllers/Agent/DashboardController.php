@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Agent;
 
 use App\Http\Controllers\Controller;
 use App\Models\Lead;
+use App\Support\FolderCalendarBuilder;
 use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -12,7 +13,7 @@ use Illuminate\View\View;
 
 class DashboardController extends Controller
 {
-    public function index(): View
+    public function index(FolderCalendarBuilder $folderCalendarBuilder): View
     {
         $agentId = (int) request()->user()->id;
         $baseQuery = Lead::query()->where('agent_id', $agentId);
@@ -23,12 +24,15 @@ class DashboardController extends Controller
 
         $dashboardAgentChart = $this->buildAgentChartData($agentId, 'year');
 
+        $folderCalendar = $folderCalendarBuilder->build(null, true, $agentId);
+
         return view('agent.dashboard', compact(
             'totalLeads',
             'totalClosed',
             'totalPending',
             'totalFailed',
             'dashboardAgentChart',
+            'folderCalendar',
         ));
     }
 

@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Admin\AgentController;
+use App\Http\Controllers\Admin\CalendarController;
 use App\Http\Controllers\Admin\CompanyController;
 use App\Http\Controllers\Admin\DashboardController;
 use App\Http\Controllers\Admin\FolderController;
@@ -26,6 +27,13 @@ Route::prefix('admin')->name('admin.')->middleware('role:super-admin')->group(fu
     Route::get('/dashboard/agent-performance', [DashboardController::class, 'agentPerformanceData'])
         ->middleware('can:dashboard.access')
         ->name('dashboard.agent-performance');
+
+    Route::get('/calendar', [CalendarController::class, 'index'])
+        ->middleware('can:dashboard.access')
+        ->name('calendar.index');
+    Route::get('/calendar/folders/{folder}', [CalendarController::class, 'folderDetails'])
+        ->middleware(['can:dashboard.access', 'can:folders.access'])
+        ->name('calendar.folders.show');
 
     Route::get('/agents/{agent}/permissions', [AgentController::class, 'permissions'])
         ->name('agents.permissions.show');

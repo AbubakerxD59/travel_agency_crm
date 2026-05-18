@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Agent\CalendarController as AgentCalendarController;
 use App\Http\Controllers\Agent\DashboardController as AgentDashboardController;
 use App\Http\Controllers\Agent\FolderController as AgentFolderController;
 use App\Http\Controllers\Agent\LeadController as AgentLeadController;
@@ -14,6 +15,13 @@ Route::prefix('agent')->name('agent.')->middleware('role:agent')->group(function
     Route::get('/dashboard/performance', [AgentDashboardController::class, 'performanceData'])
         ->middleware('can:dashboard.access')
         ->name('dashboard.performance');
+
+    Route::get('/calendar', [AgentCalendarController::class, 'index'])
+        ->middleware('can:dashboard.access')
+        ->name('calendar.index');
+    Route::get('/calendar/folders/{folder}', [AgentCalendarController::class, 'folderDetails'])
+        ->middleware(['can:dashboard.access', 'can:folders.access'])
+        ->name('calendar.folders.show');
     Route::get('/notifications', [AgentNotificationController::class, 'index'])
         ->name('notifications.index');
     Route::get('/notifications/{notificationId}/open', [AgentNotificationController::class, 'open'])

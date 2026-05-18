@@ -1,6 +1,7 @@
 import Chart from 'chart.js/auto';
 import flatpickr from 'flatpickr';
 import 'flatpickr/dist/flatpickr.min.css';
+import './admin-dashboard-folder-calendar';
 
 function initAgentPerformanceChart() {
     const cfgEl = document.getElementById('dashboard-agent-chart-config');

@@ -22,13 +22,19 @@
     ]
   },
   "resources/css/app.css": {
-    "file": "assets/app-DMM4KCwg.css",
+    "file": "assets/app-BpVuTsnA.css",
     "src": "resources/css/app.css",
     "isEntry": true,
     "name": "app",
     "names": [
       "app.css"
     ]
+  },
+  "resources/js/admin-dashboard-folder-calendar.js": {
+    "file": "assets/admin-dashboard-folder-calendar-DvAZzmg1.js",
+    "name": "admin-dashboard-folder-calendar",
+    "src": "resources/js/admin-dashboard-folder-calendar.js",
+    "isEntry": true
   },
   "resources/js/admin-leads-filters.js": {
     "file": "assets/admin-leads-filters-BNiARiqQ.js",
@@ -61,7 +67,7 @@
     ]
   },
   "resources/js/app.js": {
-    "file": "assets/app-BeX0GTbh.js",
+    "file": "assets/app-DB4j2olb.js",
     "name": "app",
     "src": "resources/js/app.js",
     "isEntry": true,
@@ -79,12 +85,13 @@
     ]
   },
   "resources/js/dashboard.js": {
-    "file": "assets/dashboard-eigs-etb.js",
+    "file": "assets/dashboard-C1acXLgc.js",
     "name": "dashboard",
     "src": "resources/js/dashboard.js",
     "isEntry": true,
     "imports": [
-      "_flatpickr.min-Cc3t1Oke.js"
+      "_flatpickr.min-Cc3t1Oke.js",
+      "resources/js/admin-dashboard-folder-calendar.js"
     ]
   }
 }

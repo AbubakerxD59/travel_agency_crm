@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Folder;
 use App\Models\Lead;
 use App\Models\User;
+use App\Support\FolderCalendarBuilder;
 use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -14,7 +15,7 @@ use Illuminate\View\View;
 
 class DashboardController extends Controller
 {
-    public function index(): View
+    public function index(FolderCalendarBuilder $folderCalendarBuilder): View
     {
         $totalLeads = Lead::query()->count();
         $totalClosed = Lead::query()->where('status', Lead::STATUS_SALE_DONE)->count();
@@ -39,6 +40,8 @@ class DashboardController extends Controller
             ],
         );
 
+        $folderCalendar = $folderCalendarBuilder->build(upcomingOnly: true);
+
         return view('admin.dashboard', compact(
             'totalLeads',
             'totalClosed',
@@ -48,6 +51,7 @@ class DashboardController extends Controller
             'totalFolders',
             'leadsSuccessRatePercent',
             'dashboardAgentChart',
+            'folderCalendar',
         ));
     }
 

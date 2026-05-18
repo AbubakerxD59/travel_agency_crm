@@ -183,6 +183,129 @@
         @apply h-full max-w-full rounded-full bg-emerald-700;
     }
 
+    .dash-folder-calendar__layout {
+        @apply relative flex flex-col gap-6;
+    }
+
+    @media (min-width: 1024px) {
+        .dash-folder-calendar__layout {
+            display: block;
+        }
+
+        .dash-folder-calendar__calendar-slot {
+            padding-right: calc(1.5rem + 20rem);
+        }
+
+        .dash-folder-calendar__panel {
+            position: absolute;
+            top: 0;
+            right: 0;
+            width: 20rem;
+            min-height: 0;
+            overflow: hidden;
+        }
+    }
+
+    @media (min-width: 1280px) {
+        .dash-folder-calendar__calendar-slot {
+            padding-right: calc(1.5rem + 22rem);
+        }
+
+        .dash-folder-calendar__panel {
+            width: 22rem;
+        }
+    }
+
+    .dash-folder-calendar__panel {
+        @apply flex flex-col overflow-hidden;
+    }
+
+    .dash-folder-calendar__panel-header {
+        @apply shrink-0;
+    }
+
+    .dash-folder-calendar__panel-body {
+        @apply min-h-0 flex-1 overflow-y-auto overscroll-y-contain;
+    }
+
+    .dash-folder-calendar__folder-item--selected {
+        @apply border-concierge-accent/40 bg-white ring-2 ring-concierge-accent/20;
+    }
+
+    .dash-folder-calendar__folder-item--selected p:first-child {
+        @apply text-concierge-accent;
+    }
+
+    .dash-folder-calendar__day {
+        @apply relative flex min-h-[3.25rem] flex-col items-center justify-start gap-0.5 rounded-xl bg-white px-1 py-1.5 text-sm transition focus:outline-none focus-visible:ring-2 focus-visible:ring-concierge-accent/40 md:min-h-[3.75rem] md:py-2;
+    }
+
+    .dash-folder-calendar__day--outside {
+        @apply bg-slate-50/40 text-slate-300;
+    }
+
+    .dash-folder-calendar__day--past:not(.dash-folder-calendar__day--outside) {
+        @apply text-slate-400;
+    }
+
+    .dash-folder-calendar__day--today {
+        @apply ring-2 ring-concierge-accent/50 ring-offset-0;
+    }
+
+    .dash-folder-calendar__day--has-folders:not(:disabled):not(.dash-folder-calendar__day--selected) {
+        @apply cursor-pointer hover:bg-sky-100/90 hover:shadow-sm;
+    }
+
+    .dash-folder-calendar__day--has-folders:not(:disabled):not(.dash-folder-calendar__day--selected):hover
+        .dash-folder-calendar__day-num {
+        @apply text-concierge-accent;
+    }
+
+    .dash-folder-calendar__day--has-folders:disabled {
+        @apply cursor-default;
+    }
+
+    .dash-folder-calendar__day--selected {
+        @apply bg-concierge-accent text-white shadow-md shadow-concierge-accent/25;
+    }
+
+    .dash-folder-calendar__day--selected:hover {
+        @apply bg-concierge-navy shadow-md shadow-concierge-navy/20;
+    }
+
+    .dash-folder-calendar__day--selected .dash-folder-calendar__day-num,
+    .dash-folder-calendar__day--selected .dash-folder-calendar__count {
+        @apply text-white;
+    }
+
+    .dash-folder-calendar__day--selected .dash-folder-calendar__dot {
+        @apply bg-white/90;
+    }
+
+    .dash-folder-calendar__day-num {
+        @apply text-[13px] font-semibold tabular-nums text-concierge-navy;
+    }
+
+    .dash-folder-calendar__day--outside .dash-folder-calendar__day-num {
+        @apply font-medium text-slate-300;
+    }
+
+    .dash-folder-calendar__dots {
+        @apply flex items-center justify-center gap-0.5;
+    }
+
+    .dash-folder-calendar__dot {
+        @apply h-1 w-1 rounded-full bg-concierge-accent;
+    }
+
+    .dash-folder-calendar__count {
+        @apply absolute bottom-1 right-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-concierge-accent px-1 text-[10px] font-bold text-white;
+    }
+
+    .dash-folder-calendar__day--selected .dash-folder-calendar__count {
+        @apply bg-white/25;
+    }
+
     .loading-dot {
         @apply h-1.5 w-1.5 rounded-full bg-current;
         animation: loading-dots 1s infinite ease-in-out;

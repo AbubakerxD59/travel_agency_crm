@@ -2,13 +2,18 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Model;
+use Database\Factories\FolderFactory;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Folder extends Model
 {
+    /** @use HasFactory<FolderFactory> */
+    use HasFactory;
+
     /**
      * Allowed order types for folders (delegates to {@see folder_order_types()}).
      *
@@ -158,12 +163,12 @@ class Folder extends Model
      */
     public function costSummary(): array
     {
-        $totalSale = (float) $this->packageCosts->sum(fn($c) => (float) ($c->sell ?? 0));
-        $flightCost = (float) $this->packageCosts->sum(fn($c) => (float) ($c->total_cost ?? 0));
-        $hotelCost = (float) $this->hotelDetails->sum(fn($h) => (float) ($h->cost ?? 0));
-        $transportCost = (float) $this->transportDetails->sum(fn($t) => (float) ($t->cost ?? 0));
-        $visaCost = (float) $this->visaDetails->sum(fn($v) => (float) ($v->cost ?? 0));
-        $othersCost = (float) $this->otherDetails->sum(fn($o) => (float) ($o->cost ?? 0));
+        $totalSale = (float) $this->packageCosts->sum(fn ($c) => (float) ($c->sell ?? 0));
+        $flightCost = (float) $this->packageCosts->sum(fn ($c) => (float) ($c->total_cost ?? 0));
+        $hotelCost = (float) $this->hotelDetails->sum(fn ($h) => (float) ($h->cost ?? 0));
+        $transportCost = (float) $this->transportDetails->sum(fn ($t) => (float) ($t->cost ?? 0));
+        $visaCost = (float) $this->visaDetails->sum(fn ($v) => (float) ($v->cost ?? 0));
+        $othersCost = (float) $this->otherDetails->sum(fn ($o) => (float) ($o->cost ?? 0));
         $margin = $totalSale - $flightCost - $hotelCost - $transportCost - $visaCost - $othersCost;
 
         return [
@@ -179,6 +184,6 @@ class Folder extends Model
 
     public function getStatusAttribute(): string
     {
-        return $this->hotelDetails->some(fn($h) => $h->status === 'issue_later') ? 'Incomplete' : 'Successful';
+        return $this->hotelDetails->some(fn ($h) => $h->status === 'issue_later') ? 'Incomplete' : 'Successful';
     }
 }

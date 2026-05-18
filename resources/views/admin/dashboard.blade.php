@@ -71,6 +71,8 @@
                 <canvas id="dashboard-agent-performance-chart"
                     aria-label="Line chart of agent performance over months"></canvas>
             </div>
+
+            @include('partials.admin.dashboard-folder-calendar', ['folderCalendar' => $folderCalendar])
         </section>
 
         <script type="application/json" id="dashboard-agent-chart-config"

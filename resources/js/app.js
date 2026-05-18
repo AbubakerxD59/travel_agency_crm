@@ -99,8 +99,45 @@ function initAdminSidebar() {
     });
 }
 
+function initLogoutConfirmation() {
+    const logoutForm = document.getElementById('logout-form');
+    const logoutButton = document.getElementById('logout-button');
+
+    if (!logoutForm || !logoutButton) {
+        return;
+    }
+
+    logoutButton.addEventListener('click', async () => {
+        if (typeof window.Swal === 'undefined') {
+            logoutForm.submit();
+            return;
+        }
+
+        const result = await window.Swal.fire({
+            title: 'Log out?',
+            text: 'You will need to sign in again to access your account.',
+            icon: 'question',
+            showCancelButton: true,
+            confirmButtonText: 'Yes, log out',
+            cancelButtonText: 'Cancel',
+            confirmButtonColor: '#152c49',
+            cancelButtonColor: '#64748b',
+            reverseButtons: true,
+            focusCancel: true,
+        });
+
+        if (result.isConfirmed) {
+            logoutForm.submit();
+        }
+    });
+}
+
 if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', initAdminSidebar);
+    document.addEventListener('DOMContentLoaded', () => {
+        initAdminSidebar();
+        initLogoutConfirmation();
+    });
 } else {
     initAdminSidebar();
+    initLogoutConfirmation();
 }
