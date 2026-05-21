@@ -16,8 +16,8 @@ class FolderPaymentController extends Controller
 
         $payments = FolderPayment::query()
             ->with(['folder.agent', 'bank'])
-            ->where('approval_status', 'pending')
             ->when($folderId !== null, fn ($q) => $q->where('folder_id', $folderId))
+            ->orderByDesc('payment_date')
             ->orderByDesc('id')
             ->paginate(20)
             ->withQueryString();

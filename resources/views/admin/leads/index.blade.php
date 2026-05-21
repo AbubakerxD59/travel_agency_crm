@@ -2,6 +2,8 @@
 
 @section('title', 'Lead Management')
 
+@section('body_class', 'folder-form-sidebar-drawer')
+
 @section('content')
     <div class="mx-auto max-w-7xl">
         <div class="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
@@ -59,11 +61,35 @@
             </div>
         </div>
 
+        @include('partials.leads.closed-leads-chart', [
+            'chartEndpoint' => route('admin.leads.chart.closed'),
+            'closedLeadsChart' => $closedLeadsChart,
+            'chartDateLabel' => $chartDateLabel,
+            'chartDateRange' => $chartDateRange,
+            'chartStartDate' => $chartStartDate,
+            'chartEndDate' => $chartEndDate,
+            'chartSource' => $chartSource,
+            'chartAgentId' => $selectedAgentId,
+            'chartCompanyId' => $selectedCompanyId,
+        ])
+
         <form id="lead-management-filter-form" method="GET" action="{{ route('admin.leads.index') }}" class="mt-6">
             <input type="hidden" id="lead-date-range-input" name="date_range" value="{{ $selectedDateRange }}">
             <input type="hidden" id="lead-start-date-input" name="start_date" value="{{ $selectedStartDate }}">
             <input type="hidden" id="lead-end-date-input" name="end_date" value="{{ $selectedEndDate }}">
-            <div class="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-3">
+            <div class="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-4">
+                <div>
+                    <label for="lead-company-filter" class="block text-sm font-medium text-concierge-navy">Company</label>
+                    <select id="lead-company-filter" name="company_id"
+                        class="mt-1.5 w-full rounded-xl border border-slate-200 bg-slate-50/80 px-4 py-2.5 text-sm text-slate-800 focus:border-concierge-accent focus:bg-white focus:outline-none focus:ring-2 focus:ring-concierge-accent/20">
+                        <option value="">All companies</option>
+                        @foreach ($companies as $company)
+                            <option value="{{ $company->id }}" @selected((string) $selectedCompanyId === (string) $company->id)>
+                                {{ $company->name }}
+                            </option>
+                        @endforeach
+                    </select>
+                </div>
                 <div>
                     <label for="lead-agent-filter" class="block text-sm font-medium text-concierge-navy">Agent</label>
                     <select id="lead-agent-filter" name="agent_id"
@@ -120,18 +146,7 @@
                         <div id="lead-date-filter-menu"
                             class="absolute right-0 z-10 mt-2 hidden min-w-40 overflow-hidden rounded-xl border border-slate-200 bg-white shadow-lg"
                             role="menu" aria-labelledby="lead-date-filter-button">
-                            <button type="button"
-                                class="lead-date-filter-option block w-full px-4 py-2.5 text-left text-sm text-concierge-navy transition hover:bg-slate-50"
-                                role="menuitem" data-filter="week" data-filter-label="This week">This week</button>
-                            <button type="button"
-                                class="lead-date-filter-option block w-full px-4 py-2.5 text-left text-sm text-concierge-navy transition hover:bg-slate-50"
-                                role="menuitem" data-filter="month" data-filter-label="This month">This month</button>
-                            <button type="button"
-                                class="lead-date-filter-option block w-full px-4 py-2.5 text-left text-sm text-concierge-navy transition hover:bg-slate-50"
-                                role="menuitem" data-filter="year" data-filter-label="This year">This year</button>
-                            <button type="button"
-                                class="lead-date-filter-option block w-full px-4 py-2.5 text-left text-sm text-concierge-navy transition hover:bg-slate-50"
-                                role="menuitem" data-filter="custom" data-filter-label="Custom date">Custom date</button>
+                            @include('partials.date-range-filter-menu', ['optionClass' => 'lead-date-filter-option'])
                         </div>
                     </div>
                     <button type="submit"
@@ -141,9 +156,11 @@
                     @if (
                         $search !== '' ||
                             $selectedAgentId ||
+                            $selectedCompanyId ||
                             $selectedSource !== '' ||
                             $selectedStatus !== '' ||
-                            $selectedDateRange !== '')
+                            $selectedDateRange !== 'year' ||
+                            ($selectedDateRange === 'custom' && ($selectedStartDate !== '' || $selectedEndDate !== '')))
                         <a href="{{ route('admin.leads.index') }}"
                             class="inline-flex items-center justify-center rounded-xl border border-slate-200 px-4 py-2.5 text-sm font-medium text-concierge-navy transition hover:bg-slate-50">
                             Clear
@@ -404,7 +421,7 @@
 @endsection
 
 @push('scripts')
-    @vite(['resources/js/admin-leads-filters.js'])
+    @vite(['resources/js/admin-leads-filters.js', 'resources/js/leads-closed-chart.js'])
     <script>
         const assignLeadModal = document.getElementById('assign-lead-modal');
         const openAssignLeadModalBtn = document.getElementById('open-assign-lead-modal');

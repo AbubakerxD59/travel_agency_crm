@@ -20,6 +20,7 @@ class DatabaseSeeder extends Seeder
             AgentsSeeder::class,
             CompaniesSeeder::class,
             LeadsSeeder::class,
+            FoldersSeeder::class,
         ]);
     }
 }

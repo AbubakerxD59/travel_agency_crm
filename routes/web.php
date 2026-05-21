@@ -1,7 +1,11 @@
 <?php
 
 use App\Http\Controllers\Auth\LoginController;
+use App\Http\Controllers\InvoicePreviewController;
 use Illuminate\Support\Facades\Route;
+
+Route::get('/test/invoice', [InvoicePreviewController::class, 'test'])
+    ->name('test.invoice');
 
 Route::get('/', function () {
     return auth()->check()

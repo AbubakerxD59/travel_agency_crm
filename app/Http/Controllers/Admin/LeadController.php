@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Admin;
 
+use App\Http\Controllers\Concerns\ResolvesClosedLeadsChart;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\AssignLeadRequest;
 use App\Http\Requests\StoreLeadRequest;
@@ -13,6 +14,7 @@ use App\Models\User;
 use App\Notifications\LeadAssignedNotification;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
@@ -20,6 +22,8 @@ use Throwable;
 
 class LeadController extends Controller
 {
+    use ResolvesClosedLeadsChart;
+
     public function __construct()
     {
         $this->middleware('can:leads.access')->only(['index', 'show']);
@@ -30,53 +34,21 @@ class LeadController extends Controller
     {
         $search = trim((string) $request->query('search', ''));
         $agentId = $request->integer('agent_id') ?: null;
+        $companyId = $request->integer('company_id') ?: null;
         $source = trim((string) $request->query('source', ''));
         $status = trim((string) $request->query('status', ''));
-        $dateRange = trim((string) $request->query('date_range', ''));
-        $startDate = trim((string) $request->query('start_date', ''));
-        $endDate = trim((string) $request->query('end_date', ''));
-
-        $startBound = null;
-        $endBound = null;
-        $selectedDateFilterLabel = 'Date filter';
-
-        if ($dateRange === 'week') {
-            $startBound = now()->startOfWeek();
-            $endBound = now()->endOfWeek();
-            $selectedDateFilterLabel = 'This week';
-        } elseif ($dateRange === 'month') {
-            $startBound = now()->startOfMonth();
-            $endBound = now()->endOfMonth();
-            $selectedDateFilterLabel = 'This month';
-        } elseif ($dateRange === 'year') {
-            $startBound = now()->startOfYear();
-            $endBound = now()->endOfYear();
-            $selectedDateFilterLabel = 'This year';
-        } elseif ($dateRange === 'custom' && $startDate !== '' && $endDate !== '') {
-            try {
-                $startBound = now()->parse($startDate)->startOfDay();
-                $endBound = now()->parse($endDate)->endOfDay();
-                if ($startBound->gt($endBound)) {
-                    $startBound = null;
-                    $endBound = null;
-                    $dateRange = '';
-                    $startDate = '';
-                    $endDate = '';
-                } else {
-                    $selectedDateFilterLabel = $startBound->format('Y-m-d').' - '.$endBound->format('Y-m-d');
-                }
-            } catch (Throwable) {
-                $startBound = null;
-                $endBound = null;
-                $dateRange = '';
-                $startDate = '';
-                $endDate = '';
-            }
-        } else {
-            $dateRange = '';
-            $startDate = '';
-            $endDate = '';
-        }
+        $dateFilter = resolveLeadDateRangeFilter(
+            (string) $request->query('date_range', ''),
+            (string) $request->query('start_date', ''),
+            (string) $request->query('end_date', ''),
+            'year',
+        );
+        $dateRange = $dateFilter['range'];
+        $startDate = $dateFilter['startDate'];
+        $endDate = $dateFilter['endDate'];
+        $startBound = $dateFilter['start'];
+        $endBound = $dateFilter['end'];
+        $selectedDateFilterLabel = $dateFilter['label'];
 
         $leadsQuery = Lead::query()
             ->with(['agent', 'company', 'destination'])
@@ -84,6 +56,10 @@ class LeadController extends Controller
 
         if ($agentId !== null) {
             $leadsQuery->where('agent_id', $agentId);
+        }
+
+        if ($companyId !== null) {
+            $leadsQuery->where('company_id', $companyId);
         }
 
         if ($source !== '') {
@@ -108,12 +84,15 @@ class LeadController extends Controller
         }
 
         $leads = $leadsQuery
-            ->paginate(15)
+            ->paginate(30)
             ->withQueryString();
 
         $statsQuery = Lead::query();
         if ($agentId !== null) {
             $statsQuery->where('agent_id', $agentId);
+        }
+        if ($companyId !== null) {
+            $statsQuery->where('company_id', $companyId);
         }
         if ($source !== '') {
             $statsQuery->where('source', $source);
@@ -142,10 +121,26 @@ class LeadController extends Controller
             ? min(100, (int) round(($totalClosed / $totalLeads) * 100))
             : 0;
 
+        [$chartStart, $chartEnd, $chartGroupByMonth] = performanceChartDateRange(
+            $dateRange,
+            $startBound,
+            $endBound,
+        );
+
+        $closedLeadsChart = buildClosedLeadsChartData(
+            $chartStart,
+            $chartEnd,
+            $chartGroupByMonth,
+            $source !== '' ? $source : null,
+            $agentId,
+            $companyId,
+        );
+
         return view('admin.leads.index', [
             'leads' => $leads,
             'search' => $search,
             'selectedAgentId' => $agentId,
+            'selectedCompanyId' => $companyId,
             'selectedSource' => $source,
             'selectedStatus' => $status,
             'selectedDateRange' => $dateRange,
@@ -161,7 +156,18 @@ class LeadController extends Controller
             'totalPending' => $totalPending,
             'totalFailed' => $totalFailed,
             'leadsSuccessRatePercent' => $leadsSuccessRatePercent,
+            'closedLeadsChart' => $closedLeadsChart,
+            'chartDateLabel' => $selectedDateFilterLabel,
+            'chartDateRange' => $dateRange,
+            'chartStartDate' => $startDate,
+            'chartEndDate' => $endDate,
+            'chartSource' => $source,
         ]);
+    }
+
+    public function closedLeadsChart(Request $request): JsonResponse
+    {
+        return $this->closedLeadsChartResponse($request);
     }
 
     public function assign(AssignLeadRequest $request): RedirectResponse

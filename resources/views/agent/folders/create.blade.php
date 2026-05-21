@@ -27,6 +27,7 @@
         <div class="mt-8 rounded-2xl border border-slate-200/80 bg-white p-6 shadow-sm sm:p-8">
             <form id="lead-create-form" method="POST"
                 action="{{ $isEditMode ? route(($leadRoutePrefix ?? 'admin') . '.' . ($leadRouteResource ?? 'leads') . '.update', $lead) : route(($leadRoutePrefix ?? 'admin') . '.' . ($leadRouteResource ?? 'leads') . '.store') }}"
+                data-folder-list-url="{{ route(($leadRoutePrefix ?? 'admin') . '.' . ($leadRouteResource ?? 'leads') . '.index') }}"
                 class="space-y-4">
                 @csrf
                 @if ($isEditMode)
@@ -150,6 +151,13 @@
                             value="{{ old('travel_date', optional($lead->travel_date ?? null)->format('Y-m-d')) }}" class="{{ $fieldClass }}">
                     </div>
                     <div class="min-w-0">
+                        <label for="lead_booking_date" class="block text-sm font-medium text-concierge-navy"><span
+                                class="text-rose-600">*</span> Booking date</label>
+                        <input id="lead_booking_date" name="booking_date" type="date" required
+                            value="{{ old('booking_date', optional($lead->booking_date ?? null)->format('Y-m-d') ?: now()->format('Y-m-d')) }}"
+                            class="{{ $fieldClass }}">
+                    </div>
+                    <div class="min-w-0">
                         <label for="lead_balance_due_date" class="block text-sm font-medium text-concierge-navy"><span
                                 class="text-rose-600">*</span> Balance due
                             date</label>
@@ -220,8 +228,7 @@
                 <div class="space-y-3 rounded-2xl border border-slate-200/80 bg-slate-50/40 p-4 sm:p-5">
                     <div class="flex flex-wrap items-center justify-between gap-3">
                         <div class="inline-flex items-center gap-2">
-                            <h2 class="text-base font-semibold text-concierge-navy"><span class="text-rose-600">*</span>
-                                Itineraries</h2>
+                            <h2 class="text-base font-semibold text-concierge-navy">Itineraries</h2>
                             <button type="button" id="save-itineraries-section"
                                 class="inline-flex cursor-pointer items-center justify-center rounded-xl bg-emerald-600 px-3 py-2 text-xs font-semibold text-white hover:bg-emerald-700"
                                 title="Save Itineraries">
@@ -255,26 +262,16 @@
                             <thead>
                                 <tr class="bg-slate-100 text-left text-concierge-muted">
                                     <th class="border border-slate-200 px-2 py-2">Action</th>
-                                    <th class="border border-slate-200 px-2 py-2"><span class="text-rose-600">*</span> Sr.
-                                        No.</th>
-                                    <th class="border border-slate-200 px-2 py-2"><span class="text-rose-600">*</span>
-                                        Airline code</th>
-                                    <th class="border border-slate-200 px-2 py-2"><span class="text-rose-600">*</span>
-                                        Airline number</th>
-                                    <th class="border border-slate-200 px-2 py-2"><span class="text-rose-600">*</span>
-                                        Class</th>
-                                    <th class="border border-slate-200 px-2 py-2"><span class="text-rose-600">*</span>
-                                        Departure date</th>
-                                    <th class="border border-slate-200 px-2 py-2"><span class="text-rose-600">*</span>
-                                        Departure airport</th>
-                                    <th class="border border-slate-200 px-2 py-2"><span class="text-rose-600">*</span>
-                                        Arrival airport</th>
-                                    <th class="border border-slate-200 px-2 py-2"><span class="text-rose-600">*</span>
-                                        Departure time</th>
-                                    <th class="border border-slate-200 px-2 py-2"><span class="text-rose-600">*</span>
-                                        Arrival time</th>
-                                    <th class="border border-slate-200 px-2 py-2"><span class="text-rose-600">*</span>
-                                        Arrival date</th>
+                                    <th class="border border-slate-200 px-2 py-2">Sr. No.</th>
+                                    <th class="border border-slate-200 px-2 py-2">Airline code</th>
+                                    <th class="border border-slate-200 px-2 py-2">Airline number</th>
+                                    <th class="border border-slate-200 px-2 py-2">Class</th>
+                                    <th class="border border-slate-200 px-2 py-2">Departure date</th>
+                                    <th class="border border-slate-200 px-2 py-2">Departure airport</th>
+                                    <th class="border border-slate-200 px-2 py-2">Arrival airport</th>
+                                    <th class="border border-slate-200 px-2 py-2">Departure time</th>
+                                    <th class="border border-slate-200 px-2 py-2">Arrival time</th>
+                                    <th class="border border-slate-200 px-2 py-2">Arrival date</th>
                                 </tr>
                             </thead>
                             <tbody id="itinerary-rows">
@@ -344,7 +341,7 @@
                             </tbody>
                         </table>
                     </div>
-                    <p class="text-xs text-concierge-muted">At least one itinerary row is required.</p>
+                    <p class="text-xs text-concierge-muted">Optional. Add rows or paste commands above and generate.</p>
                 </div>
 
                 <div class="space-y-3 rounded-2xl border border-slate-200/80 bg-slate-50/40 p-4 sm:p-5">
@@ -643,43 +640,29 @@
                     @php
                         $hotelDetailStatuses = folder_hotel_detail_statuses();
                         $hotelCities = folder_hotel_cities();
+                        $hotelMealsOptions = folder_hotel_meals_options();
                     @endphp
                     <div class="overflow-x-auto">
                         <table class="min-w-[1780px] w-full border-collapse text-xs sm:text-sm">
                             <thead>
                                 <tr class="bg-slate-100 text-left text-concierge-muted">
                                     <th class="border border-slate-200 px-2 py-2">Action</th>
-                                    <th class="border border-slate-200 px-2 py-2"><span class="text-rose-600">*</span> Sr.
-                                        No.</th>
-                                    <th class="border border-slate-200 px-2 py-2"><span class="text-rose-600">*</span>
-                                        Supplier</th>
-                                    <th class="border border-slate-200 px-2 py-2"><span class="text-rose-600">*</span>
-                                        Hotel name</th>
-                                    <th class="border border-slate-200 px-2 py-2"><span class="text-rose-600">*</span>
-                                        Guest name</th>
-                                    <th class="border border-slate-200 px-2 py-2"><span class="text-rose-600">*</span> No.
-                                        of rooms</th>
-                                    <th class="border border-slate-200 px-2 py-2"><span class="text-rose-600">*</span>
-                                        Type</th>
-                                    <th class="border border-slate-200 px-2 py-2"><span class="text-rose-600">*</span>
-                                        Meals</th>
-                                    <th class="border border-slate-200 px-2 py-2"><span class="text-rose-600">*</span>
-                                        Check-in</th>
-                                    <th class="border border-slate-200 px-2 py-2"><span class="text-rose-600">*</span>
-                                        Check-out</th>
-                                    <th class="border border-slate-200 px-2 py-2"><span class="text-rose-600">*</span>
-                                        Nights</th>
-                                    <th class="border border-slate-200 px-2 py-2"><span class="text-rose-600">*</span>
-                                        Supplier ref</th>
-                                    <th class="border border-slate-200 px-2 py-2"><span class="text-rose-600">*</span>
-                                        Status</th>
-                                    <th class="border border-slate-200 px-2 py-2"><span class="text-rose-600">*</span>
-                                        Cost</th>
-                                    <th class="border border-slate-200 px-2 py-2"><span class="text-rose-600">*</span>
-                                        Margin</th>
+                                    <th class="border border-slate-200 px-2 py-2">Sr. No.</th>
+                                    <th class="border border-slate-200 px-2 py-2">Supplier</th>
+                                    <th class="border border-slate-200 px-2 py-2">Hotel name</th>
+                                    <th class="border border-slate-200 px-2 py-2">Guest name</th>
+                                    <th class="border border-slate-200 px-2 py-2">No. of rooms</th>
+                                    <th class="border border-slate-200 px-2 py-2">Type</th>
+                                    <th class="border border-slate-200 px-2 py-2">Meals</th>
+                                    <th class="border border-slate-200 px-2 py-2">Check-in</th>
+                                    <th class="border border-slate-200 px-2 py-2">Check-out</th>
+                                    <th class="border border-slate-200 px-2 py-2">Nights</th>
+                                    <th class="border border-slate-200 px-2 py-2">Supplier ref</th>
+                                    <th class="border border-slate-200 px-2 py-2">Status</th>
+                                    <th class="border border-slate-200 px-2 py-2">Cost</th>
+                                    <th class="border border-slate-200 px-2 py-2">Margin</th>
                                     <th class="border border-slate-200 px-2 py-2">Sell</th>
-                                    <th class="border border-slate-200 px-2 py-2"><span class="text-rose-600">*</span>
-                                        Hotel city</th>
+                                    <th class="border border-slate-200 px-2 py-2">Hotel city</th>
                                 </tr>
                             </thead>
                             <tbody id="hotel-detail-rows">
@@ -724,9 +707,19 @@
                                                 class="w-24 rounded-lg border border-slate-200 bg-white px-2 py-1.5 text-sm">
                                         </td>
                                         <td class="border border-slate-200 px-2 py-2">
-                                            <input type="text" name="hotel_details[{{ $i }}][meals]"
-                                                value="{{ data_get($row, 'meals') }}"
-                                                class="w-24 rounded-lg border border-slate-200 bg-white px-2 py-1.5 text-sm">
+                                            @php
+                                                $hotelMealsValue = (string) data_get($row, 'meals');
+                                            @endphp
+                                            <select name="hotel_details[{{ $i }}][meals]"
+                                                class="w-36 rounded-lg border border-slate-200 bg-white px-2 py-1.5 text-sm">
+                                                <option value="" @selected($hotelMealsValue === '')>
+                                                    {{ __('Select meals') }}</option>
+                                                @foreach ($hotelMealsOptions as $mealsOption)
+                                                    <option value="{{ $mealsOption }}"
+                                                        @selected($hotelMealsValue === $mealsOption)>{{ $mealsOption }}
+                                                    </option>
+                                                @endforeach
+                                            </select>
                                         </td>
                                         <td class="border border-slate-200 px-2 py-2">
                                             <input type="date" name="hotel_details[{{ $i }}][date_in]"
@@ -781,7 +774,7 @@
                                             @php
                                                 $hotelCityValue = (string) data_get($row, 'hotel_city');
                                             @endphp
-                                            <select name="hotel_details[{{ $i }}][hotel_city]" required
+                                            <select name="hotel_details[{{ $i }}][hotel_city]"
                                                 class="w-36 rounded-lg border border-slate-200 bg-white px-2 py-1.5 text-sm">
                                                 <option value="" @selected($hotelCityValue === '')>
                                                     {{ __('Select city') }}</option>
@@ -805,7 +798,7 @@
                         </select>
                     </template>
                     <template id="hotel-detail-city-select-skeleton">
-                        <select required
+                        <select
                             class="w-36 rounded-lg border border-slate-200 bg-white px-2 py-1.5 text-sm">
                             <option value="" selected>{{ __('Select city') }}</option>
                             @foreach ($hotelCities as $city)
@@ -813,14 +806,22 @@
                             @endforeach
                         </select>
                     </template>
-                    <p class="text-xs text-concierge-muted">At least one hotel details row is required.</p>
+                    <template id="hotel-detail-meals-select-skeleton">
+                        <select
+                            class="w-36 rounded-lg border border-slate-200 bg-white px-2 py-1.5 text-sm">
+                            <option value="" selected>{{ __('Select meals') }}</option>
+                            @foreach ($hotelMealsOptions as $mealsOption)
+                                <option value="{{ $mealsOption }}">{{ $mealsOption }}</option>
+                            @endforeach
+                        </select>
+                    </template>
+                    <p class="text-xs text-concierge-muted">Optional. Add hotel rows when needed.</p>
                 </div>
 
                 <div class="space-y-3 rounded-2xl border border-slate-200/80 bg-slate-50/40 p-4 sm:p-5">
                     <div class="flex flex-wrap items-center justify-between gap-3">
                         <div class="inline-flex items-center gap-2">
-                            <h2 class="text-base font-semibold text-concierge-navy"><span class="text-rose-600">*</span>
-                                Transport Details</h2>
+                            <h2 class="text-base font-semibold text-concierge-navy">Transport Details</h2>
                             <button type="button" id="save-transport-details-section"
                                 class="inline-flex cursor-pointer items-center justify-center rounded-xl bg-emerald-600 px-3 py-2 text-xs font-semibold text-white hover:bg-emerald-700"
                                 title="Save Transport Details">
@@ -845,32 +846,25 @@
                         </div>
                     </div>
 
+                    @php
+                        $transportVehicleTypes = folder_transport_vehicle_types();
+                    @endphp
                     <div class="overflow-x-auto">
                         <table class="min-w-[1320px] w-full border-collapse text-xs sm:text-sm">
                             <thead>
                                 <tr class="bg-slate-100 text-left text-concierge-muted">
                                     <th class="border border-slate-200 px-2 py-2">Action</th>
-                                    <th class="border border-slate-200 px-2 py-2"><span class="text-rose-600">*</span>
-                                        Supplier</th>
-                                    <th class="border border-slate-200 px-2 py-2"><span class="text-rose-600">*</span>
-                                        Description</th>
-                                    <th class="border border-slate-200 px-2 py-2"><span class="text-rose-600">*</span>
-                                        From</th>
-                                    <th class="border border-slate-200 px-2 py-2"><span class="text-rose-600">*</span>
-                                        To</th>
-                                    <th class="border border-slate-200 px-2 py-2"><span class="text-rose-600">*</span>
-                                        Date</th>
-                                    <th class="border border-slate-200 px-2 py-2"><span class="text-rose-600">*</span>
-                                        Pickup Time</th>
-                                    <th class="border border-slate-200 px-2 py-2"><span class="text-rose-600">*</span>
-                                        Vehicle Type</th>
-                                    <th class="border border-slate-200 px-2 py-2"><span class="text-rose-600">*</span>
-                                        Cost</th>
-                                    <th class="border border-slate-200 px-2 py-2"><span class="text-rose-600">*</span>
-                                        Margin</th>
+                                    <th class="border border-slate-200 px-2 py-2">Supplier</th>
+                                    <th class="border border-slate-200 px-2 py-2">Description</th>
+                                    <th class="border border-slate-200 px-2 py-2">From</th>
+                                    <th class="border border-slate-200 px-2 py-2">To</th>
+                                    <th class="border border-slate-200 px-2 py-2">Date</th>
+                                    <th class="border border-slate-200 px-2 py-2">Pickup Time</th>
+                                    <th class="border border-slate-200 px-2 py-2">Vehicle Type</th>
+                                    <th class="border border-slate-200 px-2 py-2">Cost</th>
+                                    <th class="border border-slate-200 px-2 py-2">Margin</th>
                                     <th class="border border-slate-200 px-2 py-2">Sell</th>
-                                    <th class="border border-slate-200 px-2 py-2"><span class="text-rose-600">*</span>
-                                        SAR</th>
+                                    <th class="border border-slate-200 px-2 py-2">SAR</th>
                                 </tr>
                             </thead>
                             <tbody id="transport-detail-rows">
@@ -913,9 +907,19 @@
                                                 class="w-28 rounded-lg border border-slate-200 bg-white px-2 py-1.5 text-sm">
                                         </td>
                                         <td class="border border-slate-200 px-2 py-2">
-                                            <input type="text" name="transport_details[{{ $i }}][vehicle_type]"
-                                                value="{{ data_get($row, 'vehicle_type') }}"
-                                                class="w-24 rounded-lg border border-slate-200 bg-white px-2 py-1.5 text-sm">
+                                            @php
+                                                $vehicleTypeValue = (string) data_get($row, 'vehicle_type');
+                                            @endphp
+                                            <select name="transport_details[{{ $i }}][vehicle_type]"
+                                                class="w-28 rounded-lg border border-slate-200 bg-white px-2 py-1.5 text-sm">
+                                                <option value="" @selected($vehicleTypeValue === '')>
+                                                    {{ __('Select vehicle') }}</option>
+                                                @foreach ($transportVehicleTypes as $vehicleType)
+                                                    <option value="{{ $vehicleType }}"
+                                                        @selected($vehicleTypeValue === $vehicleType)>{{ $vehicleType }}
+                                                    </option>
+                                                @endforeach
+                                            </select>
                                         </td>
                                         <td class="border border-slate-200 px-2 py-2">
                                             <input type="number" min="0" step="0.01"
@@ -936,7 +940,7 @@
                                                 class="transport-detail-sell-input w-20 rounded-lg border border-slate-200 bg-white px-2 py-1.5 text-sm">
                                         </td>
                                         <td class="border border-slate-200 px-2 py-2">
-                                            <input type="number" min="0" step="0.01" required
+                                            <input type="number" min="0" step="0.01"
                                                 name="transport_details[{{ $i }}][sar]"
                                                 value="{{ data_get($row, 'sar') }}"
                                                 class="w-20 rounded-lg border border-slate-200 bg-white px-2 py-1.5 text-sm">
@@ -946,15 +950,22 @@
                             </tbody>
                         </table>
                     </div>
-                    <p class="text-xs text-concierge-muted">At least one transport row is required. SAR is required for
-                        each row.</p>
+                    <template id="transport-detail-vehicle-type-select-skeleton">
+                        <select
+                            class="w-28 rounded-lg border border-slate-200 bg-white px-2 py-1.5 text-sm">
+                            <option value="" selected>{{ __('Select vehicle') }}</option>
+                            @foreach ($transportVehicleTypes as $vehicleType)
+                                <option value="{{ $vehicleType }}">{{ $vehicleType }}</option>
+                            @endforeach
+                        </select>
+                    </template>
+                    <p class="text-xs text-concierge-muted">Optional. SAR is required for each transport row you add.</p>
                 </div>
 
                 <div class="space-y-3 rounded-2xl border border-slate-200/80 bg-slate-50/40 p-4 sm:p-5">
                     <div class="flex flex-wrap items-center justify-between gap-3">
                         <div class="inline-flex items-center gap-2">
-                            <h2 class="text-base font-semibold text-concierge-navy"><span class="text-rose-600">*</span>
-                                Visa Details</h2>
+                            <h2 class="text-base font-semibold text-concierge-navy">Visa Details</h2>
                             <button type="button" id="save-visa-details-section"
                                 class="inline-flex cursor-pointer items-center justify-center rounded-xl bg-emerald-600 px-3 py-2 text-xs font-semibold text-white hover:bg-emerald-700"
                                 title="Save Visa Details">
@@ -984,14 +995,10 @@
                             <thead>
                                 <tr class="bg-slate-100 text-left text-concierge-muted">
                                     <th class="border border-slate-200 px-2 py-2">Action</th>
-                                    <th class="border border-slate-200 px-2 py-2"><span class="text-rose-600">*</span>
-                                        Supplier</th>
-                                    <th class="border border-slate-200 px-2 py-2"><span class="text-rose-600">*</span>
-                                        Description</th>
-                                    <th class="border border-slate-200 px-2 py-2"><span class="text-rose-600">*</span>
-                                        Cost</th>
-                                    <th class="border border-slate-200 px-2 py-2"><span class="text-rose-600">*</span>
-                                        Margin</th>
+                                    <th class="border border-slate-200 px-2 py-2">Supplier</th>
+                                    <th class="border border-slate-200 px-2 py-2">Description</th>
+                                    <th class="border border-slate-200 px-2 py-2">Cost</th>
+                                    <th class="border border-slate-200 px-2 py-2">Margin</th>
                                     <th class="border border-slate-200 px-2 py-2">Sell</th>
                                 </tr>
                             </thead>
@@ -1037,7 +1044,7 @@
                             </tbody>
                         </table>
                     </div>
-                    <p class="text-xs text-concierge-muted">At least one visa row is required. Margin is sell minus cost.
+                    <p class="text-xs text-concierge-muted">Optional. Margin is sell minus cost when rows are added.
                     </p>
                 </div>
 
@@ -1276,6 +1283,7 @@
 @endsection
 
 @push('scripts')
+    @vite(['resources/js/folder-form-unsaved-guard.js'])
     <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.js"></script>
     <script>
@@ -1486,28 +1494,48 @@
                 }
 
                 const srNo = parts[cursor++];
-                const airlineToken = parts[cursor++];
-                const departureDateToken = parts[cursor++];
-                let classToken = null;
-                if (/^[A-Z]$/.test(parts[cursor] ?? '')) {
-                    classToken = parts[cursor];
-                    cursor += 1;
-                }
-                const routeToken = parts[cursor++];
-                const departureTimeToken = parts[cursor++];
-                const arrivalTimeToken = parts[cursor++];
-                const arrivalDateToken = parts[cursor] ?? null;
-                if (cursor + (arrivalDateToken ? 1 : 0) !== parts.length) {
+                if (!/^\d+$/.test(srNo)) {
                     return null;
                 }
 
-                const flightMatch = airlineToken.match(/^([A-Z]{2})(\d+)([A-Z])?$/);
-                const routeMatch = routeToken.match(/^([A-Z]{3})([A-Z]{3})$/);
-                if (!/^\d+$/.test(srNo) || !flightMatch || !routeMatch) {
-                    return null;
+                let airlineCode = null;
+                let airlineNumber = null;
+                let cabinClass = null;
+
+                if (/^[A-Z]{2}$/.test(parts[cursor] ?? '') && /^\d+[A-Z]?$/.test(parts[cursor + 1] ?? '')) {
+                    airlineCode = parts[cursor++];
+                    const flightToken = parts[cursor++];
+                    const splitFlightMatch = flightToken.match(/^(\d+)([A-Z])?$/);
+                    if (!splitFlightMatch) {
+                        return null;
+                    }
+                    airlineNumber = splitFlightMatch[1];
+                    cabinClass = splitFlightMatch[2] ?? null;
+                } else {
+                    const airlineToken = parts[cursor++];
+                    const flightMatch = airlineToken.match(/^([A-Z]{2})(\d+)([A-Z])?$/);
+                    if (!flightMatch) {
+                        return null;
+                    }
+                    airlineCode = flightMatch[1];
+                    airlineNumber = flightMatch[2];
+                    cabinClass = flightMatch[3] ?? null;
                 }
-                const cabinClass = classToken ?? flightMatch[3] ?? null;
-                if (!cabinClass) {
+
+                const departureDateToken = parts[cursor++];
+                if (/^[A-Z]$/.test(parts[cursor] ?? '') && !/^[A-Z]{6}$/.test(parts[cursor] ?? '')) {
+                    cabinClass = parts[cursor];
+                    cursor += 1;
+                }
+
+                const routeToken = parts[cursor++];
+                const departureTimeToken = parts[cursor++];
+                const arrivalTimeToken = parts[cursor++];
+                const arrivalDateToken =
+                    parts[cursor] && /^\d{2}[A-Z]{3}(\d{2})?$/.test(parts[cursor]) ? parts[cursor++] : null;
+
+                const routeMatch = routeToken.match(/^([A-Z]{3})([A-Z]{3})$/);
+                if (!routeMatch || !cabinClass) {
                     return null;
                 }
 
@@ -1533,8 +1561,8 @@
 
                 return {
                     sr_no: srNo,
-                    airline_code: flightMatch[1],
-                    airline_number: flightMatch[2],
+                    airline_code: airlineCode,
+                    airline_number: airlineNumber,
                     class: cabinClass,
                     departure_date: toInputDate(departureDate),
                     departure_airport: routeMatch[1],
@@ -1882,7 +1910,7 @@
                 ['guest_name', 'text', 'w-32', null, null],
                 ['rooms', 'number', 'w-16', '0', null],
                 ['type', 'text', 'w-24', null, null],
-                ['meals', 'text', 'w-24', null, null],
+                ['meals', 'select', 'w-36', null, null],
                 ['date_in', 'date', 'w-36', null, null],
                 ['date_out', 'date', 'w-36', null, null],
                 ['nights', 'number', 'w-16', '0', null],
@@ -1897,6 +1925,7 @@
 
             const statusSelectTemplate = document.getElementById('hotel-detail-status-select-skeleton');
             const citySelectTemplate = document.getElementById('hotel-detail-city-select-skeleton');
+            const mealsSelectTemplate = document.getElementById('hotel-detail-meals-select-skeleton');
 
             function makeStatusSelect(index) {
                 const select = statusSelectTemplate?.content?.querySelector('select')?.cloneNode(true);
@@ -1918,7 +1947,6 @@
                 if (!select) {
                     const fallback = document.createElement('select');
                     fallback.name = `hotel_details[${index}][hotel_city]`;
-                    fallback.required = true;
                     fallback.className =
                         'w-36 rounded-lg border border-slate-200 bg-white px-2 py-1.5 text-sm';
                     fallback.innerHTML =
@@ -1926,6 +1954,28 @@
                     return fallback;
                 }
                 select.name = `hotel_details[${index}][hotel_city]`;
+                select.value = '';
+                return select;
+            }
+
+            function makeMealsSelect(index) {
+                const select = mealsSelectTemplate?.content?.querySelector('select')?.cloneNode(true);
+                if (!select) {
+                    const fallback = document.createElement('select');
+                    fallback.name = `hotel_details[${index}][meals]`;
+                    fallback.className =
+                        'w-36 rounded-lg border border-slate-200 bg-white px-2 py-1.5 text-sm';
+                    fallback.innerHTML =
+                        '<option value="" selected>Select meals</option>' +
+                        '<option value="Room Only">Room Only</option>' +
+                        '<option value="Breakfast">Breakfast</option>' +
+                        '<option value="Half-Board">Half-Board</option>' +
+                        '<option value="Full-Board">Full-Board</option>' +
+                        '<option value="Dinner">Dinner</option>' +
+                        '<option value="Lunch">Lunch</option>';
+                    return fallback;
+                }
+                select.name = `hotel_details[${index}][meals]`;
                 select.value = '';
                 return select;
             }
@@ -1971,7 +2021,11 @@
                 fieldsBeforeStatus.forEach(([field, type, sizeClass, minValue, stepValue]) => {
                     const cell = document.createElement('td');
                     cell.className = 'border border-slate-200 px-2 py-2';
-                    cell.appendChild(makeInput(index, field, type, sizeClass, minValue, stepValue));
+                    if (field === 'meals') {
+                        cell.appendChild(makeMealsSelect(index));
+                    } else {
+                        cell.appendChild(makeInput(index, field, type, sizeClass, minValue, stepValue));
+                    }
                     row.appendChild(cell);
                 });
 
@@ -2048,12 +2102,36 @@
                 ['destination', 'text', 'w-32', null, null],
                 ['service_date', 'date', 'w-36', null, null],
                 ['pickup_time', 'time', 'w-28', null, null],
-                ['vehicle_type', 'text', 'w-24', null, null],
+                ['vehicle_type', 'select', 'w-28', null, null],
                 ['cost', 'number', 'w-20', '0', '0.01'],
                 ['margin', 'number', 'w-20', null, '0.01'],
                 ['sell', 'number', 'w-20', '0', '0.01'],
                 ['sar', 'number', 'w-20', '0', '0.01'],
             ];
+
+            const vehicleTypeSelectTemplate = document.getElementById(
+                'transport-detail-vehicle-type-select-skeleton');
+
+            function makeVehicleTypeSelect(index) {
+                const select = vehicleTypeSelectTemplate?.content?.querySelector('select')?.cloneNode(true);
+                if (!select) {
+                    const fallback = document.createElement('select');
+                    fallback.name = `transport_details[${index}][vehicle_type]`;
+                    fallback.className =
+                        'w-28 rounded-lg border border-slate-200 bg-white px-2 py-1.5 text-sm';
+                    fallback.innerHTML =
+                        '<option value="" selected>Select vehicle</option>' +
+                        '<option value="Car">Car</option>' +
+                        '<option value="H1">H1</option>' +
+                        '<option value="HiAce">HiAce</option>' +
+                        '<option value="Bus">Bus</option>' +
+                        '<option value="GMC">GMC</option>';
+                    return fallback;
+                }
+                select.name = `transport_details[${index}][vehicle_type]`;
+                select.value = '';
+                return select;
+            }
 
             function inputClass(sizeClass) {
                 return `${sizeClass} rounded-lg border border-slate-200 bg-white px-2 py-1.5 text-sm`;
@@ -2079,9 +2157,6 @@
                 if (stepValue != null) {
                     input.step = stepValue;
                 }
-                if (field === 'sar') {
-                    input.required = true;
-                }
                 return input;
             }
 
@@ -2102,7 +2177,11 @@
                 fields.forEach(([field, type, sizeClass, minValue, stepValue]) => {
                     const cell = document.createElement('td');
                     cell.className = 'border border-slate-200 px-2 py-2';
-                    cell.appendChild(makeInput(index, field, type, sizeClass, minValue, stepValue));
+                    if (field === 'vehicle_type') {
+                        cell.appendChild(makeVehicleTypeSelect(index));
+                    } else {
+                        cell.appendChild(makeInput(index, field, type, sizeClass, minValue, stepValue));
+                    }
                     row.appendChild(cell);
                 });
 
@@ -2111,8 +2190,10 @@
 
             function renumberRows() {
                 [...tableBody.querySelectorAll('.transport-detail-row')].forEach((row, idx) => {
-                    row.querySelectorAll('input[name^="transport_details["]').forEach((input) => {
-                        input.name = input.name.replace(/transport_details\[\d+\]/,
+                    row.querySelectorAll(
+                        'input[name^="transport_details["], select[name^="transport_details["]'
+                    ).forEach((el) => {
+                        el.name = el.name.replace(/transport_details\[\d+\]/,
                             `transport_details[${idx}]`);
                     });
                 });
@@ -2868,6 +2949,12 @@
                 'cost',
                 'margin',
             ];
+            const otherRequiredFields = [
+                'supplier',
+                'description',
+                'cost',
+                'margin',
+            ];
 
             function removeFieldError(field) {
                 field.classList.remove('border-rose-500', 'ring-1', 'ring-rose-200');
@@ -2888,6 +2975,47 @@
                 let firstInvalidField = null;
 
                 rows.forEach((row) => {
+                    requiredFields.forEach((fieldName) => {
+                        const input = row.querySelector(
+                            `input[name^="${inputPrefix}["][name$="[${fieldName}]"], select[name^="${inputPrefix}["][name$="[${fieldName}]"], textarea[name^="${inputPrefix}["][name$="[${fieldName}]"]`,
+                        );
+                        if (!input) {
+                            return;
+                        }
+                        if (String(input.value ?? '').trim() === '') {
+                            markFieldError(input);
+                            if (!firstInvalidField) {
+                                firstInvalidField = input;
+                            }
+                        }
+                    });
+                });
+
+                if (firstInvalidField) {
+                    firstInvalidField.focus();
+                    return false;
+                }
+
+                return true;
+            }
+
+            function rowHasAnyValue(row) {
+                return [...row.querySelectorAll('input, select, textarea')].some((field) => {
+                    const value = field.value;
+                    return typeof value === 'string' && value.trim() !== '';
+                });
+            }
+
+            function validateOptionalSectionRows(rowSelector, requiredFields, inputPrefix) {
+                clearRowErrors(rowSelector);
+                const rows = [...document.querySelectorAll(rowSelector)];
+                let firstInvalidField = null;
+
+                rows.forEach((row) => {
+                    if (!rowHasAnyValue(row)) {
+                        return;
+                    }
+
                     requiredFields.forEach((fieldName) => {
                         const input = row.querySelector(
                             `input[name^="${inputPrefix}["][name$="[${fieldName}]"], select[name^="${inputPrefix}["][name$="[${fieldName}]"], textarea[name^="${inputPrefix}["][name$="[${fieldName}]"]`,
@@ -2978,16 +3106,10 @@
             }
 
             form.addEventListener('submit', (event) => {
-                if (!sectionHasAtLeastOneFilledRow('#itinerary-rows .itinerary-row')) {
-                    event.preventDefault();
-                    showError('Please fill at least one itinerary row.');
-                    return;
-                }
-
-                if (!validateRequiredRowFields('#itinerary-rows .itinerary-row', itineraryRequiredFields,
+                if (!validateOptionalSectionRows('#itinerary-rows .itinerary-row', itineraryRequiredFields,
                         'itineraries')) {
                     event.preventDefault();
-                    showError('Please complete all itinerary fields.');
+                    showError('Please complete all fields in each itinerary row you added.');
                     return;
                 }
 
@@ -3017,42 +3139,31 @@
                     return;
                 }
 
-                if (!sectionHasAtLeastOneFilledRow('#hotel-detail-rows .hotel-detail-row')) {
-                    event.preventDefault();
-                    showError('Please fill at least one hotel details row.');
-                    return;
-                }
-
-                if (!validateRequiredRowFields('#hotel-detail-rows .hotel-detail-row', hotelRequiredFields,
+                if (!validateOptionalSectionRows('#hotel-detail-rows .hotel-detail-row', hotelRequiredFields,
                         'hotel_details')) {
                     event.preventDefault();
-                    showError('Please complete required hotel details fields.');
+                    showError('Please complete all fields in each hotel row you added.');
                     return;
                 }
 
-                if (!sectionHasAtLeastOneFilledRow('#transport-detail-rows .transport-detail-row')) {
-                    event.preventDefault();
-                    showError('Please fill at least one transport details row.');
-                    return;
-                }
-
-                if (!validateRequiredRowFields('#transport-detail-rows .transport-detail-row',
+                if (!validateOptionalSectionRows('#transport-detail-rows .transport-detail-row',
                         transportRequiredFields, 'transport_details')) {
                     event.preventDefault();
-                    showError('Please complete required transport details fields.');
+                    showError('Please complete all fields in each transport row you added.');
                     return;
                 }
 
-                if (!sectionHasAtLeastOneFilledRow('#visa-detail-rows .visa-detail-row')) {
-                    event.preventDefault();
-                    showError('Please fill at least one visa details row.');
-                    return;
-                }
-
-                if (!validateRequiredRowFields('#visa-detail-rows .visa-detail-row',
+                if (!validateOptionalSectionRows('#visa-detail-rows .visa-detail-row',
                         visaRequiredFields, 'visa_details')) {
                     event.preventDefault();
-                    showError('Please complete required visa details fields.');
+                    showError('Please complete all fields in each visa row you added.');
+                    return;
+                }
+
+                if (!validateOptionalSectionRows('#other-detail-rows .other-detail-row',
+                        otherRequiredFields, 'other_details')) {
+                    event.preventDefault();
+                    showError('Please complete all fields in each other details row you added.');
                     return;
                 }
 

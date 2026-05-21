@@ -164,6 +164,13 @@
                             class="{{ $fieldClass }}">
                     </div>
                     <div class="min-w-0">
+                        <label for="lead_booking_date" class="block text-sm font-medium text-concierge-navy"><span
+                                class="text-rose-600">*</span> Booking date</label>
+                        <input id="lead_booking_date" name="booking_date" type="date" required
+                            value="{{ old('booking_date', optional($lead->booking_date)->format('Y-m-d') ?: now()->format('Y-m-d')) }}"
+                            class="{{ $fieldClass }}">
+                    </div>
+                    <div class="min-w-0">
                         <label for="lead_balance_due_date" class="block text-sm font-medium text-concierge-navy">Balance due
                             date <span class="font-normal text-concierge-muted">(optional)</span></label>
                         <input id="lead_balance_due_date" name="balance_due_date" type="date"

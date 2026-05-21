@@ -7,8 +7,8 @@
         <div class="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
             <div>
                 <h1 class="text-2xl font-bold text-concierge-navy lg:text-3xl">Payment management</h1>
-                <p class="mt-1 text-sm text-concierge-muted">Review payments added by agents on folders. Approve or reject
-                    each row after confirmation.</p>
+                <p class="mt-1 text-sm text-concierge-muted">All folder payments, newest first. Approve or reject pending
+                    rows after confirmation.</p>
             </div>
         </div>
 
@@ -24,7 +24,7 @@
         @if ($filterFolderId)
             <p class="mt-4 text-sm text-concierge-muted">Filtered to folder #{{ $filterFolderId }}.
                 <a href="{{ route('admin.folder-payments.index') }}" class="font-medium text-concierge-navy underline">Show
-                    all pending</a>
+                    all payments</a>
             </p>
         @endif
 
@@ -40,6 +40,7 @@
                         <th class="border border-slate-200 px-3 py-2">Date</th>
                         <th class="border border-slate-200 px-3 py-2">Mode</th>
                         <th class="border border-slate-200 px-3 py-2">Bank</th>
+                        <th class="border border-slate-200 px-3 py-2">Status</th>
                         <th class="border border-slate-200 px-3 py-2">Actions</th>
                     </tr>
                 </thead>
@@ -61,32 +62,45 @@
                             <td class="border border-slate-200 px-3 py-2">{{ $payment->mode_of_payment }}</td>
                             <td class="border border-slate-200 px-3 py-2">{{ $payment->bank?->name ?? '—' }}</td>
                             <td class="border border-slate-200 px-3 py-2">
-                                <div class="flex flex-wrap gap-2">
-                                    <form method="POST"
-                                        action="{{ route('admin.folder-payments.approve', $payment) }}"
-                                        onsubmit="return confirm({{ json_encode(__('Approve this payment?')) }})">
-                                        @csrf
-                                        <button type="submit"
-                                            class="rounded-lg bg-emerald-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-emerald-700">
-                                            Approve
-                                        </button>
-                                    </form>
-                                    <form method="POST"
-                                        action="{{ route('admin.folder-payments.reject', $payment) }}"
-                                        onsubmit="return confirm({{ json_encode(__('Reject this payment?')) }})">
-                                        @csrf
-                                        <button type="submit"
-                                            class="rounded-lg border border-rose-200 bg-white px-3 py-1.5 text-xs font-semibold text-rose-700 hover:bg-rose-50">
-                                            Reject
-                                        </button>
-                                    </form>
-                                </div>
+                                @if ($payment->approval_status === 'pending')
+                                    <span class="font-medium text-amber-700">Pending</span>
+                                @elseif ($payment->approval_status === 'rejected')
+                                    <span class="font-medium text-rose-700">Rejected</span>
+                                @else
+                                    <span class="text-concierge-muted">Approved</span>
+                                @endif
+                            </td>
+                            <td class="border border-slate-200 px-3 py-2">
+                                @if ($payment->approval_status === 'pending')
+                                    <div class="flex flex-wrap gap-2">
+                                        <form method="POST"
+                                            action="{{ route('admin.folder-payments.approve', $payment) }}"
+                                            onsubmit="return confirm({{ json_encode(__('Approve this payment?')) }})">
+                                            @csrf
+                                            <button type="submit"
+                                                class="rounded-lg bg-emerald-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-emerald-700">
+                                                Approve
+                                            </button>
+                                        </form>
+                                        <form method="POST"
+                                            action="{{ route('admin.folder-payments.reject', $payment) }}"
+                                            onsubmit="return confirm({{ json_encode(__('Reject this payment?')) }})">
+                                            @csrf
+                                            <button type="submit"
+                                                class="rounded-lg border border-rose-200 bg-white px-3 py-1.5 text-xs font-semibold text-rose-700 hover:bg-rose-50">
+                                                Reject
+                                            </button>
+                                        </form>
+                                    </div>
+                                @else
+                                    <span class="text-concierge-muted">—</span>
+                                @endif
                             </td>
                         </tr>
                     @empty
                         <tr>
-                            <td class="border border-slate-200 px-4 py-8 text-center text-concierge-muted" colspan="9">
-                                No payments awaiting approval.</td>
+                            <td class="border border-slate-200 px-4 py-8 text-center text-concierge-muted" colspan="10">
+                                No payments recorded.</td>
                         </tr>
                     @endforelse
                 </tbody>

@@ -10,43 +10,42 @@ function initAgentNotificationPoller() {
     }
 
     const pollUrl = notificationIcon.dataset.pollUrl || '';
+    const alertSoundUrl =
+        notificationIcon.dataset.alertSoundUrl || '/sounds/mixkit-confirmation-tone-2867.wav';
     if (!pollUrl) {
         return;
     }
 
-    let audioCtx = null;
+    const LEAD_ALERT_RING_COUNT = 3;
+    const LEAD_ALERT_RING_GAP_MS = 350;
 
-    function ensureAudioContext() {
-        if (audioCtx) {
-            return audioCtx;
-        }
-        const Ctx = window.AudioContext || window.webkitAudioContext;
-        if (!Ctx) {
-            return null;
-        }
-        audioCtx = new Ctx();
-        return audioCtx;
+    const preloadAlert = new Audio(alertSoundUrl);
+    preloadAlert.preload = 'auto';
+    preloadAlert.load();
+
+    function sleep(ms) {
+        return new Promise((resolve) => {
+            window.setTimeout(resolve, ms);
+        });
     }
 
-    function playNotificationTone() {
-        const ctx = ensureAudioContext();
-        if (!ctx) {
-            return;
+    function playAlertOnce() {
+        return new Promise((resolve) => {
+            const audio = new Audio(alertSoundUrl);
+            audio.volume = 1;
+            audio.addEventListener('ended', () => resolve(), { once: true });
+            audio.addEventListener('error', () => resolve(), { once: true });
+            audio.play().catch(() => resolve());
+        });
+    }
+
+    async function playNotificationTone() {
+        for (let i = 0; i < LEAD_ALERT_RING_COUNT; i += 1) {
+            await playAlertOnce();
+            if (i < LEAD_ALERT_RING_COUNT - 1) {
+                await sleep(LEAD_ALERT_RING_GAP_MS);
+            }
         }
-        if (ctx.state === 'suspended') {
-            ctx.resume().catch(() => {});
-        }
-        const osc = ctx.createOscillator();
-        const gain = ctx.createGain();
-        osc.type = 'sine';
-        osc.frequency.setValueAtTime(880, ctx.currentTime);
-        gain.gain.setValueAtTime(0.0001, ctx.currentTime);
-        gain.gain.exponentialRampToValueAtTime(0.08, ctx.currentTime + 0.01);
-        gain.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + 0.22);
-        osc.connect(gain);
-        gain.connect(ctx.destination);
-        osc.start();
-        osc.stop(ctx.currentTime + 0.24);
     }
 
     function setUnreadUI(unreadCount) {
@@ -155,7 +154,7 @@ function initAgentNotificationPoller() {
             setUnreadUI(payload.unread_count ?? 0);
             renderNotifications(payload.notifications ?? []);
             if (Number(payload.new_count || 0) > 0) {
-                playNotificationTone();
+                void playNotificationTone();
             }
         } catch {
             // Keep polling on next interval.

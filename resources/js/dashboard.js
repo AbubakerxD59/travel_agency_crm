@@ -2,6 +2,36 @@ import Chart from 'chart.js/auto';
 import flatpickr from 'flatpickr';
 import 'flatpickr/dist/flatpickr.min.css';
 
+const CONFETTI_ICON = '🎉';
+
+/**
+ * @param {string} name
+ * @param {{ salesDoneTotal?: number, isTopPerformer?: boolean }} [options]
+ */
+function formatAgentLabel(name, options = {}) {
+    const { salesDoneTotal, isTopPerformer = false } = options;
+    let label = salesDoneTotal != null ? `${name} (${salesDoneTotal})` : name;
+
+    return isTopPerformer ? `${CONFETTI_ICON} ${label}` : label;
+}
+
+/**
+ * @param {object} config
+ * @returns {Set<string>}
+ */
+function parseTopPerformerAgentIds(config) {
+    const raw = config?.topPerformerAgentIds;
+    if (Array.isArray(raw) && raw.length > 0) {
+        return new Set(raw.map((id) => String(id)));
+    }
+
+    if (config?.topPerformerAgentId != null) {
+        return new Set([String(config.topPerformerAgentId)]);
+    }
+
+    return new Set();
+}
+
 function initAgentPerformanceChart() {
     const cfgEl = document.getElementById('dashboard-agent-chart-config');
     const canvas = document.getElementById('dashboard-agent-performance-chart');
@@ -19,7 +49,18 @@ function initAgentPerformanceChart() {
     const labels = config.labels ?? [];
     const agents = config.agents ?? [];
     const agentOptions = Array.isArray(config.agentOptions) ? config.agentOptions : [];
-    if (!labels.length || !agents.length) {
+    const highlightTopPerformer = cfgEl.dataset.highlightTopPerformer === 'true';
+    const topPerformerState = {
+        ids: highlightTopPerformer ? parseTopPerformerAgentIds(config) : new Set(),
+    };
+    const useGlobalDashboardFilters = Boolean(document.getElementById('dashboard-filters-form'));
+    const chartEmptyEl = document.getElementById('dashboard-agent-performance-empty');
+
+    if (!labels.length) {
+        return;
+    }
+
+    if (!agents.length && !useGlobalDashboardFilters) {
         return;
     }
 
@@ -29,24 +70,48 @@ function initAgentPerformanceChart() {
     const navy = rootStyles.getPropertyValue('--color-concierge-navy').trim() || '#152c49';
     const muted = rootStyles.getPropertyValue('--color-concierge-muted').trim() || '#64748b';
 
-    const datasets = agents.map((a) => ({
-        label: a.name,
-        data: a.data,
-        borderColor: a.color,
-        backgroundColor: `${a.color}33`,
-        pointBackgroundColor: a.color,
-        pointBorderColor: '#ffffff',
-        pointBorderWidth: 2,
-        pointRadius: 4,
-        pointHoverRadius: 5,
-        borderWidth: 2.5,
-        tension: 0.35,
-        fill: false,
-    }));
+    /**
+     * @param {Array<{ id?: number, name: string, salesDoneTotal?: number, color: string, data: number[] }>} chartAgents
+     */
+    function mapChartDatasets(chartAgents) {
+        return chartAgents.map((a) => {
+            const agentId = a.id != null ? String(a.id) : '';
+            const isTopPerformer = highlightTopPerformer && topPerformerState.ids.has(agentId);
+            const showSalesTotal = highlightTopPerformer && a.salesDoneTotal != null;
+
+            return {
+                label: formatAgentLabel(a.name, {
+                    salesDoneTotal: showSalesTotal ? a.salesDoneTotal : undefined,
+                    isTopPerformer,
+                }),
+                agentId,
+                data: a.data,
+                borderColor: a.color,
+                backgroundColor: `${a.color}33`,
+                pointBackgroundColor: a.color,
+                pointBorderColor: '#ffffff',
+                pointBorderWidth: 2,
+                pointRadius: 4,
+                pointHoverRadius: 5,
+                borderWidth: 2.5,
+                tension: 0.35,
+                fill: false,
+            };
+        });
+    }
+
+    function setChartEmptyVisible(isEmpty) {
+        if (chartEmptyEl) {
+            chartEmptyEl.classList.toggle('hidden', !isEmpty);
+            canvas.classList.toggle('hidden', isEmpty);
+        }
+    }
+
+    setChartEmptyVisible(agents.length === 0);
 
     const chart = new Chart(canvas, {
         type: 'line',
-        data: { labels, datasets },
+        data: { labels, datasets: agents.length ? mapChartDatasets(agents) : [] },
         options: {
             responsive: true,
             maintainAspectRatio: false,
@@ -109,57 +174,51 @@ function initAgentPerformanceChart() {
      */
     let agentCombobox = null;
 
-    if (!filterButton || !filterMenu || !filterLabel) {
+    if (!useGlobalDashboardFilters && (!filterButton || !filterMenu || !filterLabel)) {
         return;
     }
 
     if (agentOptions.length && agentFilterWrap) {
-        agentCombobox = createSearchableAgentCombobox(agentFilterWrap, agentOptions);
+        agentCombobox = createSearchableAgentCombobox(agentFilterWrap, agentOptions, {
+            highlightTopPerformer,
+            topPerformerState,
+        });
     }
 
-    function closeMenu() {
-        filterMenu.classList.add('hidden');
-        filterButton.setAttribute('aria-expanded', 'false');
+    function dashboardGlobalFilterParams() {
+        const form = document.getElementById('dashboard-filters-form');
+        if (!form) {
+            return new URLSearchParams();
+        }
+
+        return new URLSearchParams(new FormData(form));
     }
 
-    function openMenu() {
-        filterMenu.classList.remove('hidden');
-        filterButton.setAttribute('aria-expanded', 'true');
-    }
-
-    // Force closed state on initial render.
-    closeMenu();
-
-    filterButton.addEventListener('click', () => {
-        if (filterMenu.classList.contains('hidden')) {
-            openMenu();
+    function applyTopPerformerFromConfig(nextConfig) {
+        if (!highlightTopPerformer) {
             return;
         }
-        closeMenu();
-    });
+
+        topPerformerState.ids = parseTopPerformerAgentIds(nextConfig);
+        agentCombobox?.refreshTopPerformerDisplay?.();
+    }
 
     function updateChartData(nextConfig) {
         const nextLabels = Array.isArray(nextConfig?.labels) ? nextConfig.labels : [];
         const nextAgents = Array.isArray(nextConfig?.agents) ? nextConfig.agents : [];
-        if (!nextLabels.length || !nextAgents.length) {
+        if (!nextLabels.length) {
             return;
         }
 
+        applyTopPerformerFromConfig(nextConfig);
+        if (Array.isArray(nextConfig?.agentOptions)) {
+            agentCombobox?.setAgentOptions?.(nextConfig.agentOptions);
+        }
+
+        const isEmpty = nextAgents.length === 0;
+        setChartEmptyVisible(isEmpty);
         chart.data.labels = nextLabels;
-        chart.data.datasets = nextAgents.map((agent) => ({
-            label: agent.name,
-            data: agent.data,
-            borderColor: agent.color,
-            backgroundColor: `${agent.color}33`,
-            pointBackgroundColor: agent.color,
-            pointBorderColor: '#ffffff',
-            pointBorderWidth: 2,
-            pointRadius: 4,
-            pointHoverRadius: 5,
-            borderWidth: 2.5,
-            tension: 0.35,
-            fill: false,
-        }));
+        chart.data.datasets = isEmpty ? [] : mapChartDatasets(nextAgents);
         chart.update();
     }
 
@@ -167,18 +226,24 @@ function initAgentPerformanceChart() {
         return agentCombobox?.getAgentId() ?? '';
     }
 
-    async function fetchAndApplyChartData(range, startDate, endDate) {
+    async function fetchAndApplyChartData(range = 'year', startDate = '', endDate = '') {
         if (!chartEndpoint) {
             return false;
         }
 
-        const params = new URLSearchParams({ range });
-        if (startDate) {
-            params.set('start_date', startDate);
+        const params = useGlobalDashboardFilters
+            ? dashboardGlobalFilterParams()
+            : new URLSearchParams({ range });
+
+        if (!useGlobalDashboardFilters) {
+            if (startDate) {
+                params.set('start_date', startDate);
+            }
+            if (endDate) {
+                params.set('end_date', endDate);
+            }
         }
-        if (endDate) {
-            params.set('end_date', endDate);
-        }
+
         const agentId = currentAgentIdParam();
         if (agentId) {
             params.set('agent_id', agentId);
@@ -204,6 +269,10 @@ function initAgentPerformanceChart() {
     }
 
     async function runFilterFetch(filterKey, displayLabel, startDate = '', endDate = '') {
+        if (!filterButton || !filterLabel) {
+            return false;
+        }
+
         const originalLabel = filterLabel.textContent;
         filterButton.disabled = true;
         agentCombobox?.setDisabled(true);
@@ -223,7 +292,7 @@ function initAgentPerformanceChart() {
     }
 
     function ensureCustomDatePicker() {
-        if (customDatePicker) {
+        if (customDatePicker || !filterButton) {
             return customDatePicker;
         }
 
@@ -240,17 +309,14 @@ function initAgentPerformanceChart() {
             allowInput: false,
             clickOpens: false,
             positionElement: filterButton,
-            onClose: async (selectedDates, dateStr, instance) => {
+            onClose: async (selectedDates, _dateStr, instance) => {
                 if (!Array.isArray(selectedDates) || selectedDates.length !== 2) {
                     return;
                 }
 
-                const startDate = instance.formatDate(selectedDates[0], 'Y-m-d');
-                const endDate = instance.formatDate(selectedDates[1], 'Y-m-d');
-                const loaded = await runFilterFetch('custom', `${startDate} - ${endDate}`, startDate, endDate);
-                if (!loaded) {
-                    return;
-                }
+                const start = instance.formatDate(selectedDates[0], 'Y-m-d');
+                const end = instance.formatDate(selectedDates[1], 'Y-m-d');
+                await runFilterFetch('custom', `${start} - ${end}`, start, end);
             },
         });
 
@@ -258,51 +324,96 @@ function initAgentPerformanceChart() {
     }
 
     agentCombobox?.onSelectionCommit(async () => {
-        const { range, start, end } = chartFilterState;
-        const labelBefore = filterLabel.textContent;
-        filterButton.disabled = true;
         agentCombobox?.setDisabled(true);
-        filterLabel.textContent = 'Loading...';
-        await fetchAndApplyChartData(range, start, end);
-        filterButton.disabled = false;
+
+        if (useGlobalDashboardFilters) {
+            await fetchAndApplyChartData();
+        } else if (filterButton && filterLabel) {
+            const { range, start, end } = chartFilterState;
+            const labelBefore = filterLabel.textContent;
+            filterButton.disabled = true;
+            filterLabel.textContent = 'Loading...';
+            await fetchAndApplyChartData(range, start, end);
+            filterButton.disabled = false;
+            filterLabel.textContent = labelBefore;
+        }
+
         agentCombobox?.setDisabled(false);
-        filterLabel.textContent = labelBefore;
     });
 
-    filterMenu.querySelectorAll('.admin-agent-chart-filter-option').forEach((option) => {
-        option.addEventListener('click', async () => {
-            const filterKey = option.dataset.filter || 'month';
-            const displayLabel = option.dataset.filterLabel || option.textContent?.trim() || 'Filter';
-            if (filterKey === 'custom') {
-                const picker = ensureCustomDatePicker();
-                closeMenu();
-                picker.open();
+    if (!useGlobalDashboardFilters && filterButton && filterMenu && filterLabel) {
+        function closeMenu() {
+            filterMenu.classList.add('hidden');
+            filterButton.setAttribute('aria-expanded', 'false');
+        }
+
+        function openMenu() {
+            filterMenu.classList.remove('hidden');
+            filterButton.setAttribute('aria-expanded', 'true');
+        }
+
+        closeMenu();
+
+        filterButton.addEventListener('click', () => {
+            if (filterMenu.classList.contains('hidden')) {
+                openMenu();
                 return;
             }
-
-            await runFilterFetch(filterKey, displayLabel, '', '');
             closeMenu();
         });
-    });
 
-    document.addEventListener('click', (event) => {
-        if (filterMenu.classList.contains('hidden')) {
-            return;
-        }
-        if (filterMenu.contains(event.target) || filterButton.contains(event.target)) {
-            return;
-        }
-        closeMenu();
-    });
+        filterMenu.querySelectorAll('.admin-agent-chart-filter-option').forEach((option) => {
+            option.addEventListener('click', async () => {
+                const filterKey = option.dataset.filter || 'year';
+                const displayLabel = option.dataset.filterLabel || option.textContent?.trim() || 'Filter';
+                if (filterKey === 'custom') {
+                    const picker = ensureCustomDatePicker();
+                    closeMenu();
+                    picker?.open();
+                    return;
+                }
+
+                await runFilterFetch(filterKey, displayLabel, '', '');
+                closeMenu();
+            });
+        });
+
+        document.addEventListener('click', (event) => {
+            if (filterMenu.classList.contains('hidden')) {
+                return;
+            }
+            if (filterMenu.contains(event.target) || filterButton.contains(event.target)) {
+                return;
+            }
+            closeMenu();
+        });
+    }
 }
 
 /**
  * Searchable agent filter (combobox pattern) for the admin performance chart.
  *
  * @param {HTMLElement} mountEl
- * @param {Array<{ id: number, name: string }>} agents
+ * @param {Array<{ id: number, name: string, salesDoneTotal?: number }>} agents
+ * @param {{ highlightTopPerformer?: boolean, topPerformerState?: { ids: Set<string> } }} [options]
  */
-function createSearchableAgentCombobox(mountEl, agents) {
+function createSearchableAgentCombobox(mountEl, agents, options = {}) {
+    const highlightTopPerformer = Boolean(options.highlightTopPerformer);
+    const topPerformerState = options.topPerformerState ?? { ids: new Set() };
+
+    function displayAgentName(choice) {
+        if (choice.id === '') {
+            return choice.name;
+        }
+
+        const isTop = highlightTopPerformer && topPerformerState.ids.has(choice.id);
+        const showSalesTotal = highlightTopPerformer && choice.salesDoneTotal != null;
+
+        return formatAgentLabel(choice.name, {
+            salesDoneTotal: showSalesTotal ? choice.salesDoneTotal : undefined,
+            isTopPerformer: isTop,
+        });
+    }
     const inputClass =
         'w-full min-w-0 rounded-xl border border-slate-200 bg-white px-3.5 py-2 pr-9 text-sm font-medium text-concierge-navy placeholder:text-concierge-muted transition hover:bg-slate-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-concierge-accent/25';
 
@@ -313,13 +424,18 @@ function createSearchableAgentCombobox(mountEl, agents) {
     /** @type {(() => Promise<void>) | null} */
     let onCommitCallback = null;
 
-    const normalized = [...agents].sort((a, b) =>
-        String(a.name).localeCompare(String(b.name), undefined, {
-            sensitivity: 'base',
-        }),
-    );
+    function buildAllChoices(agentsList) {
+        return [
+            { id: '', name: 'All agents' },
+            ...agentsList.map((a) => ({
+                id: String(a.id),
+                name: String(a.name),
+                salesDoneTotal: a.salesDoneTotal ?? 0,
+            })),
+        ];
+    }
 
-    const allChoices = [{ id: '', name: 'All agents' }, ...normalized.map((a) => ({ id: String(a.id), name: String(a.name) }))];
+    let allChoices = buildAllChoices(agents);
 
     const labelEl = document.createElement('label');
     labelEl.className = 'mb-1 block text-xs font-medium text-concierge-muted';
@@ -411,7 +527,12 @@ function createSearchableAgentCombobox(mountEl, agents) {
     }
 
     function syncInputToSelection() {
-        input.value = selectedAgentId === '' ? '' : selectedAgentName;
+        if (selectedAgentId === '') {
+            input.value = '';
+        } else {
+            const choice = allChoices.find((c) => c.id === selectedAgentId);
+            input.value = choice ? displayAgentName(choice) : selectedAgentName;
+        }
         input.placeholder = 'All agents';
     }
 
@@ -433,7 +554,7 @@ function createSearchableAgentCombobox(mountEl, agents) {
             li.dataset.agentId = choice.id;
             li.className =
                 'cursor-pointer px-3.5 py-2 text-sm text-concierge-navy transition hover:bg-slate-50 aria-selected:bg-slate-100';
-            li.textContent = choice.name;
+            li.textContent = displayAgentName(choice);
             const isSel = selectedAgentId === choice.id;
             li.setAttribute('aria-selected', String(isSel));
             if (idx === activeIndex && activeIndex >= 0) {
@@ -574,6 +695,24 @@ function createSearchableAgentCombobox(mountEl, agents) {
         /** @param {() => Promise<void>} cb */
         onSelectionCommit(cb) {
             onCommitCallback = cb;
+        },
+        refreshTopPerformerDisplay() {
+            syncInputToSelection();
+            if (listOpen) {
+                renderOptions();
+            }
+        },
+        /** @param {Array<{ id: number, name: string, salesDoneTotal?: number }>} nextAgents */
+        setAgentOptions(nextAgents) {
+            allChoices = buildAllChoices(nextAgents);
+            if (selectedAgentId !== '' && !allChoices.some((c) => c.id === selectedAgentId)) {
+                selectedAgentId = '';
+                selectedAgentName = '';
+            }
+            syncInputToSelection();
+            if (listOpen) {
+                renderOptions();
+            }
         },
     };
 }

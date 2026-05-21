@@ -6,7 +6,7 @@
     <div id="js-companies-config" class="hidden"
          data-url-base="{{ route('admin.companies.index') }}"
          data-can-manage="{{ $canManageCompanies ? '1' : '0' }}"
-         data-actions-colspan="{{ $canManageCompanies ? 4 : 3 }}"></div>
+         data-actions-colspan="{{ $canManageCompanies ? 6 : 5 }}"></div>
 
     <div class="mx-auto max-w-7xl">
         <div class="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
@@ -33,8 +33,10 @@
                 <table id="companies-index-table" class="min-w-full text-left text-sm">
                     <thead>
                         <tr class="border-b border-slate-100 bg-slate-50/80 text-xs font-semibold uppercase tracking-wide text-concierge-muted">
+                            <th class="px-6 py-4">Image</th>
                             <th class="px-6 py-4">Name</th>
                             <th class="px-6 py-4">Country</th>
+                            <th class="px-6 py-4">Website</th>
                             <th class="px-6 py-4">Added</th>
                             @if ($canManageCompanies)
                                 <th class="px-6 py-4 text-right">Actions</th>
@@ -45,10 +47,25 @@
                         @forelse ($companies as $company)
                             <tr class="hover:bg-slate-50/50"
                                 data-company-id="{{ $company->id }}"
-                                data-search-text="{{ e(mb_strtolower($company->name.' '.($company->country?->name ?? ''), 'UTF-8')) }}">
+                                data-search-text="{{ e(mb_strtolower($company->name.' '.($company->country?->name ?? '').' '.($company->website_link ?? ''), 'UTF-8')) }}">
+                                <td class="px-6 py-4">
+                                    @if ($company->imageUrl())
+                                        <img src="{{ $company->imageUrl() }}" alt="" class="h-10 w-10 rounded-lg border border-slate-200 object-cover">
+                                    @else
+                                        <span class="inline-flex h-10 w-10 items-center justify-center rounded-lg border border-dashed border-slate-200 bg-slate-50 text-xs text-concierge-muted">—</span>
+                                    @endif
+                                </td>
                                 <td class="px-6 py-4 font-medium text-concierge-navy">{{ $company->name }}</td>
                                 <td class="px-6 py-4">
                                     <span class="concierge-pill concierge-pill-meta">{{ $company->country?->name ?? '—' }}</span>
+                                </td>
+                                <td class="px-6 py-4 text-sm">
+                                    @if ($company->website_link)
+                                        <a href="{{ $company->website_link }}" target="_blank" rel="noopener noreferrer"
+                                           class="text-concierge-accent hover:underline">{{ parse_url($company->website_link, PHP_URL_HOST) ?: $company->website_link }}</a>
+                                    @else
+                                        <span class="text-concierge-muted">—</span>
+                                    @endif
                                 </td>
                                 <td class="px-6 py-4 text-sm text-concierge-muted">{{ $company->created_at?->format('M j, Y') }}</td>
                                 @if ($canManageCompanies)
@@ -76,7 +93,7 @@
                             </tr>
                         @empty
                             <tr class="companies-index-empty">
-                                <td colspan="{{ $canManageCompanies ? 4 : 3 }}" class="px-6 py-10 text-center text-sm text-concierge-muted">
+                                <td colspan="{{ $canManageCompanies ? 6 : 5 }}" class="px-6 py-10 text-center text-sm text-concierge-muted">
                                     No companies yet. Use “Add new” to create one.
                                 </td>
                             </tr>
@@ -102,12 +119,25 @@
                 </button>
             </div>
 
-            <form id="store-company-form" method="POST" action="{{ route('admin.companies.store') }}" class="space-y-4 px-6 py-5">
+            <form id="store-company-form" method="POST" action="{{ route('admin.companies.store') }}" enctype="multipart/form-data" class="space-y-4 px-6 py-5">
                 @csrf
+
+                <div>
+                    <label for="modal_company_image" class="block text-sm font-medium text-concierge-navy">Image</label>
+                    <input id="modal_company_image" name="image" type="file" accept="image/jpeg,image/png,image/gif,image/webp"
+                           class="mt-1.5 w-full rounded-xl border border-slate-200 bg-slate-50/80 px-4 py-2 text-sm file:mr-4 file:rounded-lg file:border-0 file:bg-concierge-navy file:px-3 file:py-1.5 file:text-sm file:font-medium file:text-white hover:file:bg-concierge-navy-deep">
+                    <p class="mt-1 text-xs text-concierge-muted">JPEG, PNG, GIF, or WebP. Max 2 MB.</p>
+                </div>
 
                 <div>
                     <label for="modal_company_name" class="block text-sm font-medium text-concierge-navy">Name</label>
                     <input id="modal_company_name" name="name" type="text" required autocomplete="organization"
+                           class="mt-1.5 w-full rounded-xl border border-slate-200 bg-slate-50/80 px-4 py-2.5 text-sm focus:border-concierge-accent focus:bg-white focus:outline-none focus:ring-2 focus:ring-concierge-accent/20">
+                </div>
+
+                <div>
+                    <label for="modal_website_link" class="block text-sm font-medium text-concierge-navy">Website link</label>
+                    <input id="modal_website_link" name="website_link" type="url" placeholder="https://example.com"
                            class="mt-1.5 w-full rounded-xl border border-slate-200 bg-slate-50/80 px-4 py-2.5 text-sm focus:border-concierge-accent focus:bg-white focus:outline-none focus:ring-2 focus:ring-concierge-accent/20">
                 </div>
 
@@ -148,13 +178,31 @@
                     </button>
                 </div>
 
-                <form id="edit-company-form" method="POST" class="space-y-4 px-6 py-5">
+                <form id="edit-company-form" method="POST" enctype="multipart/form-data" class="space-y-4 px-6 py-5">
                     @csrf
                     <input type="hidden" name="_method" value="PATCH">
+
+                    <div id="edit-company-image-preview-wrap" class="hidden">
+                        <p class="text-sm font-medium text-concierge-navy">Current image</p>
+                        <img id="edit-company-image-preview" src="" alt="" class="mt-2 h-16 w-16 rounded-lg border border-slate-200 object-cover">
+                    </div>
+
+                    <div>
+                        <label for="edit_modal_company_image" class="block text-sm font-medium text-concierge-navy">Image</label>
+                        <input id="edit_modal_company_image" name="image" type="file" accept="image/jpeg,image/png,image/gif,image/webp"
+                               class="mt-1.5 w-full rounded-xl border border-slate-200 bg-slate-50/80 px-4 py-2 text-sm file:mr-4 file:rounded-lg file:border-0 file:bg-concierge-navy file:px-3 file:py-1.5 file:text-sm file:font-medium file:text-white hover:file:bg-concierge-navy-deep">
+                        <p class="mt-1 text-xs text-concierge-muted">Leave empty to keep the current image. Max 2 MB.</p>
+                    </div>
 
                     <div>
                         <label for="edit_modal_company_name" class="block text-sm font-medium text-concierge-navy">Name</label>
                         <input id="edit_modal_company_name" name="name" type="text" required autocomplete="organization"
+                               class="mt-1.5 w-full rounded-xl border border-slate-200 bg-slate-50/80 px-4 py-2.5 text-sm focus:border-concierge-accent focus:bg-white focus:outline-none focus:ring-2 focus:ring-concierge-accent/20">
+                    </div>
+
+                    <div>
+                        <label for="edit_modal_website_link" class="block text-sm font-medium text-concierge-navy">Website link</label>
+                        <input id="edit_modal_website_link" name="website_link" type="url" placeholder="https://example.com"
                                class="mt-1.5 w-full rounded-xl border border-slate-200 bg-slate-50/80 px-4 py-2.5 text-sm focus:border-concierge-accent focus:bg-white focus:outline-none focus:ring-2 focus:ring-concierge-accent/20">
                     </div>
 
@@ -187,3 +235,4 @@
 @push('scripts')
     @vite(['resources/js/companies.js'])
 @endpush
+

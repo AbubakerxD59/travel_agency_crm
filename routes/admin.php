@@ -4,6 +4,7 @@ use App\Http\Controllers\Admin\AgentController;
 use App\Http\Controllers\Admin\CompanyController;
 use App\Http\Controllers\Admin\DashboardController;
 use App\Http\Controllers\Admin\FolderController;
+use App\Http\Controllers\FolderInvoiceController;
 use App\Http\Controllers\Admin\FolderPaymentController;
 use App\Http\Controllers\Admin\LeadController;
 use App\Http\Controllers\Admin\NotificationController;
@@ -48,6 +49,7 @@ Route::prefix('admin')->name('admin.')->middleware('role:super-admin')->group(fu
 
     Route::get('/leads/create', [LeadController::class, 'create'])->name('leads.create');
     Route::get('/leads', [LeadController::class, 'index'])->name('leads.index');
+    Route::get('/leads/chart/closed', [LeadController::class, 'closedLeadsChart'])->name('leads.chart.closed');
     Route::post('/leads/assign', [LeadController::class, 'assign'])->name('leads.assign');
     Route::patch('/leads/{lead}/assign', [LeadController::class, 'updateAssign'])->name('leads.assign.update');
     Route::get('/leads/{lead}', [LeadController::class, 'show'])->name('leads.show');
@@ -63,6 +65,7 @@ Route::prefix('admin')->name('admin.')->middleware('role:super-admin')->group(fu
     Route::patch('/folders/{folder}', [FolderController::class, 'update'])->name('folders.update');
     Route::post('/folders/sections/{section}/save', [FolderController::class, 'saveSectionDraft'])
         ->name('folders.sections.save');
+    Route::get('/folders/{folder}/invoice', [FolderInvoiceController::class, 'show'])->name('folders.invoice');
     Route::get('/folders/{folder}', [FolderController::class, 'show'])->name('folders.show');
 
     Route::resource('companies', CompanyController::class)->only([

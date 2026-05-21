@@ -56,7 +56,7 @@
                     </thead>
                     <tbody class="divide-y divide-slate-100">
                         @forelse ($folders as $folder)
-                            <tr class="hover:bg-slate-50/50">
+                            <tr class="{{ folder_list_row_class($folder) }}">
                                 <td class="px-4 py-4 text-concierge-navy lg:px-6">
                                     @if ($folder->agent && $folder->agent->roleName() === 'agent')
                                         <a href="{{ route('admin.agents.overview', $folder->agent) }}"
@@ -167,6 +167,10 @@
                                                 </svg>
                                             </a>
                                         @endif
+                                        @include('partials.folders.invoice-action', [
+                                            'folder' => $folder,
+                                            'routeName' => 'admin.folders.invoice',
+                                        ])
                                         <a href="{{ route('admin.folders.show', $folder) }}"
                                             class="lead-row-action inline-flex cursor-pointer rounded-lg p-2 text-concierge-muted transition hover:bg-slate-100 hover:text-concierge-accent"
                                             title="View" aria-label="View">

@@ -24,6 +24,12 @@ Route::prefix('agent')->name('agent.')->middleware('role:agent')->group(function
     Route::get('/leads', [AgentLeadController::class, 'index'])
         ->middleware('can:leads.access')
         ->name('leads.index');
+    Route::get('/leads/chart/closed', [AgentLeadController::class, 'closedLeadsChart'])
+        ->middleware('can:leads.access')
+        ->name('leads.chart.closed');
+    Route::post('/leads', [AgentLeadController::class, 'store'])
+        ->middleware('can:leads.create')
+        ->name('leads.store');
     Route::patch('/leads/{lead}/status', [AgentLeadController::class, 'updateStatus'])
         ->middleware('can:leads.access')
         ->name('leads.status');

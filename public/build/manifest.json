@@ -1,4 +1,8 @@
 {
+  "_auto-sRkgK8jz.js": {
+    "file": "assets/auto-sRkgK8jz.js",
+    "name": "auto"
+  },
   "_flatpickr-CksuuEqD.css": {
     "file": "assets/flatpickr-CksuuEqD.css",
     "src": "_flatpickr-CksuuEqD.css"
@@ -22,12 +26,21 @@
     ]
   },
   "resources/css/app.css": {
-    "file": "assets/app-DMM4KCwg.css",
+    "file": "assets/app-CdIevSLl.css",
     "src": "resources/css/app.css",
     "isEntry": true,
     "name": "app",
     "names": [
       "app.css"
+    ]
+  },
+  "resources/js/admin-dashboard-filters.js": {
+    "file": "assets/admin-dashboard-filters-BXnluW0F.js",
+    "name": "admin-dashboard-filters",
+    "src": "resources/js/admin-dashboard-filters.js",
+    "isEntry": true,
+    "imports": [
+      "_flatpickr.min-Cc3t1Oke.js"
     ]
   },
   "resources/js/admin-leads-filters.js": {
@@ -46,7 +59,7 @@
     "isEntry": true
   },
   "resources/js/agent-notifications-poller.js": {
-    "file": "assets/agent-notifications-poller-DcIyBRf-.js",
+    "file": "assets/agent-notifications-poller-BFdeFqZv.js",
     "name": "agent-notifications-poller",
     "src": "resources/js/agent-notifications-poller.js",
     "isEntry": true
@@ -70,7 +83,7 @@
     ]
   },
   "resources/js/companies.js": {
-    "file": "assets/companies-Dj0IfuA4.js",
+    "file": "assets/companies-CO21-2hC.js",
     "name": "companies",
     "src": "resources/js/companies.js",
     "isEntry": true,
@@ -79,11 +92,28 @@
     ]
   },
   "resources/js/dashboard.js": {
-    "file": "assets/dashboard-eigs-etb.js",
+    "file": "assets/dashboard-Du4oN64a.js",
     "name": "dashboard",
     "src": "resources/js/dashboard.js",
     "isEntry": true,
     "imports": [
+      "_auto-sRkgK8jz.js",
+      "_flatpickr.min-Cc3t1Oke.js"
+    ]
+  },
+  "resources/js/folder-form-unsaved-guard.js": {
+    "file": "assets/folder-form-unsaved-guard-DUEKz-Gq.js",
+    "name": "folder-form-unsaved-guard",
+    "src": "resources/js/folder-form-unsaved-guard.js",
+    "isEntry": true
+  },
+  "resources/js/leads-closed-chart.js": {
+    "file": "assets/leads-closed-chart-Dd9C0kP5.js",
+    "name": "leads-closed-chart",
+    "src": "resources/js/leads-closed-chart.js",
+    "isEntry": true,
+    "imports": [
+      "_auto-sRkgK8jz.js",
       "_flatpickr.min-Cc3t1Oke.js"
     ]
   }

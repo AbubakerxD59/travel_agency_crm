@@ -7,6 +7,7 @@ use App\Http\Requests\StoreCompanyRequest;
 use App\Http\Requests\UpdateCompanyRequest;
 use App\Models\Company;
 use App\Models\Country;
+use App\Support\CompanyImageStorage;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -15,8 +16,9 @@ use Throwable;
 
 class CompanyController extends Controller
 {
-    public function __construct()
-    {
+    public function __construct(
+        private readonly CompanyImageStorage $companyImages,
+    ) {
         $this->middleware('can:companies.create')->only(['index', 'store']);
         $this->middleware('can:companies.manage')->only([
             'show',
@@ -44,7 +46,14 @@ class CompanyController extends Controller
     public function store(StoreCompanyRequest $request): JsonResponse|RedirectResponse
     {
         try {
-            $company = Company::create($request->safe()->only(['name', 'country_id']));
+            $validated = $request->validated();
+
+            $company = Company::query()->create([
+                'name' => $validated['name'],
+                'country_id' => $validated['country_id'],
+                'website_link' => $validated['website_link'] ?? null,
+                'image' => $this->companyImages->store($request->file('image')),
+            ]);
         } catch (Throwable $e) {
             report($e);
 
@@ -87,7 +96,21 @@ class CompanyController extends Controller
     public function update(UpdateCompanyRequest $request, Company $company): JsonResponse
     {
         try {
-            $company->update($request->safe()->only(['name', 'country_id']));
+            $validated = $request->validated();
+
+            $payload = [
+                'name' => $validated['name'],
+                'country_id' => $validated['country_id'],
+                'website_link' => $validated['website_link'] ?? null,
+            ];
+
+            $uploadedImage = $request->file('image');
+            if ($uploadedImage !== null && $uploadedImage->isValid()) {
+                $this->companyImages->delete($company->image);
+                $payload['image'] = $this->companyImages->store($uploadedImage);
+            }
+
+            $company->update($payload);
         } catch (Throwable $e) {
             report($e);
 
@@ -132,6 +155,9 @@ class CompanyController extends Controller
             'name' => $company->name,
             'country_id' => $company->country_id,
             'country_name' => $company->country?->name,
+            'image' => $company->image,
+            'image_url' => $company->imageUrl(),
+            'website_link' => $company->website_link,
             'created_at' => $company->created_at?->format('M j, Y'),
         ];
     }

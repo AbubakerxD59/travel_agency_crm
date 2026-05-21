@@ -53,7 +53,7 @@
                             );
                         }
                     @endphp
-                    <tr class="hover:bg-slate-50/50">
+                    <tr class="{{ folder_list_row_class($folder) }}">
                         @if ($isAdmin)
                             <td class="px-4 py-4 text-concierge-navy lg:px-6">
                                 @if ($folder->agent && $folder->agent->roleName() === 'agent')
@@ -160,6 +160,12 @@
                                                 d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931z" />
                                         </svg>
                                     </a>
+                                @endif
+                                @if ($isAdmin)
+                                    @include('partials.folders.invoice-action', [
+                                        'folder' => $folder,
+                                        'routeName' => 'admin.folders.invoice',
+                                    ])
                                 @endif
                                 <a href="{{ route(($routePrefix ?? 'admin') . '.folders.show', $folder) }}"
                                     class="lead-row-action inline-flex cursor-pointer rounded-lg p-2 text-concierge-muted transition hover:bg-slate-100 hover:text-concierge-accent"

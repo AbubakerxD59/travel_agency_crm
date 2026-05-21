@@ -61,14 +61,7 @@
                     <div id="admin-agent-chart-filter-menu"
                         class="absolute right-0 z-10 mt-2 hidden min-w-40 overflow-hidden rounded-xl border border-slate-200 bg-white shadow-lg"
                         role="menu" aria-labelledby="admin-agent-chart-filter-button">
-                        <button type="button" class="admin-agent-chart-filter-option block w-full px-4 py-2.5 text-left text-sm text-concierge-navy transition hover:bg-slate-50"
-                            role="menuitem" data-filter="week" data-filter-label="This week">This week</button>
-                        <button type="button" class="admin-agent-chart-filter-option block w-full px-4 py-2.5 text-left text-sm text-concierge-navy transition hover:bg-slate-50"
-                            role="menuitem" data-filter="month" data-filter-label="This month">This month</button>
-                        <button type="button" class="admin-agent-chart-filter-option block w-full px-4 py-2.5 text-left text-sm text-concierge-navy transition hover:bg-slate-50"
-                            role="menuitem" data-filter="year" data-filter-label="This year">This year</button>
-                        <button type="button" class="admin-agent-chart-filter-option block w-full px-4 py-2.5 text-left text-sm text-concierge-navy transition hover:bg-slate-50"
-                            role="menuitem" data-filter="custom" data-filter-label="Custom date">Custom date</button>
+                        @include('partials.date-range-filter-menu')
                     </div>
                 </div>
             </div>

@@ -34,11 +34,13 @@ class FolderController extends Controller
 
         $folders = Folder::query()
             ->with(['agent', 'company', 'destination', 'itineraries'])
-            ->withCount('passengers');
+            ->withCount('passengers')
+            ->withIncompleteBookingFlag();
         $this->applyAdminFolderListFilters(
             $folders,
             $params['search'],
             $params['agentId'],
+            $params['companyId'],
             $params['destinationId'],
             $params['orderType'],
             $params['travelArrivalFrom'],
@@ -46,6 +48,7 @@ class FolderController extends Controller
             $params['bookingStatus'],
         );
         $folders = $folders
+            ->orderByIncompleteBookingFirst()
             ->latest()
             ->paginate(15)
             ->withQueryString();
@@ -54,12 +57,14 @@ class FolderController extends Controller
             'folders' => $folders,
             'search' => $params['search'],
             'selectedAgentId' => $params['agentId'],
+            'selectedCompanyId' => $params['companyId'],
             'selectedDestinationId' => $params['destinationId'],
             'selectedOrderType' => $params['orderType'],
             'selectedTravelArrivalFrom' => $params['travelArrivalFrom'],
             'selectedTravelArrivalTo' => $params['travelArrivalTo'],
             'selectedBookingStatus' => $params['bookingStatus'],
             'agents' => User::role('agent')->orderBy('name')->get(['id', 'name']),
+            'companies' => Company::query()->orderBy('name')->get(['id', 'name']),
             'destinations' => Destination::query()->orderBy('name')->get(['id', 'name']),
             'canManageFolders' => $request->user()->hasRole('super-admin'),
         ]);
@@ -72,11 +77,13 @@ class FolderController extends Controller
         $folders = Folder::query()
             ->with(['agent', 'company', 'destination', 'itineraries'])
             ->withCount('passengers')
-            ->upcomingByTravelDate(20);
+            ->withIncompleteBookingFlag()
+            ->upcomingByTravelDate(Folder::UPCOMING_TRAVEL_DATE_WINDOW_DAYS);
         $this->applyAdminFolderListFilters(
             $folders,
             $params['search'],
             $params['agentId'],
+            $params['companyId'],
             $params['destinationId'],
             $params['orderType'],
             '',
@@ -84,6 +91,7 @@ class FolderController extends Controller
             $params['bookingStatus'],
         );
         $folders = $folders
+            ->orderByIncompleteBookingFirst()
             ->orderBy('travel_date')
             ->orderBy('id')
             ->paginate(15);
@@ -94,10 +102,12 @@ class FolderController extends Controller
             'canManageFolders' => $request->user()->hasRole('super-admin'),
             'search' => $params['search'],
             'selectedAgentId' => $params['agentId'],
+            'selectedCompanyId' => $params['companyId'],
             'selectedDestinationId' => $params['destinationId'],
             'selectedOrderType' => $params['orderType'],
             'selectedBookingStatus' => $params['bookingStatus'],
             'agents' => User::role('agent')->orderBy('name')->get(['id', 'name']),
+            'companies' => Company::query()->orderBy('name')->get(['id', 'name']),
             'destinations' => Destination::query()->orderBy('name')->get(['id', 'name']),
         ]);
     }
@@ -156,6 +166,30 @@ class FolderController extends Controller
         if ($section === 'other_details') {
             $request->merge([
                 'other_details' => folder_filter_non_empty_other_detail_rows($request->input('other_details')),
+            ]);
+        }
+
+        if ($section === 'itineraries') {
+            $request->merge([
+                'itineraries' => folder_filter_non_empty_itinerary_rows($request->input('itineraries')),
+            ]);
+        }
+
+        if ($section === 'hotel_details') {
+            $request->merge([
+                'hotel_details' => folder_filter_non_empty_hotel_detail_rows($request->input('hotel_details')),
+            ]);
+        }
+
+        if ($section === 'transport_details') {
+            $request->merge([
+                'transport_details' => folder_filter_non_empty_transport_detail_rows($request->input('transport_details')),
+            ]);
+        }
+
+        if ($section === 'visa_details') {
+            $request->merge([
+                'visa_details' => folder_filter_non_empty_visa_detail_rows($request->input('visa_details')),
             ]);
         }
 
@@ -327,6 +361,10 @@ class FolderController extends Controller
     {
         $payload['payments'] = folder_filter_non_empty_payment_rows($payload['payments'] ?? null);
         $payload['other_details'] = folder_filter_non_empty_other_detail_rows($payload['other_details'] ?? null);
+        $payload['itineraries'] = folder_filter_non_empty_itinerary_rows($payload['itineraries'] ?? null);
+        $payload['hotel_details'] = folder_filter_non_empty_hotel_detail_rows($payload['hotel_details'] ?? null);
+        $payload['transport_details'] = folder_filter_non_empty_transport_detail_rows($payload['transport_details'] ?? null);
+        $payload['visa_details'] = folder_filter_non_empty_visa_detail_rows($payload['visa_details'] ?? null);
 
         $validated = Validator::make($payload, [
             'agent_id' => ['nullable', 'integer', 'exists:users,id'],
@@ -336,10 +374,11 @@ class FolderController extends Controller
             'company_id' => ['required', 'integer', 'exists:companies,id'],
             'destination_id' => ['required', 'integer', 'exists:destinations,id'],
             'travel_date' => ['required', 'date'],
+            'booking_date' => ['required', 'date'],
             'balance_due_date' => ['required', 'date'],
             'ziarat_option' => ['nullable', 'array'],
             'ziarat_option.*' => ['string', Rule::in(['makkah', 'madinah'])],
-            'itineraries' => ['required', 'array', 'min:1'],
+            'itineraries' => ['nullable', 'array'],
             'itineraries.*.sr_no' => ['required', 'integer', 'min:1'],
             'itineraries.*.airline_code' => ['required', 'string', 'max:20'],
             'itineraries.*.airline_number' => ['required', 'string', 'max:30'],
@@ -372,14 +411,14 @@ class FolderController extends Controller
             'package_costs.*.sell' => ['required', 'numeric', 'min:0'],
             'package_costs.*.supplier' => ['required', 'string', 'max:100'],
             'package_costs.*.pnr' => ['required', 'string', 'max:50'],
-            'hotel_details' => ['required', 'array', 'min:1'],
+            'hotel_details' => ['nullable', 'array'],
             'hotel_details.*.sr_no' => ['required', 'integer', 'min:1'],
             'hotel_details.*.supplier' => ['required', 'string', 'max:100'],
             'hotel_details.*.hotel_name' => ['required', 'string', 'max:150'],
             'hotel_details.*.guest_name' => ['required', 'string', 'max:150'],
             'hotel_details.*.rooms' => ['required', 'integer', 'min:0'],
             'hotel_details.*.type' => ['required', 'string', 'max:100'],
-            'hotel_details.*.meals' => ['required', 'string', 'max:100'],
+            'hotel_details.*.meals' => ['required', 'string', Rule::in(folder_hotel_meals_options())],
             'hotel_details.*.date_in' => ['required', 'date'],
             'hotel_details.*.date_out' => ['required', 'date'],
             'hotel_details.*.nights' => ['required', 'integer', 'min:0'],
@@ -389,19 +428,19 @@ class FolderController extends Controller
             'hotel_details.*.margin' => ['required', 'numeric'],
             'hotel_details.*.sell' => ['nullable', 'numeric', 'min:0'],
             'hotel_details.*.hotel_city' => ['required', 'string', 'max:100', Rule::in(folder_hotel_cities())],
-            'transport_details' => ['required', 'array', 'min:1'],
+            'transport_details' => ['nullable', 'array'],
             'transport_details.*.supplier' => ['required', 'string', 'max:100'],
             'transport_details.*.description' => ['required', 'string', 'max:255'],
             'transport_details.*.origin' => ['required', 'string', 'max:150'],
             'transport_details.*.destination' => ['required', 'string', 'max:150'],
             'transport_details.*.service_date' => ['required', 'date'],
             'transport_details.*.pickup_time' => ['required', 'string', 'max:30'],
-            'transport_details.*.vehicle_type' => ['required', 'string', 'max:100'],
+            'transport_details.*.vehicle_type' => ['required', 'string', Rule::in(folder_transport_vehicle_types())],
             'transport_details.*.cost' => ['required', 'numeric', 'min:0'],
             'transport_details.*.margin' => ['required', 'numeric'],
             'transport_details.*.sell' => ['nullable', 'numeric', 'min:0'],
             'transport_details.*.sar' => ['required', 'numeric', 'min:0'],
-            'visa_details' => ['required', 'array', 'min:1'],
+            'visa_details' => ['nullable', 'array'],
             'visa_details.*.supplier' => ['required', 'string', 'max:100'],
             'visa_details.*.description' => ['required', 'string', 'max:255'],
             'visa_details.*.cost' => ['required', 'numeric', 'min:0'],
@@ -481,7 +520,7 @@ class FolderController extends Controller
     {
         return [
             'itineraries' => [
-                'itineraries' => ['required', 'array', 'min:1'],
+                'itineraries' => ['nullable', 'array'],
                 'itineraries.*.sr_no' => ['required', 'integer', 'min:1'],
                 'itineraries.*.airline_code' => ['required', 'string', 'max:20'],
                 'itineraries.*.airline_number' => ['required', 'string', 'max:30'],
@@ -520,14 +559,14 @@ class FolderController extends Controller
                 'package_costs.*.pnr' => ['required', 'string', 'max:50'],
             ],
             'hotel_details' => [
-                'hotel_details' => ['required', 'array', 'min:1'],
+                'hotel_details' => ['nullable', 'array'],
                 'hotel_details.*.sr_no' => ['required', 'integer', 'min:1'],
                 'hotel_details.*.supplier' => ['required', 'string', 'max:100'],
                 'hotel_details.*.hotel_name' => ['required', 'string', 'max:150'],
                 'hotel_details.*.guest_name' => ['required', 'string', 'max:150'],
                 'hotel_details.*.rooms' => ['required', 'integer', 'min:0'],
                 'hotel_details.*.type' => ['required', 'string', 'max:100'],
-                'hotel_details.*.meals' => ['required', 'string', 'max:100'],
+                'hotel_details.*.meals' => ['required', 'string', Rule::in(folder_hotel_meals_options())],
                 'hotel_details.*.date_in' => ['required', 'date'],
                 'hotel_details.*.date_out' => ['required', 'date'],
                 'hotel_details.*.nights' => ['required', 'integer', 'min:0'],
@@ -539,21 +578,21 @@ class FolderController extends Controller
                 'hotel_details.*.hotel_city' => ['required', 'string', 'max:100', Rule::in(folder_hotel_cities())],
             ],
             'transport_details' => [
-                'transport_details' => ['required', 'array', 'min:1'],
+                'transport_details' => ['nullable', 'array'],
                 'transport_details.*.supplier' => ['required', 'string', 'max:100'],
                 'transport_details.*.description' => ['required', 'string', 'max:255'],
                 'transport_details.*.origin' => ['required', 'string', 'max:150'],
                 'transport_details.*.destination' => ['required', 'string', 'max:150'],
                 'transport_details.*.service_date' => ['required', 'date'],
                 'transport_details.*.pickup_time' => ['required', 'string', 'max:30'],
-                'transport_details.*.vehicle_type' => ['required', 'string', 'max:100'],
+                'transport_details.*.vehicle_type' => ['required', 'string', Rule::in(folder_transport_vehicle_types())],
                 'transport_details.*.cost' => ['required', 'numeric', 'min:0'],
                 'transport_details.*.margin' => ['required', 'numeric'],
                 'transport_details.*.sell' => ['nullable', 'numeric', 'min:0'],
                 'transport_details.*.sar' => ['required', 'numeric', 'min:0'],
             ],
             'visa_details' => [
-                'visa_details' => ['required', 'array', 'min:1'],
+                'visa_details' => ['nullable', 'array'],
                 'visa_details.*.supplier' => ['required', 'string', 'max:100'],
                 'visa_details.*.description' => ['required', 'string', 'max:255'],
                 'visa_details.*.cost' => ['required', 'numeric', 'min:0'],
@@ -596,6 +635,7 @@ class FolderController extends Controller
                     'company_id' => $validated['company_id'],
                     'destination_id' => $validated['destination_id'],
                     'travel_date' => $validated['travel_date'],
+                    'booking_date' => $validated['booking_date'],
                     'balance_due_date' => $validated['balance_due_date'] ?? null,
                     'makkah_ziarat' => in_array('makkah', $validated['ziarat_option'] ?? [], true),
                     'madinah_ziarat' => in_array('madinah', $validated['ziarat_option'] ?? [], true),
@@ -642,6 +682,7 @@ class FolderController extends Controller
     {
         $search = trim((string) $request->string('search')->value());
         $agentId = $request->integer('agent_id') ?: null;
+        $companyId = $request->integer('company_id') ?: null;
         $destinationId = $request->integer('destination_id') ?: null;
         $travelArrivalFrom = trim((string) $request->query('travel_arrival_from', ''));
         $travelArrivalTo = trim((string) $request->query('travel_arrival_to', ''));
@@ -663,6 +704,7 @@ class FolderController extends Controller
         return [
             'search' => $search,
             'agentId' => $agentId,
+            'companyId' => $companyId,
             'destinationId' => $destinationId,
             'orderType' => $orderType,
             'travelArrivalFrom' => $travelArrivalFrom,
@@ -678,6 +720,7 @@ class FolderController extends Controller
         Builder $query,
         string $search,
         ?int $agentId,
+        ?int $companyId,
         ?int $destinationId,
         string $orderType,
         string $travelArrivalFrom,
@@ -686,6 +729,7 @@ class FolderController extends Controller
     ): void {
         $query
             ->when($agentId !== null, fn ($q) => $q->where('agent_id', $agentId))
+            ->when($companyId !== null, fn ($q) => $q->where('company_id', $companyId))
             ->when($destinationId !== null, fn ($q) => $q->where('destination_id', $destinationId))
             ->when($orderType !== '', fn ($q) => $q->where('order_type', $orderType))
             ->when($bookingStatus === 'incomplete', fn ($q) => $q->whereHas('hotelDetails', fn ($hq) => $hq->where('status', 'issue_later')))

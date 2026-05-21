@@ -9,6 +9,8 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Folder extends Model
 {
+    public const UPCOMING_TRAVEL_DATE_WINDOW_DAYS = 20;
+
     /**
      * Allowed order types for folders (delegates to {@see folder_order_types()}).
      *
@@ -25,7 +27,7 @@ class Folder extends Model
      * @param  Builder<Folder>  $query
      * @return Builder<Folder>
      */
-    public function scopeUpcomingByTravelDate(Builder $query, int $daysFromToday = 20): Builder
+    public function scopeUpcomingByTravelDate(Builder $query, int $daysFromToday = self::UPCOMING_TRAVEL_DATE_WINDOW_DAYS): Builder
     {
         $from = now()->startOfDay();
         $to = now()->addDays($daysFromToday)->startOfDay();
@@ -36,6 +38,41 @@ class Folder extends Model
             ->whereDate('travel_date', '<=', $to);
     }
 
+    public static function countUpcomingByTravelDate(?int $agentId = null, int $daysFromToday = self::UPCOMING_TRAVEL_DATE_WINDOW_DAYS): int
+    {
+        $query = static::query()->upcomingByTravelDate($daysFromToday);
+
+        if ($agentId !== null) {
+            $query->where('agent_id', $agentId);
+        }
+
+        return $query->count();
+    }
+
+    /**
+     * Adds {@see Folder::$is_incomplete_booking} (exists) for list row styling without loading hotel rows.
+     *
+     * @param  Builder<Folder>  $query
+     * @return Builder<Folder>
+     */
+    public function scopeWithIncompleteBookingFlag(Builder $query): Builder
+    {
+        return $query->withExists([
+            'hotelDetails as is_incomplete_booking' => fn (Builder $hotelQuery) => $hotelQuery->where('status', 'issue_later'),
+        ]);
+    }
+
+    /**
+     * Incomplete bookings first. Use after {@see scopeWithIncompleteBookingFlag}.
+     *
+     * @param  Builder<Folder>  $query
+     * @return Builder<Folder>
+     */
+    public function scopeOrderByIncompleteBookingFirst(Builder $query): Builder
+    {
+        return $query->orderByDesc('is_incomplete_booking');
+    }
+
     protected $fillable = [
         'agent_id',
         'order_type',
@@ -44,6 +81,7 @@ class Folder extends Model
         'company_id',
         'destination_id',
         'travel_date',
+        'booking_date',
         'balance_due_date',
         'makkah_ziarat',
         'madinah_ziarat',
@@ -57,6 +95,7 @@ class Folder extends Model
     {
         return [
             'travel_date' => 'date',
+            'booking_date' => 'date',
             'balance_due_date' => 'date',
             'makkah_ziarat' => 'boolean',
             'madinah_ziarat' => 'boolean',
@@ -148,7 +187,9 @@ class Folder extends Model
      */
     public function payments(): HasMany
     {
-        return $this->hasMany(FolderPayment::class);
+        return $this->hasMany(FolderPayment::class)
+            ->orderByDesc('payment_date')
+            ->orderByDesc('id');
     }
 
     /**

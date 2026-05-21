@@ -62,6 +62,16 @@
         @apply flex min-h-screen min-w-0 flex-1 flex-col lg:ml-72;
     }
 
+    .leads-closed-chart-wrap {
+        height: 20rem;
+    }
+
+    @media (min-width: 1024px) {
+        .leads-closed-chart-wrap {
+            height: 22rem;
+        }
+    }
+
     body.folder-form-sidebar-drawer .concierge-layout-content {
         margin-left: 0 !important;
     }

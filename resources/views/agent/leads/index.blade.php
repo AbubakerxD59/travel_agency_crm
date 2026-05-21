@@ -2,6 +2,8 @@
 
 @section('title', 'Lead Management')
 
+@section('body_class', 'folder-form-sidebar-drawer')
+
 @section('content')
     <div class="mx-auto max-w-7xl">
         <div class="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
@@ -10,7 +12,16 @@
                 <p class="mt-1 max-w-2xl text-sm text-concierge-muted">Umrah and Hajj bookings: assignment, vendor reference,
                     travel dates, and ziarat options.</p>
             </div>
-
+            @if ($canCreateLeads)
+                <button type="button" id="open-new-lead-modal"
+                    class="inline-flex shrink-0 cursor-pointer items-center justify-center gap-2 rounded-xl bg-concierge-navy px-5 py-2.5 text-sm font-semibold text-white shadow-md shadow-concierge-navy/25 transition hover:bg-concierge-navy-deep">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24"
+                        stroke="currentColor" stroke-width="2" aria-hidden="true">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
+                    </svg>
+                    New Lead
+                </button>
+            @endif
         </div>
 
         @if (session('status'))
@@ -23,6 +34,17 @@
                 {{ session('error') }}
             </div>
         @endif
+
+        @include('partials.leads.closed-leads-chart', [
+            'chartEndpoint' => route('agent.leads.chart.closed'),
+            'closedLeadsChart' => $closedLeadsChart,
+            'chartDateLabel' => $chartDateLabel,
+            'chartDateRange' => $chartDateRange,
+            'chartStartDate' => $chartStartDate,
+            'chartEndDate' => $chartEndDate,
+            'chartSource' => $chartSource,
+            'sourceOptions' => $agentSourceOptions,
+        ])
 
         <form method="GET" action="{{ route('agent.leads.index') }}" class="mt-6">
             <div class="grid grid-cols-1 gap-3 md:grid-cols-2">
@@ -185,10 +207,116 @@
                 </div>
             </div>
         </div>
+
+        @if ($canCreateLeads)
+            <div id="new-lead-modal" class="fixed inset-0 z-50 hidden items-center justify-center bg-slate-900/40 p-4"
+                aria-hidden="true" role="dialog" aria-labelledby="new-lead-modal-title">
+                <div class="max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-2xl bg-white shadow-xl">
+                    <div class="flex items-center justify-between border-b border-slate-100 px-6 py-4">
+                        <h2 id="new-lead-modal-title" class="text-lg font-semibold text-concierge-navy">New Lead</h2>
+                        <button type="button" data-close-new-lead-modal
+                            class="rounded-lg p-2 text-concierge-muted hover:bg-slate-100 hover:text-concierge-navy"
+                            aria-label="Close">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24"
+                                stroke="currentColor" stroke-width="1.5">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+                            </svg>
+                        </button>
+                    </div>
+
+                    <form id="new-lead-form" method="POST" action="{{ route('agent.leads.store') }}"
+                        class="space-y-4 px-6 py-5">
+                        @csrf
+                        <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                            <div>
+                                <label for="new_lead_customer_name"
+                                    class="block text-sm font-medium text-concierge-navy">Customer Name <span
+                                        class="text-rose-600">*</span></label>
+                                <input id="new_lead_customer_name" name="customer_name" type="text" required
+                                    value="{{ old('customer_name') }}"
+                                    class="mt-1.5 w-full rounded-xl border border-slate-200 bg-slate-50/80 px-4 py-2.5 text-sm focus:border-concierge-accent focus:bg-white focus:outline-none focus:ring-2 focus:ring-concierge-accent/20">
+                            </div>
+                            <div>
+                                <label for="new_lead_phone_number" class="block text-sm font-medium text-concierge-navy">Phone
+                                    Number <span class="text-rose-600">*</span></label>
+                                <input id="new_lead_phone_number" name="phone_number" type="text" required
+                                    value="{{ old('phone_number') }}"
+                                    class="mt-1.5 w-full rounded-xl border border-slate-200 bg-slate-50/80 px-4 py-2.5 text-sm focus:border-concierge-accent focus:bg-white focus:outline-none focus:ring-2 focus:ring-concierge-accent/20">
+                            </div>
+                            <div>
+                                <label for="new_lead_email" class="block text-sm font-medium text-concierge-navy">Email</label>
+                                <input id="new_lead_email" name="email" type="email" value="{{ old('email') }}"
+                                    class="mt-1.5 w-full rounded-xl border border-slate-200 bg-slate-50/80 px-4 py-2.5 text-sm focus:border-concierge-accent focus:bg-white focus:outline-none focus:ring-2 focus:ring-concierge-accent/20">
+                            </div>
+                            <div>
+                                <label for="new_lead_company_id" class="block text-sm font-medium text-concierge-navy">Company
+                                    Name</label>
+                                <select id="new_lead_company_id" name="company_id"
+                                    class="mt-1.5 w-full rounded-xl border border-slate-200 bg-slate-50/80 px-4 py-2.5 text-sm focus:border-concierge-accent focus:bg-white focus:outline-none focus:ring-2 focus:ring-concierge-accent/20">
+                                    <option value="">Select company</option>
+                                    @foreach ($companies as $company)
+                                        <option value="{{ $company->id }}" @selected((string) old('company_id') === (string) $company->id)>
+                                            {{ $company->name }}
+                                        </option>
+                                    @endforeach
+                                </select>
+                            </div>
+                            <div>
+                                <label for="new_lead_city" class="block text-sm font-medium text-concierge-navy">City</label>
+                                <input id="new_lead_city" name="city" type="text" value="{{ old('city') }}"
+                                    class="mt-1.5 w-full rounded-xl border border-slate-200 bg-slate-50/80 px-4 py-2.5 text-sm focus:border-concierge-accent focus:bg-white focus:outline-none focus:ring-2 focus:ring-concierge-accent/20">
+                            </div>
+                            <div>
+                                <label for="new_lead_total_passengers" class="block text-sm font-medium text-concierge-navy">Total
+                                    Passengers</label>
+                                <input id="new_lead_total_passengers" name="total_passengers" type="number" min="1" max="500"
+                                    step="1" value="{{ old('total_passengers') }}" placeholder="e.g. 4"
+                                    class="mt-1.5 w-full rounded-xl border border-slate-200 bg-slate-50/80 px-4 py-2.5 text-sm focus:border-concierge-accent focus:bg-white focus:outline-none focus:ring-2 focus:ring-concierge-accent/20">
+                            </div>
+                            <div>
+                                <label for="new_lead_source" class="block text-sm font-medium text-concierge-navy">Source</label>
+                                <select id="new_lead_source" name="source"
+                                    class="mt-1.5 w-full rounded-xl border border-slate-200 bg-slate-50/80 px-4 py-2.5 text-sm focus:border-concierge-accent focus:bg-white focus:outline-none focus:ring-2 focus:ring-concierge-accent/20">
+                                    <option value="">Select source</option>
+                                    @foreach (getAgentLeadSources() as $sourceKey => $sourceLabelOption)
+                                        <option value="{{ $sourceKey }}" @selected(old('source') === $sourceKey)>
+                                            {{ $sourceLabelOption }}
+                                        </option>
+                                    @endforeach
+                                </select>
+                            </div>
+                        </div>
+                        <div>
+                            <label for="new_lead_notes" class="block text-sm font-medium text-concierge-navy">Notes</label>
+                            <textarea id="new_lead_notes" name="notes" rows="4"
+                                class="mt-1.5 w-full rounded-xl border border-slate-200 bg-slate-50/80 px-4 py-2.5 text-sm focus:border-concierge-accent focus:bg-white focus:outline-none focus:ring-2 focus:ring-concierge-accent/20">{{ old('notes') }}</textarea>
+                        </div>
+
+                        @if ($errors->any())
+                            <div class="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-800">
+                                {{ $errors->first() }}
+                            </div>
+                        @endif
+
+                        <div class="flex gap-3 pt-2">
+                            <button type="button" data-close-new-lead-modal
+                                class="flex-1 cursor-pointer rounded-xl border border-slate-200 py-2.5 text-sm font-medium text-concierge-navy hover:bg-slate-50">
+                                Cancel
+                            </button>
+                            <button type="submit" id="new-lead-submit-btn"
+                                class="flex-1 cursor-pointer rounded-xl bg-concierge-navy py-2.5 text-sm font-semibold text-white shadow-md shadow-concierge-navy/25 hover:bg-concierge-navy-deep">
+                                Send Lead
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        @endif
     </div>
 @endsection
 
 @push('scripts')
+    @vite(['resources/js/leads-closed-chart.js'])
     <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.js"></script>
     <script>
@@ -467,4 +595,87 @@
             });
         })();
     </script>
+    @if ($canCreateLeads)
+        <script>
+            const newLeadModal = document.getElementById('new-lead-modal');
+            const openNewLeadModalBtn = document.getElementById('open-new-lead-modal');
+            const newLeadForm = document.getElementById('new-lead-form');
+            const newLeadSubmitBtn = document.getElementById('new-lead-submit-btn');
+
+            function setNewLeadButtonLoading(button, isLoading) {
+                if (!(button instanceof HTMLButtonElement)) {
+                    return;
+                }
+
+                if (isLoading) {
+                    if (button.dataset.loading === '1') {
+                        return;
+                    }
+                    button.dataset.loading = '1';
+                    button.dataset.originalHtml = button.innerHTML;
+                    button.disabled = true;
+                    button.innerHTML =
+                        '<span class="inline-flex items-center justify-center gap-1" aria-hidden="true"><span class="loading-dot"></span><span class="loading-dot"></span><span class="loading-dot"></span></span>';
+                    return;
+                }
+
+                if (button.dataset.originalHtml) {
+                    button.innerHTML = button.dataset.originalHtml;
+                }
+                delete button.dataset.originalHtml;
+                delete button.dataset.loading;
+                button.disabled = false;
+            }
+
+            function openNewLeadModal() {
+                if (!newLeadModal) {
+                    return;
+                }
+                newLeadModal.classList.remove('hidden');
+                newLeadModal.classList.add('flex');
+                newLeadModal.setAttribute('aria-hidden', 'false');
+            }
+
+            function closeNewLeadModal() {
+                if (!newLeadModal) {
+                    return;
+                }
+                newLeadModal.classList.add('hidden');
+                newLeadModal.classList.remove('flex');
+                newLeadModal.setAttribute('aria-hidden', 'true');
+                setNewLeadButtonLoading(newLeadSubmitBtn, false);
+            }
+
+            openNewLeadModalBtn?.addEventListener('click', () => {
+                newLeadForm?.reset();
+                setNewLeadButtonLoading(newLeadSubmitBtn, false);
+                openNewLeadModal();
+            });
+
+            const shouldOpenNewLeadFromQuery = new URLSearchParams(window.location.search).get('openNewLead') === '1';
+            if (shouldOpenNewLeadFromQuery) {
+                openNewLeadModal();
+                const cleanUrl = new URL(window.location.href);
+                cleanUrl.searchParams.delete('openNewLead');
+                window.history.replaceState({}, '', cleanUrl.toString());
+            }
+
+            document.querySelectorAll('[data-close-new-lead-modal]').forEach((btn) => {
+                btn.addEventListener('click', closeNewLeadModal);
+            });
+            newLeadModal?.addEventListener('click', (event) => {
+                if (event.target === newLeadModal) {
+                    closeNewLeadModal();
+                }
+            });
+
+            @if ($errors->any())
+                openNewLeadModal();
+            @endif
+
+            newLeadForm?.addEventListener('submit', () => {
+                setNewLeadButtonLoading(newLeadSubmitBtn, true);
+            });
+        </script>
+    @endif
 @endpush

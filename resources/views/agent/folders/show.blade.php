@@ -53,6 +53,11 @@
                     </dd>
                 </div>
                 <div class="rounded-xl border border-slate-100 bg-slate-50/50 px-4 py-3">
+                    <dt class="text-xs uppercase tracking-wide text-concierge-muted">Booking Date</dt>
+                    <dd class="mt-1 text-sm font-medium text-concierge-navy">{{ $folder->booking_date?->format('M j, Y') ?? '—' }}
+                    </dd>
+                </div>
+                <div class="rounded-xl border border-slate-100 bg-slate-50/50 px-4 py-3">
                     <dt class="text-xs uppercase tracking-wide text-concierge-muted">Balance Due Date</dt>
                     <dd class="mt-1 text-sm font-medium text-concierge-navy">{{ $folder->balance_due_date?->format('M j, Y') ?? '—' }}
                     </dd>

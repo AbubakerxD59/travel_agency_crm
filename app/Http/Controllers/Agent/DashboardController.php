@@ -61,30 +61,7 @@ class DashboardController extends Controller
         ?Carbon $customStart = null,
         ?Carbon $customEnd = null,
     ): array {
-        $now = now();
-        $safeRange = in_array($range, ['week', 'month', 'year', 'custom'], true) ? $range : 'year';
-
-        $groupByMonth = false;
-        if ($safeRange === 'week') {
-            $start = $now->copy()->startOfWeek();
-            $end = $now->copy()->endOfWeek();
-        } elseif ($safeRange === 'month') {
-            $start = $now->copy()->startOfMonth();
-            $end = $now->copy()->endOfMonth();
-        } elseif ($safeRange === 'year') {
-            $groupByMonth = true;
-            $start = $now->copy()->startOfYear();
-            $end = $now->copy()->endOfYear();
-        } else {
-            if ($customStart instanceof Carbon && $customEnd instanceof Carbon && $customStart->lte($customEnd)) {
-                $start = $customStart->copy()->startOfDay();
-                $end = $customEnd->copy()->endOfDay();
-                $groupByMonth = $start->diffInDays($end) > 62;
-            } else {
-                $start = $now->copy()->startOfMonth();
-                $end = $now->copy()->endOfMonth();
-            }
-        }
+        [$start, $end, $groupByMonth] = performanceChartDateRange($range, $customStart, $customEnd);
 
         $bucketKeys = [];
         $labels = [];

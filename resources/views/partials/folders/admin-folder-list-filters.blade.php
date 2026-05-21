@@ -2,7 +2,7 @@
     $showTravelDateFilter = $showTravelDateFilter ?? true;
 @endphp
 <form method="GET" action="{{ $formAction }}" class="mt-6">
-    <div class="grid grid-cols-1 gap-3 md:grid-cols-2 {{ $showTravelDateFilter ? 'xl:grid-cols-4' : 'xl:grid-cols-3' }}">
+    <div class="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-3">
         <div>
             <label for="folder-agent-filter" class="block text-sm font-medium text-concierge-navy">Agent</label>
             <select id="folder-agent-filter" name="agent_id"
@@ -16,6 +16,18 @@
             </select>
         </div>
         <div>
+            <label for="folder-company-filter" class="block text-sm font-medium text-concierge-navy">Company</label>
+            <select id="folder-company-filter" name="company_id"
+                class="mt-1.5 w-full rounded-xl border border-slate-200 bg-slate-50/80 px-4 py-2.5 text-sm text-slate-800 focus:border-concierge-accent focus:bg-white focus:outline-none focus:ring-2 focus:ring-concierge-accent/20">
+                <option value="">All companies</option>
+                @foreach ($companies as $company)
+                    <option value="{{ $company->id }}" @selected((string) ($selectedCompanyId ?? '') === (string) $company->id)>
+                        {{ $company->name }}
+                    </option>
+                @endforeach
+            </select>
+        </div>
+        <div>
             <label for="folder-destination-filter"
                 class="block text-sm font-medium text-concierge-navy">Destination</label>
             <select id="folder-destination-filter" name="destination_id"
@@ -24,6 +36,23 @@
                 @foreach ($destinations as $destination)
                     <option value="{{ $destination->id }}" @selected((string) ($selectedDestinationId ?? '') === (string) $destination->id)>
                         {{ $destination->name }}
+                    </option>
+                @endforeach
+            </select>
+        </div>
+    </div>
+    <div
+        class="grid grid-cols-1 gap-3 md:grid-cols-2 {{ $showTravelDateFilter ? 'xl:grid-cols-3' : 'xl:grid-cols-2' }}">
+        <div>
+            <label for="folder-booking-status-filter" class="block text-sm font-medium text-concierge-navy">
+                Booking Status
+            </label>
+            <select id="folder-booking-status-filter" name="booking_status"
+                class="mt-1.5 w-full rounded-xl border border-slate-200 bg-slate-50/80 px-4 py-2.5 text-sm text-slate-800 focus:border-concierge-accent focus:bg-white focus:outline-none focus:ring-2 focus:ring-concierge-accent/20">
+                <option value="">All bookings</option>
+                @foreach (folder_booking_status_filter_options() as $bookingValue => $bookingLabel)
+                    <option value="{{ $bookingValue }}" @selected(($selectedBookingStatus ?? '') === $bookingValue)>
+                        {{ $bookingLabel }}
                     </option>
                 @endforeach
             </select>
@@ -66,20 +95,10 @@
             </div>
         @endif
     </div>
-
     <div class="mt-1.5 flex flex-col gap-2 sm:flex-row">
         <input id="folder-search-admin" name="search" type="search"
             placeholder="Search by customer name, order type, or vendor ref#" value="{{ $search ?? '' }}"
             class="w-full rounded-xl border border-slate-200 bg-slate-50/80 px-4 py-2.5 text-sm text-slate-800 placeholder:text-slate-400 focus:border-concierge-accent focus:bg-white focus:outline-none focus:ring-2 focus:ring-concierge-accent/20">
-        <select id="folder-booking-status-filter" name="booking_status"
-            class="w-65 rounded-xl border border-slate-200 bg-slate-50/80 px-4 py-2.5 text-sm text-slate-800 focus:border-concierge-accent focus:bg-white focus:outline-none focus:ring-2 focus:ring-concierge-accent/20">
-            <option value="">All bookings</option>
-            @foreach (folder_booking_status_filter_options() as $bookingValue => $bookingLabel)
-                <option value="{{ $bookingValue }}" @selected(($selectedBookingStatus ?? '') === $bookingValue)>
-                    {{ $bookingLabel }}
-                </option>
-            @endforeach
-        </select>
         <div class="flex shrink-0 gap-2">
             <button type="submit"
                 class="inline-flex cursor-pointer items-center justify-center rounded-xl bg-concierge-navy px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-concierge-navy-deep">
@@ -88,6 +107,7 @@
             @if (
                 ($search ?? '') !== '' ||
                     ($selectedAgentId ?? null) ||
+                    ($selectedCompanyId ?? null) ||
                     ($selectedDestinationId ?? null) ||
                     ($showTravelDateFilter &&
                         (($selectedTravelArrivalFrom ?? '') !== '' || ($selectedTravelArrivalTo ?? '') !== '')) ||

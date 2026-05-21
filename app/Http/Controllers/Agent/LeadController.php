@@ -2,20 +2,29 @@
 
 namespace App\Http\Controllers\Agent;
 
+use App\Http\Controllers\Concerns\ResolvesClosedLeadsChart;
 use App\Http\Controllers\Controller;
-use App\Http\Requests\UpdateLeadRequest;
+use App\Http\Requests\StoreAgentLeadRequest;
+use App\Models\Company;
+use App\Models\Destination;
 use App\Models\Lead;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
-use Illuminate\Validation\ValidationException;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
-use Throwable;
 
 class LeadController extends Controller
 {
+    use ResolvesClosedLeadsChart;
+
+    public function __construct()
+    {
+        $this->middleware('can:leads.access')->only(['index', 'show', 'updateStatus', 'closedLeadsChart']);
+        $this->middleware('can:leads.create')->only(['store']);
+    }
+
     public function index(Request $request): View
     {
         $search = trim((string) $request->query('search', ''));
@@ -45,8 +54,28 @@ class LeadController extends Controller
         }
 
         $leads = $leadsQuery
-            ->paginate(15)
+            ->paginate(30)
             ->withQueryString();
+
+        $chartDateFilter = resolveLeadDateRangeFilter('year', '', '', 'year');
+        [$chartStart, $chartEnd, $chartGroupByMonth] = performanceChartDateRange(
+            $chartDateFilter['range'],
+            $chartDateFilter['start'],
+            $chartDateFilter['end'],
+        );
+
+        $agentSourceOptions = getAgentLeadSources();
+        $chartSource = $source !== '' && array_key_exists($source, $agentSourceOptions) ? $source : '';
+
+        $closedLeadsChart = buildClosedLeadsChartData(
+            $chartStart,
+            $chartEnd,
+            $chartGroupByMonth,
+            $chartSource !== '' ? $chartSource : null,
+            (int) $request->user()->id,
+            null,
+            $agentSourceOptions,
+        );
 
         return view('agent.leads.index', [
             'leads' => $leads,
@@ -54,8 +83,66 @@ class LeadController extends Controller
             'selectedSource' => $source,
             'selectedStatus' => $status,
             'statuses' => Lead::statusLabels(),
-            'canCreateLeads' => true,
+            'canCreateLeads' => $request->user()->can('leads.create'),
+            'companies' => $request->user()->can('leads.create')
+                ? Company::query()->orderBy('name')->get(['id', 'name'])
+                : collect(),
+            'closedLeadsChart' => $closedLeadsChart,
+            'chartDateLabel' => $chartDateFilter['label'],
+            'chartDateRange' => $chartDateFilter['range'],
+            'chartStartDate' => $chartDateFilter['startDate'],
+            'chartEndDate' => $chartDateFilter['endDate'],
+            'chartSource' => $chartSource,
+            'agentSourceOptions' => $agentSourceOptions,
         ]);
+    }
+
+    public function closedLeadsChart(Request $request): JsonResponse
+    {
+        return $this->closedLeadsChartResponse($request, (int) $request->user()->id);
+    }
+
+    public function store(StoreAgentLeadRequest $request): RedirectResponse
+    {
+        $data = $request->validated();
+
+        $companyId = $data['company_id'] ?? Company::query()->value('id');
+        if ($companyId === null) {
+            return back()->withInput()->with('error', __('Please add a company first, then create the lead.'));
+        }
+
+        $destinationId = Destination::query()->value('id');
+        if ($destinationId === null) {
+            return back()->withInput()->with('error', __('Please add a destination first, then create the lead.'));
+        }
+
+        $agentId = (int) $request->user()->id;
+
+        Lead::create([
+            'agent_id' => $agentId,
+            'lead_assign_date' => now(),
+            'customer_name' => $data['customer_name'],
+            'phone_number' => $data['phone_number'],
+            'email' => $data['email'] ?? null,
+            'company_id' => $companyId,
+            'city' => $data['city'] ?? null,
+            'total_passengers' => $data['total_passengers'] ?? null,
+            'source' => $data['source'] ?? null,
+            'notes' => $data['notes'] ?? null,
+            'order_type' => 'Assigned',
+            'status' => Lead::STATUS_NEW,
+            'destination_id' => $destinationId,
+            'travel_date' => now()->toDateString(),
+            'vendor_reference' => null,
+            'balance_due_date' => null,
+            'flight_itinerary' => null,
+            'ziarat_makkah' => false,
+            'ziarat_madinah' => false,
+        ]);
+
+        return redirect()
+            ->route('agent.leads.index')
+            ->with('status', __('Lead created successfully.'));
     }
 
     public function show(Lead $lead): View

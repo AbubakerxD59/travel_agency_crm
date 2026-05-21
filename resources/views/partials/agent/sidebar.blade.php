@@ -1,6 +1,9 @@
 @php
+    use App\Models\Folder;
+
     $route = request()->route()?->getName();
     $agentUnreadNotifications = auth()->user()?->unreadNotifications()->count() ?? 0;
+    $agentUpcomingFoldersCount = Folder::countUpcomingByTravelDate(auth()->id());
 @endphp
 
 <aside id="admin-sidebar" class="concierge-fixed-sidebar" aria-label="Main navigation">
@@ -68,7 +71,13 @@
                         <path stroke-linecap="round" stroke-linejoin="round"
                             d="M3.75 5.25A2.25 2.25 0 016 3h3.879a2.25 2.25 0 011.591.659l1.121 1.121A2.25 2.25 0 0014.182 5.5H18A2.25 2.25 0 0120.25 7.75v10.5A2.25 2.25 0 0118 20.5H6a2.25 2.25 0 01-2.25-2.25V5.25z" />
                     </svg>
-                    Upcoming Folders
+                    <span class="flex min-w-0 flex-1 items-center gap-2">
+                        <span
+                            class="inline-flex min-h-5 min-w-5 shrink-0 items-center justify-center rounded-full bg-concierge-navy/10 px-1.5 text-[10px] font-bold leading-none text-concierge-navy tabular-nums">
+                            {{ $agentUpcomingFoldersCount > 99 ? '99+' : $agentUpcomingFoldersCount }}
+                        </span>
+                        <span>Upcoming Folders</span>
+                    </span>
                 </a>
             </div>
         @endcan

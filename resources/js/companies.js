@@ -43,6 +43,24 @@ function jsonHeaders(extra = {}) {
     };
 }
 
+/** Headers for multipart FormData — never set Content-Type (browser sets boundary). */
+function multipartHeaders() {
+    return jsonHeaders();
+}
+
+function buildCompanyFormData(form) {
+    const fd = new FormData(form);
+    const imageInput = form.querySelector('input[type="file"][name="image"]');
+
+    if (imageInput?.files?.[0]) {
+        fd.set('image', imageInput.files[0]);
+    } else {
+        fd.delete('image');
+    }
+
+    return fd;
+}
+
 function companyUrl(id) {
     return `${companyBaseUrl}/${id}`;
 }
@@ -58,7 +76,28 @@ function companiesTableActionsColspan() {
 
 function companySearchTextFromPayload(company) {
     const country = company.country_name != null ? String(company.country_name) : '';
-    return `${company.name ?? ''} ${country}`.trim().toLowerCase();
+    const website = company.website_link != null ? String(company.website_link) : '';
+    return `${company.name ?? ''} ${country} ${website}`.trim().toLowerCase();
+}
+
+function companyWebsiteLabel(url) {
+    if (!url) {
+        return '';
+    }
+    try {
+        return new URL(url).hostname;
+    } catch {
+        return url;
+    }
+}
+
+function companyWebsiteCellHtml(websiteLink) {
+    if (!websiteLink) {
+        return '<span class="text-concierge-muted">—</span>';
+    }
+    const label = companyWebsiteLabel(websiteLink);
+    const safeUrl = String(websiteLink).replace(/"/g, '&quot;');
+    return `<a href="${safeUrl}" target="_blank" rel="noopener noreferrer" class="text-concierge-accent hover:underline">${label}</a>`;
 }
 
 function companiesTableBody() {
@@ -87,6 +126,30 @@ function ensureEmptyStateRowVisible() {
     tb.appendChild(tr);
 }
 
+function companyImageCellHtml(imageUrl) {
+    if (imageUrl) {
+        return `<img src="${imageUrl}" alt="" class="h-10 w-10 rounded-lg border border-slate-200 object-cover">`;
+    }
+
+    return '<span class="inline-flex h-10 w-10 items-center justify-center rounded-lg border border-dashed border-slate-200 bg-slate-50 text-xs text-concierge-muted">—</span>';
+}
+
+function setEditCompanyImagePreview(imageUrl) {
+    const wrap = document.getElementById('edit-company-image-preview-wrap');
+    const img = document.getElementById('edit-company-image-preview');
+    if (!wrap || !img) {
+        return;
+    }
+
+    if (imageUrl) {
+        img.src = imageUrl;
+        wrap.classList.remove('hidden');
+    } else {
+        img.removeAttribute('src');
+        wrap.classList.add('hidden');
+    }
+}
+
 function companyActionButtonsInnerHtml(companyId) {
     const id = String(companyId);
     return `<div class="inline-flex flex-wrap items-center justify-end gap-1">
@@ -105,6 +168,10 @@ function buildCompanyRow(company) {
     tr.dataset.companyId = String(company.id);
     tr.dataset.searchText = companySearchTextFromPayload(company);
 
+    const tdImage = document.createElement('td');
+    tdImage.className = 'px-6 py-4';
+    tdImage.innerHTML = companyImageCellHtml(company.image_url ?? null);
+
     const tdName = document.createElement('td');
     tdName.className = 'px-6 py-4 font-medium text-concierge-navy';
     tdName.textContent = company.name ?? '';
@@ -116,11 +183,15 @@ function buildCompanyRow(company) {
     pill.textContent = company.country_name ?? '—';
     tdCountry.appendChild(pill);
 
+    const tdWebsite = document.createElement('td');
+    tdWebsite.className = 'px-6 py-4 text-sm';
+    tdWebsite.innerHTML = companyWebsiteCellHtml(company.website_link ?? null);
+
     const tdAdded = document.createElement('td');
     tdAdded.className = 'px-6 py-4 text-sm text-concierge-muted';
     tdAdded.textContent = company.created_at ?? '';
 
-    tr.append(tdName, tdCountry, tdAdded);
+    tr.append(tdImage, tdName, tdCountry, tdWebsite, tdAdded);
 
     if (canManageCompanies()) {
         const tdAct = document.createElement('td');
@@ -145,15 +216,17 @@ function updateCompanyRowFromPayload(company) {
     }
     tr.dataset.searchText = companySearchTextFromPayload(company);
     const cells = tr.querySelectorAll('td');
-    if (cells.length < 3) {
+    if (cells.length < 5) {
         return;
     }
-    cells[0].textContent = company.name ?? '';
-    const pill = cells[1].querySelector('.concierge-pill');
+    cells[0].innerHTML = companyImageCellHtml(company.image_url ?? null);
+    cells[1].textContent = company.name ?? '';
+    const pill = cells[2].querySelector('.concierge-pill');
     if (pill) {
         pill.textContent = company.country_name ?? '—';
     }
-    cells[2].textContent = company.created_at ?? '';
+    cells[3].innerHTML = companyWebsiteCellHtml(company.website_link ?? null);
+    cells[4].textContent = company.created_at ?? '';
 }
 
 function appendCompanyRowFromPayload(company) {
@@ -246,6 +319,7 @@ function closeEditCompanyModal() {
     editModal.setAttribute('aria-hidden', 'true');
     editingCompanyId = null;
     editForm?.reset();
+    setEditCompanyImagePreview(null);
 }
 
 function setButtonLoading(button, isLoading) {
@@ -342,10 +416,15 @@ document.addEventListener('click', async (e) => {
             }
             editForm.action = companyUrl(id);
             document.getElementById('edit_modal_company_name').value = c.name ?? '';
+            const websiteInput = document.getElementById('edit_modal_website_link');
+            if (websiteInput) {
+                websiteInput.value = c.website_link ?? '';
+            }
             const countrySelect = document.getElementById('edit_modal_country_id');
             if (countrySelect) {
                 countrySelect.value = String(c.country_id ?? '');
             }
+            setEditCompanyImagePreview(c.image_url ?? null);
             openEditCompanyModal();
         } catch {
             toastr.error('Network error.');
@@ -397,12 +476,12 @@ editForm?.addEventListener('submit', async (e) => {
     const submitBtn = editForm.querySelector('button[type="submit"]');
     setButtonLoading(submitBtn, true);
 
-    const fd = new FormData(editForm);
+    const fd = buildCompanyFormData(editForm);
 
     try {
         const res = await fetch(companyUrl(editingCompanyId), {
             method: 'POST',
-            headers: jsonHeaders(),
+            headers: multipartHeaders(),
             body: fd,
         });
 
@@ -449,8 +528,8 @@ form?.addEventListener('submit', async (e) => {
     try {
         const res = await fetch(form.action, {
             method: 'POST',
-            headers: jsonHeaders(),
-            body: new FormData(form),
+            headers: multipartHeaders(),
+            body: buildCompanyFormData(form),
         });
 
         let data = {};
