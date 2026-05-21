@@ -76,13 +76,6 @@
             letter-spacing: 0.02em;
         }
 
-        .invoice-logo__mark {
-            display: block;
-            font-weight: 400;
-            letter-spacing: 0.12em;
-            margin-bottom: 2px;
-        }
-
         .invoice-website {
             margin-top: 6px;
             color: #222;
@@ -412,10 +405,7 @@
                     <img src="{{ $company['logo_url'] }}" alt="{{ $company['name'] }}"
                         style="max-height: 56px; max-width: 200px;">
                 @else
-                    <div class="invoice-logo">
-                        <span class="invoice-logo__mark">▲</span>
-                        {{ $company['name'] }}
-                    </div>
+                    <div class="invoice-logo">{{ $company['name'] }}</div>
                 @endif
                 @if (!empty($company['email']))
                     <div class="invoice-brand-email">{{ $company['email'] }}</div>
