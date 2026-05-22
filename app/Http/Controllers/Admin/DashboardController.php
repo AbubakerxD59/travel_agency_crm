@@ -145,21 +145,10 @@ class DashboardController extends Controller
      */
     private function agentsForDashboard(array $filters): Collection
     {
-        $query = User::role('agent');
+        $query = User::role(User::ROLE_AGENT);
 
         if ($filters['companyId']) {
-            $agentIds = Lead::query()
-                ->where('company_id', $filters['companyId'])
-                ->whereBetween('created_at', [$filters['start'], $filters['end']])
-                ->whereNotNull('agent_id')
-                ->distinct()
-                ->pluck('agent_id');
-
-            if ($agentIds->isEmpty()) {
-                return collect();
-            }
-
-            $query->whereIn('id', $agentIds);
+            $query->where('company_id', $filters['companyId']);
         }
 
         return $query->orderBy('name')->get(['id', 'name']);

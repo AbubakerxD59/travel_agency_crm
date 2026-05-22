@@ -13,6 +13,8 @@ toastr.options = {
     extendedTimeOut: 2000,
 };
 
+const ROLE_AGENT = 'agent';
+
 const cfg = document.getElementById('js-agents-config');
 const agentBaseUrl = (
     cfg?.dataset.urlBase ??
@@ -30,6 +32,8 @@ const permissionsForm = document.getElementById('permissions-form');
 const permissionsCheckboxes = document.getElementById('permissions-checkboxes');
 const permissionsAgentLabel = document.getElementById('permissions-agent-label');
 const agentListFilterInput = document.getElementById('agent-list-filter');
+const agentCompanyFilterSelect = document.getElementById('agent-company-filter');
+const agentListFiltersForm = document.getElementById('agent-list-filters-form');
 const agentsFilterNoResults = document.getElementById('agents-filter-no-results');
 const agentsIndexTable = document.getElementById('agents-index-table');
 
@@ -81,8 +85,21 @@ function currentUserId() {
 }
 
 function agentsTableActionsColspan() {
-    const n = parseInt(cfg?.dataset.actionsColspan ?? '5', 10);
-    return Number.isFinite(n) && n > 0 ? n : 5;
+    const n = parseInt(cfg?.dataset.actionsColspan ?? '7', 10);
+    return Number.isFinite(n) && n > 0 ? n : 7;
+}
+
+function agentListCellText(value) {
+    const text = value == null || value === '' ? '-' : String(value);
+    return escapeHtml(text);
+}
+
+function formatRoleLabel(role) {
+    const value = role == null || role === '' ? 'agent' : String(role);
+    return value
+        .split(/[-_]/)
+        .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+        .join(' ');
 }
 
 function agentSearchTextFromPayload(agent) {
@@ -138,6 +155,8 @@ function buildAgentRow(agent) {
     const tr = document.createElement('tr');
     tr.className = 'hover:bg-slate-50/50';
     tr.dataset.agentId = String(agent.id);
+    tr.dataset.companyId =
+        agent.company_id != null && agent.company_id !== '' ? String(agent.company_id) : '';
     tr.dataset.searchText = agentSearchTextFromPayload(agent);
 
     const tdName = document.createElement('td');
@@ -169,18 +188,26 @@ function buildAgentRow(agent) {
         tdGuardian.textContent = '-';
     }
 
+    const tdCompany = document.createElement('td');
+    tdCompany.className = 'px-6 py-4 text-concierge-navy';
+    tdCompany.innerHTML = agentListCellText(agent.company_name);
+
+    const tdManager = document.createElement('td');
+    tdManager.className = 'px-6 py-4 text-concierge-navy';
+    tdManager.innerHTML = agentListCellText(agent.manager_name);
+
     const tdRole = document.createElement('td');
     tdRole.className = 'px-6 py-4';
     const pill = document.createElement('span');
     pill.className = 'concierge-pill concierge-pill-contacted';
-    pill.textContent = agent.role ?? 'agent';
+    pill.textContent = formatRoleLabel(agent.role);
     tdRole.appendChild(pill);
 
     const tdAdded = document.createElement('td');
     tdAdded.className = 'px-6 py-4 text-sm text-concierge-muted';
     tdAdded.textContent = agent.created_at ?? '';
 
-    tr.append(tdName, tdEmail, tdGuardian, tdRole, tdAdded);
+    tr.append(tdName, tdEmail, tdGuardian, tdCompany, tdManager, tdRole, tdAdded);
 
     if (canManageAgents()) {
         const tdAct = document.createElement('td');
@@ -203,9 +230,11 @@ function updateAgentRowFromPayload(agent) {
     if (!tr) {
         return;
     }
+    tr.dataset.companyId =
+        agent.company_id != null && agent.company_id !== '' ? String(agent.company_id) : '';
     tr.dataset.searchText = agentSearchTextFromPayload(agent);
     const cells = tr.querySelectorAll('td');
-    if (cells.length < 5) {
+    if (cells.length < 7) {
         return;
     }
     cells[0].innerHTML = `<a href="${agentOverviewUrl(agent.id)}" class="hover:underline">${escapeHtml(agent.name ?? '')}${
@@ -229,11 +258,15 @@ function updateAgentRowFromPayload(agent) {
         cells[2].className = 'px-6 py-4 font-medium text-concierge-navy text-center';
         cells[2].textContent = '-';
     }
-    const pill = cells[3].querySelector('.concierge-pill');
+    cells[3].className = 'px-6 py-4 text-concierge-navy';
+    cells[3].innerHTML = agentListCellText(agent.company_name);
+    cells[4].className = 'px-6 py-4 text-concierge-navy';
+    cells[4].innerHTML = agentListCellText(agent.manager_name);
+    const pill = cells[5].querySelector('.concierge-pill');
     if (pill) {
-        pill.textContent = agent.role ?? 'agent';
+        pill.textContent = formatRoleLabel(agent.role);
     }
-    cells[4].textContent = agent.created_at ?? '';
+    cells[6].textContent = agent.created_at ?? '';
 }
 
 function appendAgentRowFromPayload(agent) {
@@ -273,12 +306,16 @@ async function confirmDeleteAgent() {
 
 function applyAgentListFilter() {
     const q = (agentListFilterInput?.value ?? '').trim().toLowerCase();
+    const companyId = (agentCompanyFilterSelect?.value ?? '').trim();
     const rows = agentsIndexTable?.querySelectorAll('tbody tr[data-agent-id]') ?? [];
 
     let visible = 0;
     rows.forEach((row) => {
         const haystack = row.getAttribute('data-search-text') ?? '';
-        const match = q === '' || haystack.includes(q);
+        const rowCompanyId = row.getAttribute('data-company-id') ?? '';
+        const textMatch = q === '' || haystack.includes(q);
+        const companyMatch = companyId === '' || rowCompanyId === companyId;
+        const match = textMatch && companyMatch;
         row.classList.toggle('hidden', !match);
         if (match) {
             visible += 1;
@@ -286,14 +323,39 @@ function applyAgentListFilter() {
     });
 
     const hasAgents = rows.length > 0;
-    const showNoResults = hasAgents && q !== '' && visible === 0;
+    const showNoResults = hasAgents && (q !== '' || companyId !== '') && visible === 0;
     agentsFilterNoResults?.classList.toggle('hidden', !showNoResults);
+}
+
+function syncManagerFieldForRole(roleSelectId, managerFieldId, managerSelectId) {
+    const roleSelect = document.getElementById(roleSelectId);
+    const managerField = document.getElementById(managerFieldId);
+    const managerSelect = document.getElementById(managerSelectId);
+    if (!roleSelect || !managerField || !managerSelect) {
+        return;
+    }
+
+    const isAgent = roleSelect.value === ROLE_AGENT;
+    managerField.classList.toggle('hidden', !isAgent);
+    managerSelect.disabled = !isAgent;
+    if (!isAgent) {
+        managerSelect.value = '';
+    }
+}
+
+function bindManagerFieldVisibility(roleSelectId, managerFieldId, managerSelectId) {
+    const roleSelect = document.getElementById(roleSelectId);
+    roleSelect?.addEventListener('change', () => {
+        syncManagerFieldForRole(roleSelectId, managerFieldId, managerSelectId);
+    });
+    syncManagerFieldForRole(roleSelectId, managerFieldId, managerSelectId);
 }
 
 function openAgentModal() {
     if (!modal) {
         return;
     }
+    syncManagerFieldForRole('modal_role', 'modal_manager_field', 'modal_manager_id');
     modal.classList.remove('hidden');
     modal.classList.add('flex');
     modal.setAttribute('aria-hidden', 'false');
@@ -434,6 +496,19 @@ function setButtonLoading(button, isLoading) {
 agentListFilterInput?.addEventListener('input', applyAgentListFilter);
 agentListFilterInput?.addEventListener('search', applyAgentListFilter);
 
+agentCompanyFilterSelect?.addEventListener('change', () => {
+    agentListFiltersForm?.requestSubmit();
+});
+
+agentListFilterInput?.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') {
+        e.preventDefault();
+    }
+});
+
+bindManagerFieldVisibility('modal_role', 'modal_manager_field', 'modal_manager_id');
+bindManagerFieldVisibility('edit_modal_role', 'edit_modal_manager_field', 'edit_modal_manager_id');
+
 document.getElementById('open-agent-modal')?.addEventListener('click', openAgentModal);
 
 document.querySelectorAll('[data-close-agent-modal]').forEach((btn) => {
@@ -508,6 +583,21 @@ document.addEventListener('click', async (e) => {
             document.getElementById('edit_modal_guardian_phone_number').value =
                 a.guardian_phone_number ?? '';
             document.getElementById('edit_modal_guardian_cnic').value = a.guardian_cnic ?? '';
+            const roleSelect = document.getElementById('edit_modal_role');
+            if (roleSelect) {
+                roleSelect.value = a.role ?? ROLE_AGENT;
+            }
+            const managerSelect = document.getElementById('edit_modal_manager_id');
+            if (managerSelect) {
+                managerSelect.value =
+                    a.manager_id != null && a.manager_id !== '' ? String(a.manager_id) : '';
+            }
+            syncManagerFieldForRole('edit_modal_role', 'edit_modal_manager_field', 'edit_modal_manager_id');
+            const companySelect = document.getElementById('edit_modal_company_id');
+            if (companySelect) {
+                companySelect.value =
+                    a.company_id != null && a.company_id !== '' ? String(a.company_id) : '';
+            }
             document.getElementById('edit_modal_password').value = '';
             document.getElementById('edit_modal_confirm_password').value = '';
             resetPasswordVisibility();

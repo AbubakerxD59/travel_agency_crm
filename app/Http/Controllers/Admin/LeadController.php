@@ -149,7 +149,7 @@ class LeadController extends Controller
             'selectedDateFilterLabel' => $selectedDateFilterLabel,
             'companies' => Company::query()->orderBy('name')->get(['id', 'name']),
             'statuses' => Lead::statusLabels(),
-            'agents' => User::role('agent')->orderBy('name')->get(['id', 'name']),
+            'agents' => User::role(User::ROLE_AGENT)->orderBy('name')->get(['id', 'name', 'company_id']),
             'canCreateLeads' => $request->user()->hasRole('super-admin'),
             'totalLeads' => $totalLeads,
             'totalClosed' => $totalClosed,
@@ -248,7 +248,7 @@ class LeadController extends Controller
 
     public function create(Request $request): View
     {
-        $agents = User::role('agent')->orderBy('name')->get(['id', 'name']);
+        $agents = User::role(User::ROLE_AGENT)->orderBy('name')->get(['id', 'name', 'company_id']);
         $companies = Company::query()->with('country')->orderBy('name')->get();
         $destinations = Destination::query()->orderBy('name')->get();
 
@@ -277,7 +277,7 @@ class LeadController extends Controller
     public function edit(Lead $lead): View
     {
         $lead->load(['itineraries', 'passengers', 'packageCosts']);
-        $agents = User::role('agent')->orderBy('name')->get(['id', 'name']);
+        $agents = User::role(User::ROLE_AGENT)->orderBy('name')->get(['id', 'name', 'company_id']);
         $companies = Company::query()->with('country')->orderBy('name')->get();
         $destinations = Destination::query()->orderBy('name')->get();
 

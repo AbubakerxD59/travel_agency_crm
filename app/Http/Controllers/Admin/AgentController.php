@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\StoreAgentRequest;
 use App\Http\Requests\SyncAgentPermissionsRequest;
 use App\Http\Requests\UpdateAgentRequest;
+use App\Models\Company;
 use App\Models\Lead;
 use App\Models\User;
 use Carbon\Carbon;
@@ -36,14 +37,22 @@ class AgentController extends Controller
 
     public function index(Request $request): View
     {
-        $agents = User::role('agent')
-            ->with('roles')
+        $companyId = $request->integer('company_id') ?: null;
+
+        $agentsQuery = User::role(User::teamRoleNames())
+            ->with(['roles', 'company', 'manager'])
             ->select('users.*')
-            ->latest()
-            ->get();
+            ->latest();
+
+        if ($companyId) {
+            $agentsQuery->where('company_id', $companyId);
+        }
 
         return view('admin.agents.index', [
-            'agents' => $agents,
+            'agents' => $agentsQuery->get(),
+            'companies' => Company::query()->orderBy('name')->get(['id', 'name']),
+            'managers' => User::role(User::ROLE_MANAGER)->orderBy('name')->get(['id', 'name']),
+            'selectedCompanyId' => $companyId,
             'canManageAgents' => $request->user()->can('agents.manage'),
         ]);
     }
@@ -61,15 +70,21 @@ class AgentController extends Controller
                     'guardian_name',
                     'guardian_phone_number',
                     'guardian_cnic',
+                    'company_id',
+                    'manager_id',
                     'password',
                 ]);
                 $user = User::create($data);
                 $user->assignRole($request->validated('role'));
-                $user->givePermissionTo([
-                    'dashboard.access',
-                    'leads.access',
-                    'folders.access',
-                ]);
+                $user->givePermissionTo(
+                    $request->validated('role') === User::ROLE_AGENT
+                        ? User::defaultAgentPermissions()
+                        : [
+                            'dashboard.access',
+                            'leads.access',
+                            'folders.access',
+                        ]
+                );
 
                 return $user;
             });
@@ -86,7 +101,7 @@ class AgentController extends Controller
         }
 
         if ($request->expectsJson()) {
-            $user->refresh();
+            $user->refresh()->load(['company', 'manager']);
 
             return response()->json([
                 'message' => __('Agent created successfully.'),
@@ -101,7 +116,7 @@ class AgentController extends Controller
 
     public function show(Request $request, User $agent): JsonResponse
     {
-        $this->ensureAgent($agent);
+        $this->ensureTeamMember($agent);
 
         if (! $request->expectsJson()) {
             abort(404);
@@ -114,7 +129,7 @@ class AgentController extends Controller
 
     public function overview(User $agent): View
     {
-        $this->ensureAgent($agent);
+        $this->ensureTeamMember($agent);
 
         $baseQuery = Lead::query()->where('agent_id', $agent->id);
         $totalLeads = (clone $baseQuery)->count();
@@ -144,7 +159,7 @@ class AgentController extends Controller
 
     public function overviewPerformanceData(Request $request, User $agent): JsonResponse
     {
-        $this->ensureAgent($agent);
+        $this->ensureTeamMember($agent);
 
         $range = (string) $request->string('range', 'year');
         $customStart = null;
@@ -165,7 +180,7 @@ class AgentController extends Controller
 
     public function update(UpdateAgentRequest $request, User $agent): JsonResponse
     {
-        $this->ensureAgent($agent);
+        $this->ensureTeamMember($agent);
 
         try {
             $data = $request->safe()->only([
@@ -177,11 +192,14 @@ class AgentController extends Controller
                 'guardian_name',
                 'guardian_phone_number',
                 'guardian_cnic',
+                'company_id',
+                'manager_id',
             ]);
             if ($request->filled('password')) {
                 $data['password'] = $request->validated('password');
             }
             $agent->update($data);
+            $agent->syncRoles([$request->validated('role')]);
         } catch (Throwable $e) {
             report($e);
 
@@ -190,7 +208,7 @@ class AgentController extends Controller
             ], 500);
         }
 
-        $agent->refresh();
+        $agent->refresh()->load(['company', 'manager']);
 
         return response()->json([
             'message' => __('Agent updated successfully.'),
@@ -200,7 +218,7 @@ class AgentController extends Controller
 
     public function destroy(Request $request, User $agent): JsonResponse
     {
-        $this->ensureAgent($agent);
+        $this->ensureTeamMember($agent);
 
         if ($request->user()->is($agent)) {
             return response()->json([
@@ -225,7 +243,7 @@ class AgentController extends Controller
 
     public function permissions(Request $request, User $agent): JsonResponse
     {
-        $this->ensureAgent($agent);
+        $this->ensureTeamMember($agent);
 
         if (! $request->expectsJson()) {
             abort(404);
@@ -255,7 +273,7 @@ class AgentController extends Controller
 
     public function syncPermissions(SyncAgentPermissionsRequest $request, User $agent): JsonResponse
     {
-        $this->ensureAgent($agent);
+        $this->ensureTeamMember($agent);
 
         try {
             $permissions = collect($request->input('permissions', []))
@@ -279,9 +297,9 @@ class AgentController extends Controller
         ]);
     }
 
-    private function ensureAgent(User $user): void
+    private function ensureTeamMember(User $user): void
     {
-        if (! $user->hasRole('agent')) {
+        if (! $user->hasAnyRole(User::teamRoleNames())) {
             abort(404);
         }
     }
@@ -291,6 +309,8 @@ class AgentController extends Controller
      */
     private function agentPayload(User $user): array
     {
+        $user->loadMissing(['company', 'manager']);
+
         return [
             'id' => $user->id,
             'name' => $user->name,
@@ -301,6 +321,10 @@ class AgentController extends Controller
             'guardian_name' => $user->guardian_name,
             'guardian_phone_number' => $user->guardian_phone_number,
             'guardian_cnic' => $user->guardian_cnic,
+            'company_id' => $user->company_id,
+            'manager_id' => $user->manager_id,
+            'company_name' => $user->company?->name,
+            'manager_name' => $user->manager?->name,
             'role' => $user->getRoleNames()->first(),
             'created_at' => $user->created_at?->format('M j, Y'),
         ];

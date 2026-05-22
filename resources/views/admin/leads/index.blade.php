@@ -322,16 +322,31 @@
                     class="space-y-4 px-6 py-5">
                     @csrf
                     <input type="hidden" name="_method" id="assign_lead_form_method" value="">
-                    <div>
-                        <label for="assign_agent_id" class="block text-sm font-medium text-concierge-navy">Agent</label>
-                        <select id="assign_agent_id" name="agent_id"
-                            class="mt-1.5 w-full rounded-xl border border-slate-200 bg-slate-50/80 px-4 py-2.5 text-sm focus:border-concierge-accent focus:bg-white focus:outline-none focus:ring-2 focus:ring-concierge-accent/20">
-                            <option value="">Select agent</option>
-                            @foreach ($agents as $agent)
-                                <option value="{{ $agent->id }}" @selected((string) old('agent_id') === (string) $agent->id)>{{ $agent->name }}
-                                </option>
-                            @endforeach
-                        </select>
+                    <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                        <div>
+                            <label for="assign_company_id" class="block text-sm font-medium text-concierge-navy">Company</label>
+                            <select id="assign_company_id" name="company_id"
+                                class="mt-1.5 w-full rounded-xl border border-slate-200 bg-slate-50/80 px-4 py-2.5 text-sm focus:border-concierge-accent focus:bg-white focus:outline-none focus:ring-2 focus:ring-concierge-accent/20">
+                                <option value="">Select company</option>
+                                @foreach ($companies as $company)
+                                    <option value="{{ $company->id }}" @selected((string) old('company_id') === (string) $company->id)>
+                                        {{ $company->name }}
+                                    </option>
+                                @endforeach
+                            </select>
+                        </div>
+                        <div>
+                            <label for="assign_agent_id" class="block text-sm font-medium text-concierge-navy">Agent</label>
+                            <select id="assign_agent_id" name="agent_id"
+                                class="mt-1.5 w-full rounded-xl border border-slate-200 bg-slate-50/80 px-4 py-2.5 text-sm focus:border-concierge-accent focus:bg-white focus:outline-none focus:ring-2 focus:ring-concierge-accent/20">
+                                <option value="">Select agent</option>
+                                @foreach ($agents as $agent)
+                                    <option value="{{ $agent->id }}" data-company-id="{{ $agent->company_id ?? '' }}"
+                                        @selected((string) old('agent_id') === (string) $agent->id)>{{ $agent->name }}
+                                    </option>
+                                @endforeach
+                            </select>
+                        </div>
                     </div>
                     <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
                         <div>
@@ -353,18 +368,6 @@
                             <label for="assign_email" class="block text-sm font-medium text-concierge-navy">Email</label>
                             <input id="assign_email" name="email" type="email" value="{{ old('email') }}"
                                 class="mt-1.5 w-full rounded-xl border border-slate-200 bg-slate-50/80 px-4 py-2.5 text-sm focus:border-concierge-accent focus:bg-white focus:outline-none focus:ring-2 focus:ring-concierge-accent/20">
-                        </div>
-                        <div>
-                            <label for="assign_company_id" class="block text-sm font-medium text-concierge-navy">Company
-                                Name</label>
-                            <select id="assign_company_id" name="company_id"
-                                class="mt-1.5 w-full rounded-xl border border-slate-200 bg-slate-50/80 px-4 py-2.5 text-sm focus:border-concierge-accent focus:bg-white focus:outline-none focus:ring-2 focus:ring-concierge-accent/20">
-                                <option value="">Select company</option>
-                                @foreach ($companies as $company)
-                                    <option value="{{ $company->id }}" @selected((string) old('company_id') === (string) $company->id)>{{ $company->name }}
-                                    </option>
-                                @endforeach
-                            </select>
                         </div>
                         <div>
                             <label for="assign_city" class="block text-sm font-medium text-concierge-navy">City</label>
@@ -456,6 +459,35 @@
             button.disabled = false;
         }
 
+        const assignCompanySelect = document.getElementById('assign_company_id');
+        const assignAgentSelect = document.getElementById('assign_agent_id');
+
+        function filterAssignLeadAgents(preserveSelection = true) {
+            if (!assignAgentSelect) {
+                return;
+            }
+
+            const companyId = (assignCompanySelect?.value ?? '').trim();
+            const selectedAgentId = preserveSelection ? assignAgentSelect.value : '';
+
+            Array.from(assignAgentSelect.options).forEach((option, index) => {
+                if (index === 0) {
+                    return;
+                }
+
+                const optionCompanyId = (option.getAttribute('data-company-id') ?? '').trim();
+                const isVisible = companyId === '' || optionCompanyId === companyId;
+                option.hidden = !isVisible;
+                option.disabled = !isVisible;
+            });
+
+            const selectedStillValid = Array.from(assignAgentSelect.options).some(
+                (option) => option.value === selectedAgentId && !option.disabled,
+            );
+
+            assignAgentSelect.value = selectedStillValid ? selectedAgentId : '';
+        }
+
         function resetAssignLeadModalToCreate() {
             if (!assignLeadForm) {
                 return;
@@ -472,6 +504,7 @@
                 setButtonLoading(assignLeadSubmitBtn, false);
             }
             assignLeadForm.reset();
+            filterAssignLeadAgents(false);
         }
 
         function openAssignLeadModal() {
@@ -525,11 +558,12 @@
                     setButtonLoading(assignLeadSubmitBtn, false);
                 }
 
+                document.getElementById('assign_company_id').value = button.dataset.companyId ?? '';
+                filterAssignLeadAgents(false);
                 document.getElementById('assign_agent_id').value = button.dataset.agentId ?? '';
                 document.getElementById('assign_customer_name').value = button.dataset.customerName ?? '';
                 document.getElementById('assign_phone_number').value = button.dataset.phoneNumber ?? '';
                 document.getElementById('assign_email').value = button.dataset.email ?? '';
-                document.getElementById('assign_company_id').value = button.dataset.companyId ?? '';
                 document.getElementById('assign_city').value = button.dataset.city ?? '';
                 document.getElementById('assign_total_passengers').value = button.dataset.totalPassengers ?? '';
                 document.getElementById('assign_source').value = button.dataset.source ?? '';
@@ -547,8 +581,11 @@
             }
         });
 
+        assignCompanySelect?.addEventListener('change', () => filterAssignLeadAgents(false));
+
         @if ($errors->any())
             openAssignLeadModal();
+            filterAssignLeadAgents();
         @endif
 
         assignLeadForm?.addEventListener('submit', () => {

@@ -2,12 +2,14 @@
 
 namespace App\Http\Requests;
 
+use App\Http\Requests\Concerns\ValidatesTeamMemberManager;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\Rules\Password;
 
 class StoreAgentRequest extends FormRequest
 {
+    use ValidatesTeamMemberManager;
     public function authorize(): bool
     {
         return $this->user()?->can('agents.create') ?? false;
@@ -24,8 +26,10 @@ class StoreAgentRequest extends FormRequest
             'guardian_name' => ['nullable', 'string', 'max:255'],
             'guardian_phone_number' => ['nullable', 'string', 'max:32'],
             'guardian_cnic' => ['nullable', 'string', 'max:32'],
-            'role' => ['required', 'string', Rule::in(['agent'])],
+            'company_id' => ['nullable', 'integer', 'exists:companies,id'],
+            'role' => ['required', 'string', Rule::in(['agent', 'manager'])],
             'password' => ['required', 'string', Password::defaults(), 'confirmed'],
+            ...$this->teamMemberManagerRules(),
         ];
     }
 
@@ -38,6 +42,7 @@ class StoreAgentRequest extends FormRequest
             'guardian_name' => 'guardian name',
             'guardian_phone_number' => 'guardian phone number',
             'guardian_cnic' => 'guardian cnic',
+            'manager_id' => 'manager',
             'confirm_password' => 'confirm password',
         ];
     }
@@ -47,5 +52,7 @@ class StoreAgentRequest extends FormRequest
         $this->merge([
             'password_confirmation' => $this->input('confirm_password'),
         ]);
+
+        $this->clearManagerIdUnlessAgentRole();
     }
 }

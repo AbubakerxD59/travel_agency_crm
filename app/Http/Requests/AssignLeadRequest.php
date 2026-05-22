@@ -33,8 +33,16 @@ class AssignLeadRequest extends FormRequest
                         return;
                     }
 
-                    if (! User::role('agent')->whereKey($value)->exists()) {
-                        $fail('The selected '.$attribute.' is invalid.');
+                    $agentQuery = User::role(User::ROLE_AGENT)->whereKey($value);
+
+                    if ($this->filled('company_id')) {
+                        $agentQuery->where('company_id', $this->integer('company_id'));
+                    }
+
+                    if (! $agentQuery->exists()) {
+                        $fail($this->filled('company_id')
+                            ? __('The selected agent does not belong to the selected company.')
+                            : __('The selected agent is invalid.'));
                     }
                 },
             ],

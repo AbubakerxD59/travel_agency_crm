@@ -5,7 +5,7 @@
 @section('content')
     <div id="js-agents-config" class="hidden" data-url-base="{{ route('admin.agents.index') }}"
         data-can-manage="{{ $canManageAgents ? '1' : '0' }}" data-current-user-id="{{ auth()->id() }}"
-        data-actions-colspan="{{ $canManageAgents ? 6 : 5 }}"></div>
+        data-actions-colspan="{{ $canManageAgents ? 8 : 7 }}"></div>
 
     <div class="mx-auto max-w-7xl">
         <div class="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
@@ -22,11 +22,27 @@
             </button>
         </div>
 
-        <div class="mt-6">
-            <label for="agent-list-filter" class="block text-sm font-medium text-concierge-navy">Search agents</label>
-            <input id="agent-list-filter" type="search" placeholder="Filter by name, email, or phone…" autocomplete="off"
-                class="mt-1.5 w-full rounded-xl border border-slate-200 bg-slate-50/80 px-4 py-2.5 text-sm text-slate-800 placeholder:text-slate-400 focus:border-concierge-accent focus:bg-white focus:outline-none focus:ring-2 focus:ring-concierge-accent/20">
-        </div>
+        <form id="agent-list-filters-form" method="GET" action="{{ route('admin.agents.index') }}"
+            class="mt-6 grid grid-cols-1 gap-3 sm:grid-cols-2">
+            <div>
+                <label for="agent-list-filter" class="block text-sm font-medium text-concierge-navy">Search agents</label>
+                <input id="agent-list-filter" type="search" placeholder="Filter by name, email, or phone…"
+                    autocomplete="off"
+                    class="mt-1.5 w-full rounded-xl border border-slate-200 bg-slate-50/80 px-4 py-2.5 text-sm text-slate-800 placeholder:text-slate-400 focus:border-concierge-accent focus:bg-white focus:outline-none focus:ring-2 focus:ring-concierge-accent/20">
+            </div>
+            <div>
+                <label for="agent-company-filter" class="block text-sm font-medium text-concierge-navy">Company</label>
+                <select id="agent-company-filter" name="company_id"
+                    class="mt-1.5 w-full rounded-xl border border-slate-200 bg-slate-50/80 px-4 py-2.5 text-sm text-slate-800 focus:border-concierge-accent focus:bg-white focus:outline-none focus:ring-2 focus:ring-concierge-accent/20">
+                    <option value="">All companies</option>
+                    @foreach ($companies as $company)
+                        <option value="{{ $company->id }}" @selected((string) ($selectedCompanyId ?? '') === (string) $company->id)>
+                            {{ $company->name }}
+                        </option>
+                    @endforeach
+                </select>
+            </div>
+        </form>
 
         <div
             class="agents-list-wrap mt-4 overflow-hidden rounded-2xl border border-slate-200/80 bg-white p-4 shadow-sm sm:p-6">
@@ -38,6 +54,8 @@
                             <th class="px-6 py-4">Name</th>
                             <th class="px-6 py-4">Email</th>
                             <th class="px-6 py-4">Guardian</th>
+                            <th class="px-6 py-4">Company</th>
+                            <th class="px-6 py-4">Manager</th>
                             <th class="px-6 py-4">Role</th>
                             <th class="px-6 py-4">Added</th>
                             @if ($canManageAgents)
@@ -48,6 +66,7 @@
                     <tbody class="divide-y divide-slate-100">
                         @forelse ($agents as $agent)
                             <tr class="hover:bg-slate-50/50" data-agent-id="{{ $agent->id }}"
+                                data-company-id="{{ $agent->company_id ?? '' }}"
                                 data-search-text="{{ e(mb_strtolower($agent->name . ' ' . $agent->email . ' ' . ($agent->phone_number ?? ''), 'UTF-8')) }}">
                                 <td class="px-6 py-4 font-medium text-concierge-navy">
                                     <a href="{{ route('admin.agents.overview', $agent) }}" class="hover:underline">
@@ -86,9 +105,15 @@
                                 @else
                                     <td class="px-6 py-4 font-medium text-concierge-navy text-center">-</td>
                                 @endif
+                                <td class="px-6 py-4 text-concierge-navy">
+                                    {{ $agent->company?->name ?? '-' }}
+                                </td>
+                                <td class="px-6 py-4 text-concierge-navy">
+                                    {{ $agent->manager?->name ?? '-' }}
+                                </td>
                                 <td class="px-6 py-4">
                                     <span
-                                        class="concierge-pill concierge-pill-contacted">{{ $agent->roles->first()?->name ?? 'agent' }}</span>
+                                        class="concierge-pill concierge-pill-contacted">{{ \Illuminate\Support\Str::headline($agent->roles->first()?->name ?? 'agent') }}</span>
                                 </td>
                                 <td class="px-6 py-4 text-sm text-concierge-muted">
                                     {{ $agent->created_at?->format('M j, Y') }}</td>
@@ -133,9 +158,13 @@
                             </tr>
                         @empty
                             <tr class="agents-index-empty">
-                                <td colspan="{{ $canManageAgents ? 6 : 5 }}"
+                                <td colspan="{{ $canManageAgents ? 8 : 7 }}"
                                     class="px-6 py-10 text-center text-sm text-concierge-muted">
-                                    No agents yet. Use “Add new” to create one.
+                                    @if ($selectedCompanyId ?? null)
+                                        No agents found for the selected company.
+                                    @else
+                                        No agents yet. Use “Add new” to create one.
+                                    @endif
                                 </td>
                             </tr>
                         @endforelse
@@ -225,10 +254,33 @@
                     </div>
 
                     <div>
+                        <label for="modal_company_id" class="block text-sm font-medium text-concierge-navy">Company</label>
+                        <select id="modal_company_id" name="company_id"
+                            class="mt-1.5 w-full rounded-xl border border-slate-200 bg-slate-50/80 px-4 py-2.5 text-sm focus:border-concierge-accent focus:bg-white focus:outline-none focus:ring-2 focus:ring-concierge-accent/20">
+                            <option value="">Select company</option>
+                            @foreach ($companies as $company)
+                                <option value="{{ $company->id }}">{{ $company->name }}</option>
+                            @endforeach
+                        </select>
+                    </div>
+
+                    <div>
                         <label for="modal_role" class="block text-sm font-medium text-concierge-navy">Role</label>
                         <select id="modal_role" name="role" required
                             class="mt-1.5 w-full rounded-xl border border-slate-200 bg-slate-50/80 px-4 py-2.5 text-sm focus:border-concierge-accent focus:bg-white focus:outline-none focus:ring-2 focus:ring-concierge-accent/20">
                             <option value="agent" selected>Agent</option>
+                            <option value="manager">Manager</option>
+                        </select>
+                    </div>
+
+                    <div id="modal_manager_field">
+                        <label for="modal_manager_id" class="block text-sm font-medium text-concierge-navy">Manager</label>
+                        <select id="modal_manager_id" name="manager_id"
+                            class="mt-1.5 w-full rounded-xl border border-slate-200 bg-slate-50/80 px-4 py-2.5 text-sm focus:border-concierge-accent focus:bg-white focus:outline-none focus:ring-2 focus:ring-concierge-accent/20">
+                            <option value="">Select manager</option>
+                            @foreach ($managers as $manager)
+                                <option value="{{ $manager->id }}">{{ $manager->name }}</option>
+                            @endforeach
                         </select>
                     </div>
 
@@ -387,10 +439,35 @@
                         </div>
 
                         <div>
+                            <label for="edit_modal_company_id"
+                                class="block text-sm font-medium text-concierge-navy">Company</label>
+                            <select id="edit_modal_company_id" name="company_id"
+                                class="mt-1.5 w-full rounded-xl border border-slate-200 bg-slate-50/80 px-4 py-2.5 text-sm focus:border-concierge-accent focus:bg-white focus:outline-none focus:ring-2 focus:ring-concierge-accent/20">
+                                <option value="">Select company</option>
+                                @foreach ($companies as $company)
+                                    <option value="{{ $company->id }}">{{ $company->name }}</option>
+                                @endforeach
+                            </select>
+                        </div>
+
+                        <div>
                             <label for="edit_modal_role" class="block text-sm font-medium text-concierge-navy">Role</label>
-                            <select id="edit_modal_role" disabled
-                                class="mt-1.5 w-full rounded-xl border border-slate-200 bg-slate-100 px-4 py-2.5 text-sm text-slate-500">
-                                <option value="agent" selected>Agent</option>
+                            <select id="edit_modal_role" name="role" required
+                                class="mt-1.5 w-full rounded-xl border border-slate-200 bg-slate-50/80 px-4 py-2.5 text-sm focus:border-concierge-accent focus:bg-white focus:outline-none focus:ring-2 focus:ring-concierge-accent/20">
+                                <option value="agent">Agent</option>
+                                <option value="manager">Manager</option>
+                            </select>
+                        </div>
+
+                        <div id="edit_modal_manager_field">
+                            <label for="edit_modal_manager_id"
+                                class="block text-sm font-medium text-concierge-navy">Manager</label>
+                            <select id="edit_modal_manager_id" name="manager_id"
+                                class="mt-1.5 w-full rounded-xl border border-slate-200 bg-slate-50/80 px-4 py-2.5 text-sm focus:border-concierge-accent focus:bg-white focus:outline-none focus:ring-2 focus:ring-concierge-accent/20">
+                                <option value="">Select manager</option>
+                                @foreach ($managers as $manager)
+                                    <option value="{{ $manager->id }}">{{ $manager->name }}</option>
+                                @endforeach
                             </select>
                         </div>
 

@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
@@ -10,8 +11,33 @@ use Spatie\Permission\Traits\HasRoles;
 
 class User extends Authenticatable
 {
+    public const ROLE_AGENT = 'agent';
+
+    public const ROLE_MANAGER = 'manager';
+
     /** @use HasFactory<UserFactory> */
     use HasFactory, HasRoles, Notifiable;
+
+    /**
+     * @return list<string>
+     */
+    public static function teamRoleNames(): array
+    {
+        return [self::ROLE_AGENT, self::ROLE_MANAGER];
+    }
+
+    /**
+     * @return list<string>
+     */
+    public static function defaultAgentPermissions(): array
+    {
+        return [
+            'dashboard.access',
+            'leads.access',
+            'leads.create',
+            'folders.access',
+        ];
+    }
 
     /**
      * The attributes that are mass assignable.
@@ -27,6 +53,8 @@ class User extends Authenticatable
         'guardian_name',
         'guardian_phone_number',
         'guardian_cnic',
+        'company_id',
+        'manager_id',
         'password',
     ];
 
@@ -62,7 +90,11 @@ class User extends Authenticatable
      */
     public function defaultRedirectRoute(): string
     {
-        if ($this->hasRole('agent')) {
+        if ($this->hasRole(self::ROLE_MANAGER)) {
+            return 'admin.dashboard';
+        }
+
+        if ($this->hasRole(self::ROLE_AGENT)) {
             if ($this->can('dashboard.access')) {
                 return 'agent.dashboard';
             }
@@ -77,6 +109,30 @@ class User extends Authenticatable
         }
 
         return 'admin.dashboard';
+    }
+
+    /**
+     * @return BelongsTo<Company, $this>
+     */
+    public function company(): BelongsTo
+    {
+        return $this->belongsTo(Company::class);
+    }
+
+    /**
+     * @return BelongsTo<User, $this>
+     */
+    public function manager(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'manager_id');
+    }
+
+    /**
+     * @return HasMany<User, $this>
+     */
+    public function managedUsers(): HasMany
+    {
+        return $this->hasMany(User::class, 'manager_id');
     }
 
     /**

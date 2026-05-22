@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests;
 
+use App\Http\Requests\Concerns\ValidatesTeamMemberManager;
 use App\Models\User;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
@@ -9,6 +10,7 @@ use Illuminate\Validation\Rules\Password;
 
 class UpdateAgentRequest extends FormRequest
 {
+    use ValidatesTeamMemberManager;
     public function authorize(): bool
     {
         return $this->user()?->can('agents.manage') ?? false;
@@ -28,7 +30,10 @@ class UpdateAgentRequest extends FormRequest
             'guardian_name' => ['nullable', 'string', 'max:255'],
             'guardian_phone_number' => ['nullable', 'string', 'max:32'],
             'guardian_cnic' => ['nullable', 'string', 'max:32'],
+            'company_id' => ['nullable', 'integer', 'exists:companies,id'],
+            'role' => ['required', 'string', Rule::in(['agent', 'manager'])],
             'password' => ['nullable', 'string', Password::defaults(), 'confirmed'],
+            ...$this->teamMemberManagerRules($agent->id),
         ];
     }
 
@@ -41,12 +46,15 @@ class UpdateAgentRequest extends FormRequest
             'guardian_name' => 'guardian name',
             'guardian_phone_number' => 'guardian phone number',
             'guardian_cnic' => 'guardian cnic',
+            'manager_id' => 'manager',
             'confirm_password' => 'confirm password',
         ];
     }
 
     protected function prepareForValidation(): void
     {
+        $this->clearManagerIdUnlessAgentRole();
+
         if (! $this->filled('password')) {
             $this->merge([
                 'password' => null,
