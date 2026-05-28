@@ -180,8 +180,12 @@ class LeadController extends Controller
             return back()->withInput()->with('error', __('Please add a destination first, then assign the lead.'));
         }
 
+        $agentId = (int) $data['agent_id'];
+        $agentName = User::withTrashed()->whereKey($agentId)->value('name');
+
         $lead = Lead::create([
-            'agent_id' => $data['agent_id'],
+            'agent_id' => $agentId,
+            'agent_name' => $agentName,
             'lead_assign_date' => now(),
             'customer_name' => $data['customer_name'],
             'phone_number' => $data['phone_number'],
@@ -202,7 +206,7 @@ class LeadController extends Controller
             'ziarat_madinah' => false,
         ]);
 
-        $this->notifyAssignedAgent($lead, null, (int) $data['agent_id']);
+        $this->notifyAssignedAgent($lead, null, $agentId);
 
         return redirect()
             ->route('admin.leads.index')
@@ -215,8 +219,11 @@ class LeadController extends Controller
         $previousAgentId = (int) ($lead->agent_id ?? 0);
         $nextAgentId = (int) $data['agent_id'];
 
+        $nextAgentName = User::withTrashed()->whereKey($nextAgentId)->value('name');
+
         $lead->update([
             'agent_id' => $nextAgentId,
+            'agent_name' => $nextAgentName,
             'lead_assign_date' => (int) $lead->agent_id !== $nextAgentId ? now() : $lead->lead_assign_date,
             'customer_name' => $data['customer_name'],
             'phone_number' => $data['phone_number'],
@@ -299,6 +306,9 @@ class LeadController extends Controller
                     'ziarat_madinah',
                 ]);
                 $payload['lead_assign_date'] = ! empty($payload['agent_id']) ? now() : null;
+                $payload['agent_name'] = ! empty($payload['agent_id'])
+                    ? User::withTrashed()->whereKey((int) $payload['agent_id'])->value('name')
+                    : null;
 
                 $lead = Lead::create($payload);
 
@@ -349,6 +359,9 @@ class LeadController extends Controller
                 $payload['lead_assign_date'] = $nextAgentId === null
                     ? null
                     : ((int) $lead->agent_id !== (int) $nextAgentId ? now() : $lead->lead_assign_date);
+                $payload['agent_name'] = $nextAgentId === null
+                    ? null
+                    : User::withTrashed()->whereKey((int) $nextAgentId)->value('name');
 
                 $lead->update($payload);
 

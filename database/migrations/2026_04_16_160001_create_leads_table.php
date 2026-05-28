@@ -11,6 +11,7 @@ return new class extends Migration
         Schema::create('leads', function (Blueprint $table) {
             $table->id();
             $table->unsignedBigInteger('agent_id')->nullable();
+            $table->string('agent_name')->nullable();
             $table->string('customer_name')->nullable();
             $table->string('phone_number')->nullable();
             $table->string('email')->nullable();

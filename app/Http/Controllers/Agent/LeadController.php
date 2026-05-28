@@ -117,9 +117,11 @@ class LeadController extends Controller
         }
 
         $agentId = (int) $request->user()->id;
+        $agentName = \App\Models\User::withTrashed()->whereKey($agentId)->value('name');
 
         Lead::create([
             'agent_id' => $agentId,
+            'agent_name' => $agentName,
             'lead_assign_date' => now(),
             'customer_name' => $data['customer_name'],
             'phone_number' => $data['phone_number'],

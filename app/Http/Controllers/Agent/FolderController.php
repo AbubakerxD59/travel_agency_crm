@@ -680,10 +680,16 @@ class FolderController extends Controller
     {
         try {
             DB::transaction(function () use ($validated, &$folder): void {
+                $agentId = $folder === null
+                    ? request()->user()?->getAuthIdentifier()
+                    : ($validated['agent_id'] ?? $folder->agent_id);
+                $agentName = \App\Models\User::withTrashed()
+                    ->whereKey($agentId)
+                    ->value('name');
+
                 $folderPayload = [
-                    'agent_id' => $folder === null
-                        ? request()->user()?->getAuthIdentifier()
-                        : ($validated['agent_id'] ?? $folder->agent_id),
+                    'agent_id' => $agentId,
+                    'agent_name' => $agentName,
                     'order_type' => $validated['order_type'],
                     'vendor_reference' => $validated['vendor_reference'] ?? null,
                     'customer_name' => $validated['customer_name'],

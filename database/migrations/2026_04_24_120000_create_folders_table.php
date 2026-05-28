@@ -13,7 +13,8 @@ return new class extends Migration
     {
         Schema::create('folders', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('agent_id')->nullable()->constrained('users')->nullOnDelete();
+            $table->foreignId('agent_id')->nullable();
+            $table->string('agent_name')->nullable();
             $table->string('order_type');
             $table->string('vendor_reference')->nullable();
             $table->foreignId('company_id')->constrained()->cascadeOnDelete();
