@@ -123,6 +123,35 @@
             white-space: nowrap;
         }
 
+        .table-passengers td.valign-top {
+            vertical-align: top;
+        }
+
+        .invoice-transactions-paid {
+            margin: 0;
+            padding-left: 1.35rem;
+            text-align: left;
+            list-style: decimal;
+        }
+
+        .invoice-transactions-paid li {
+            margin-bottom: 0.65rem;
+        }
+
+        .invoice-transactions-paid li:last-child {
+            margin-bottom: 0;
+        }
+
+        .invoice-transaction-amount {
+            display: block;
+            font-weight: 700;
+        }
+
+        .invoice-transaction-date {
+            display: block;
+            font-weight: 400;
+        }
+
         .disclaimer {
             margin: 10px 0 12px;
             text-align: justify;
@@ -417,6 +446,7 @@
         <table class="table-summary">
             <thead>
                 <tr>
+                    <th>Invoice Number</th>
                     <th>Agent</th>
                     <th>Travel Date</th>
                     <th>Destination</th>
@@ -425,6 +455,7 @@
             </thead>
             <tbody>
                 <tr>
+                    <td>{{ $invoice_number }}</td>
                     <td>{{ $agent_name }}</td>
                     <td>{{ $travel_date }}</td>
                     <td>{{ $destination }}</td>
@@ -478,12 +509,30 @@
                 <tr>
                     <td colspan="4"></td>
                     <td colspan="2">Invoice Total:</td>
-                    <td>£ {{ number_format($invoice_total, 0) }}</td>
+                    <td class="price">£ {{ number_format($invoice_total, 0) }}</td>
+                </tr>
+                <tr>
+                    <td colspan="4"></td>
+                    <td colspan="2" class="valign-top">Transactions paid:</td>
+                    <td class="price valign-top">
+                        @if (! empty($approved_payments))
+                            <ol class="invoice-transactions-paid">
+                                @foreach ($approved_payments as $payment)
+                                    <li>
+                                        <span class="invoice-transaction-amount">{{ $payment['amount_formatted'] }}</span>
+                                        <span class="invoice-transaction-date">{{ $payment['payment_date'] }}</span>
+                                    </li>
+                                @endforeach
+                            </ol>
+                        @else
+                            —
+                        @endif
+                    </td>
                 </tr>
                 <tr>
                     <td colspan="4"></td>
                     <td colspan="2">Amount Due:</td>
-                    <td>£ {{ number_format($amount_due, 0) }}</td>
+                    <td class="price">£ {{ number_format($amount_due, 0) }}</td>
                 </tr>
                 <tr>
                     <td colspan="4"></td>

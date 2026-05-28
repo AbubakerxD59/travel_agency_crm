@@ -9,9 +9,11 @@
                 class="mt-1.5 w-full rounded-xl border border-slate-200 bg-slate-50/80 px-4 py-2.5 text-sm text-slate-800 focus:border-concierge-accent focus:bg-white focus:outline-none focus:ring-2 focus:ring-concierge-accent/20">
                 <option value="">All agents</option>
                 @foreach ($agents as $agent)
-                    <option value="{{ $agent->id }}" @selected((string) ($selectedAgentId ?? '') === (string) $agent->id)>
-                        {{ $agent->name }}
-                    </option>
+                    @if ($agent)
+                        <option value="{{ $agent->id }}" @selected((string) ($selectedAgentId ?? '') === (string) $agent->id)>
+                            {{ $agent->name ?? __('Unknown agent') }}
+                        </option>
+                    @endif
                 @endforeach
             </select>
         </div>
@@ -97,7 +99,7 @@
     </div>
     <div class="mt-1.5 flex flex-col gap-2 sm:flex-row">
         <input id="folder-search-admin" name="search" type="search"
-            placeholder="Search by customer name, order type, or vendor ref#" value="{{ $search ?? '' }}"
+            placeholder="Search by customer name, order type, or invoice number" value="{{ $search ?? '' }}"
             class="w-full rounded-xl border border-slate-200 bg-slate-50/80 px-4 py-2.5 text-sm text-slate-800 placeholder:text-slate-400 focus:border-concierge-accent focus:bg-white focus:outline-none focus:ring-2 focus:ring-concierge-accent/20">
         <div class="flex shrink-0 gap-2">
             <button type="submit"

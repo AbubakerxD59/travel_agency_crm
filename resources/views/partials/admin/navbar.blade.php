@@ -24,6 +24,7 @@
                     id="agent-notification-icon"
                     data-poll-url="{{ route('agent.notifications.poll') }}"
                     data-alert-sound-url="{{ asset('sounds/mixkit-confirmation-tone-2867.wav') }}"
+                    data-service-worker-url="{{ asset('agent-notification-sw.js') }}"
                     class="relative inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-slate-300/80 bg-slate-100 text-concierge-navy shadow-sm transition hover:bg-slate-200"
                     aria-label="Notifications"
                     aria-expanded="false"
@@ -57,6 +58,7 @@
                 <div class="relative">
                     <button type="button" id="admin-notification-icon"
                         data-poll-url="{{ route('admin.notifications.poll') }}"
+                        data-alert-sound-url="{{ asset('sounds/mixkit-confirmation-tone-2867.wav') }}"
                         class="relative inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-slate-300/80 bg-slate-100 text-concierge-navy shadow-sm transition hover:bg-slate-200"
                         aria-label="Notifications" aria-expanded="false" aria-controls="admin-notification-dropdown"
                         title="Notifications">

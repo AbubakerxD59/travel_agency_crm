@@ -12,6 +12,7 @@ class StoreAgentLeadRequest extends FormRequest
         $total = $this->input('total_passengers');
         $this->merge([
             'total_passengers' => $total === '' || $total === null ? null : $total,
+            'email' => $this->input('email') === '' ? null : $this->input('email'),
         ]);
     }
 

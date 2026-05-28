@@ -3,6 +3,25 @@
 use App\Http\Controllers\Auth\LoginController;
 use App\Http\Controllers\InvoicePreviewController;
 use Illuminate\Support\Facades\Route;
+use Illuminate\Support\Facades\Storage;
+
+/*
+| Fallback when public/storage symlink is missing (common on first deploy).
+| If the symlink exists, the web server serves files directly and this route is not hit.
+*/
+Route::get('/storage/{path}', function (string $path) {
+    $path = str_replace('\\', '/', $path);
+
+    if ($path === '' || str_contains($path, '..')) {
+        abort(404);
+    }
+
+    if (! Storage::disk('public')->exists($path)) {
+        abort(404);
+    }
+
+    return Storage::disk('public')->response($path);
+})->where('path', '.*');
 
 Route::get('/test/invoice', [InvoicePreviewController::class, 'test'])
     ->name('test.invoice');

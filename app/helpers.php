@@ -5,7 +5,36 @@ declare(strict_types=1);
 use App\Models\Folder;
 use App\Models\Lead;
 use Carbon\Carbon;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
+
+/**
+ * Public URL for a file on the `public` disk (e.g. company logos under storage/app/public).
+ */
+function public_storage_url(?string $path): ?string
+{
+    if ($path === null || trim($path) === '') {
+        return null;
+    }
+
+    if (Str::startsWith($path, ['http://', 'https://'])) {
+        return $path;
+    }
+
+    $normalized = str_replace('\\', '/', trim($path));
+    $normalized = ltrim($normalized, '/');
+
+    if (Str::startsWith($normalized, 'storage/')) {
+        return asset($normalized);
+    }
+
+    if (! Storage::disk('public')->exists($normalized)) {
+        return null;
+    }
+
+    return asset('storage/'.$normalized);
+}
 
 /**
  * Lead source options for dropdowns: stored key => display label.
@@ -508,6 +537,113 @@ function folder_list_row_class(Folder $folder): string
         : 'hover:bg-slate-50/50';
 }
 
+function folder_agent_display_name(Folder $folder): string
+{
+    $stored = trim((string) ($folder->agent_name ?? ''));
+    if ($stored !== '') {
+        return $stored;
+    }
+
+    return $folder->agent?->name ?? (string) __('Unassigned');
+}
+
+function lead_agent_display_name(Lead $lead): string
+{
+    $stored = trim((string) ($lead->agent_name ?? ''));
+    if ($stored !== '') {
+        return $stored;
+    }
+
+    return $lead->agent?->name ?? (string) __('Unassigned');
+}
+
+function lead_sync_agent_name_from_user(Lead $lead): void
+{
+    if (! $lead->agent_id) {
+        $lead->agent_name = null;
+
+        return;
+    }
+
+    $lead->agent_name = \App\Models\User::withTrashed()
+        ->whereKey($lead->agent_id)
+        ->value('name');
+}
+
+function folder_sync_agent_name_from_user(Folder $folder): void
+{
+    if (! $folder->agent_id) {
+        $folder->agent_name = null;
+
+        return;
+    }
+
+    $folder->agent_name = \App\Models\User::withTrashed()
+        ->whereKey($folder->agent_id)
+        ->value('name');
+}
+
+/**
+ * Validation rules for agent_id that allow soft-deleted team members (historical folders/leads).
+ *
+ * @return list<string|callable>
+ */
+function team_member_user_id_validation_rules(): array
+{
+    return [
+        'nullable',
+        'integer',
+        function (string $attribute, mixed $value, \Closure $fail): void {
+            if ($value === null || $value === '') {
+                return;
+            }
+
+            if (! \App\Models\User::withTrashed()->whereKey((int) $value)->exists()) {
+                $fail(__('The selected agent is invalid.'));
+            }
+        },
+    ];
+}
+
+/**
+ * Locked payments on a folder, keyed by payment id.
+ *
+ * @return \Illuminate\Support\Collection<int, \App\Models\FolderPayment>
+ */
+function folder_locked_payments_for(\App\Models\Folder $folder)
+{
+    return $folder->payments()
+        ->whereNotNull('locked_at')
+        ->get()
+        ->keyBy('id');
+}
+
+/**
+ * Drop submitted payment rows that belong to locked payments (not validated or synced).
+ *
+ * @param  list<array<string, mixed>>  $rows
+ * @return list<array<string, mixed>>
+ */
+function folder_strip_locked_payment_rows(\App\Models\Folder $folder, array $rows): array
+{
+    $lockedIds = folder_locked_payments_for($folder)->keys()->all();
+    if ($lockedIds === []) {
+        return $rows;
+    }
+
+    $lockedIdSet = array_flip($lockedIds);
+
+    return array_values(array_filter($rows, function ($row) use ($lockedIdSet): bool {
+        if (! is_array($row)) {
+            return false;
+        }
+
+        $paymentId = isset($row['id']) && $row['id'] !== '' ? (int) $row['id'] : 0;
+
+        return $paymentId < 1 || ! isset($lockedIdSet[$paymentId]);
+    }));
+}
+
 /**
  * Keep only payment rows where at least one field is non-empty (trimmed strings).
  *
@@ -521,6 +657,172 @@ function folder_filter_non_empty_payment_rows(?array $rows): array
     }
 
     return folder_filter_rows_by_fields($rows, ['amount', 'reference_no', 'payment_date', 'mode_of_payment', 'bank_id']);
+}
+
+/**
+ * @return array{amount: mixed, reference_no: string|null, payment_date: mixed, mode_of_payment: string, bank_id: int|null, approval_status: string, locked_at: null}
+ */
+function folder_payment_attributes_from_row(array $row, string $approvalStatus): array
+{
+    $normalized = folder_normalized_payments_for_storage([$row], $approvalStatus)[0] ?? null;
+    if ($normalized === null) {
+        throw ValidationException::withMessages([
+            'payments' => __('Invalid payment row.'),
+        ]);
+    }
+
+    return array_merge($normalized, ['locked_at' => null]);
+}
+
+/**
+ * Validation rules for optional payment receipt uploads on folder forms.
+ *
+ * @return array<string, list<string>>
+ */
+function folder_payment_image_validation_rules(): array
+{
+    return [
+        'payments.*.image' => ['nullable', 'image', 'mimes:jpeg,png,jpg,gif,webp', 'max:2048'],
+        'payments.*.remove_image' => ['sometimes', 'boolean'],
+        'payments.*.form_index' => ['nullable', 'integer', 'min:0'],
+    ];
+}
+
+/**
+ * @param  array<string, mixed>  $row
+ */
+function folder_payment_form_index(array $row, int $fallbackIndex): int
+{
+    if (isset($row['form_index']) && $row['form_index'] !== '') {
+        return (int) $row['form_index'];
+    }
+
+    return $fallbackIndex;
+}
+
+/**
+ * @param  array<string, mixed>  $row
+ * @return array{file: ?\Illuminate\Http\UploadedFile, remove: bool}
+ */
+function folder_payment_image_input_from_request(
+    \Illuminate\Http\Request $request,
+    array $row,
+    int $fallbackIndex,
+): array {
+    $formIndex = folder_payment_form_index($row, $fallbackIndex);
+    $file = $request->file("payments.{$formIndex}.image");
+    $remove = filter_var($row['remove_image'] ?? false, FILTER_VALIDATE_BOOLEAN);
+
+    return ['file' => $file, 'remove' => $remove];
+}
+
+/**
+ * Apply uploaded receipt image to payment attributes (create/update payloads).
+ *
+ * @param  array<string, mixed>  $attrs
+ * @param  array<string, mixed>  $row
+ * @return array<string, mixed>
+ */
+function folder_payment_merge_image_attributes(
+    array $attrs,
+    array $row,
+    \Illuminate\Http\Request $request,
+    int $fallbackIndex,
+    ?\App\Models\FolderPayment $existing = null,
+): array {
+    $storage = app(\App\Support\FolderPaymentImageStorage::class);
+    ['file' => $file, 'remove' => $remove] = folder_payment_image_input_from_request($request, $row, $fallbackIndex);
+
+    if ($file !== null && $file->isValid()) {
+        $attrs['image'] = $storage->store($file);
+
+        return $attrs;
+    }
+
+    if ($remove) {
+        $attrs['image'] = null;
+
+        return $attrs;
+    }
+
+    if ($existing !== null) {
+        unset($attrs['image']);
+    }
+
+    return $attrs;
+}
+
+/**
+ * Replace unlocked payments on a folder; locked payments are never deleted or updated.
+ *
+ * @param  list<array<string, mixed>>  $rows
+ */
+function folder_sync_folder_payments(
+    \App\Models\Folder $folder,
+    array $rows,
+    string $approvalStatusForNew,
+    ?\Illuminate\Http\Request $request = null,
+): void {
+    $storage = app(\App\Support\FolderPaymentImageStorage::class);
+    $lockedPayments = folder_locked_payments_for($folder);
+    $rows = folder_strip_locked_payment_rows($folder, $rows);
+    $rows = folder_filter_non_empty_payment_rows($rows);
+
+    $keptUnlockedIds = [];
+
+    foreach ($rows as $index => $row) {
+        if (! is_array($row)) {
+            continue;
+        }
+
+        $paymentId = isset($row['id']) && $row['id'] !== '' ? (int) $row['id'] : 0;
+        if ($paymentId > 0 && $lockedPayments->has($paymentId)) {
+            continue;
+        }
+
+        $attrs = folder_payment_attributes_from_row($row, $approvalStatusForNew);
+
+        if ($paymentId > 0) {
+            $payment = $folder->payments()->whereKey($paymentId)->whereNull('locked_at')->first();
+            if ($payment === null) {
+                continue;
+            }
+
+            $attrs['approval_status'] = $payment->approval_status;
+            $previousImage = $payment->image;
+
+            if ($request !== null) {
+                $attrs = folder_payment_merge_image_attributes($attrs, $row, $request, $index, $payment);
+            }
+
+            $payment->update($attrs);
+
+            if (array_key_exists('image', $attrs) && $attrs['image'] !== $previousImage && $previousImage !== null) {
+                $storage->delete($previousImage);
+            }
+
+            if (array_key_exists('image', $attrs) && $attrs['image'] === null && $previousImage !== null) {
+                $storage->delete($previousImage);
+            }
+
+            $keptUnlockedIds[] = $payment->id;
+
+            continue;
+        }
+
+        if ($request !== null) {
+            $attrs = folder_payment_merge_image_attributes($attrs, $row, $request, $index);
+        }
+
+        $payment = $folder->payments()->create($attrs);
+        $keptUnlockedIds[] = $payment->id;
+    }
+
+    $folder->payments()
+        ->whereNull('locked_at')
+        ->when($keptUnlockedIds !== [], fn ($query) => $query->whereNotIn('id', $keptUnlockedIds))
+        ->get()
+        ->each(fn (\App\Models\FolderPayment $payment) => $payment->delete());
 }
 
 /**

@@ -72,8 +72,19 @@
         }
     }
 
+    body.concierge-sidebar-drawer .concierge-layout-content,
     body.folder-form-sidebar-drawer .concierge-layout-content {
         margin-left: 0 !important;
+    }
+
+    body.concierge-sidebar-drawer #admin-sidebar,
+    body.folder-form-sidebar-drawer #admin-sidebar {
+        transform: translate3d(-100%, 0, 0);
+    }
+
+    html.admin-sidebar-open body.concierge-sidebar-drawer #admin-sidebar,
+    html.admin-sidebar-open body.folder-form-sidebar-drawer #admin-sidebar {
+        transform: translate3d(0, 0, 0) !important;
     }
 
     .concierge-pill {
@@ -116,6 +127,46 @@
     .company-row-action svg,
     .lead-row-action svg {
         pointer-events: none;
+    }
+
+    .company-image-dropzone {
+        @apply relative flex min-h-[9.5rem] cursor-pointer flex-col items-center justify-center rounded-xl border-2 border-dashed border-slate-300 bg-slate-50/80 px-4 py-6 text-center transition;
+    }
+
+    .company-image-dropzone:focus {
+        @apply outline-none ring-2 ring-concierge-accent/30;
+    }
+
+    .company-image-dropzone--dragover {
+        @apply border-concierge-accent bg-concierge-accent/5;
+    }
+
+    .company-image-dropzone--has-preview {
+        @apply min-h-0 border-solid border-slate-200 bg-white py-4;
+    }
+
+    .company-image-dropzone__icon {
+        @apply mx-auto h-10 w-10 text-concierge-muted;
+    }
+
+    .company-image-dropzone__title {
+        @apply mt-2 text-sm font-medium text-concierge-navy;
+    }
+
+    .company-image-dropzone__subtitle {
+        @apply mt-1 text-xs text-concierge-muted;
+    }
+
+    .company-image-dropzone__preview {
+        @apply flex w-full flex-col items-center gap-3;
+    }
+
+    .company-image-dropzone__img {
+        @apply h-24 w-24 rounded-lg border border-slate-200 object-cover;
+    }
+
+    .company-image-dropzone__remove {
+        @apply cursor-pointer rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-medium text-concierge-navy transition hover:bg-slate-50;
     }
 
     /* Mobile admin drawer: overlay + open state (toggled via `admin-sidebar-open` on <html>) */
@@ -232,23 +283,10 @@
         max-width: 95rem;
     }
 
-    .lead-status-update {
-        position: fixed;
-        top: 52%;
-        right: 2%;
+    .lead-status-dropdown-portal {
+        max-height: min(16rem, calc(100vh - 1rem));
+        overflow-y: auto;
     }
-
-    /* .update-status-dropdown {
-        position: fixed;
-        top: 52%;
-        right: 3%;
-    } */
-
-    /* .view-update-status-dropdown {
-        position: fixed;
-        top: 25%;
-        right: 5%;
-    } */
 
     .grid-cols-3 {
         grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -329,6 +367,6 @@
  */
 @media (max-width: 1023px) {
     html.admin-sidebar-open #admin-sidebar {
-        transform: translate3d(100%, 0px, 0px) !important;
+        transform: translate3d(0, 0, 0) !important;
     }
 }

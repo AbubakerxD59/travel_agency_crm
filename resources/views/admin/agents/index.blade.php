@@ -7,7 +7,7 @@
         data-can-manage="{{ $canManageAgents ? '1' : '0' }}" data-current-user-id="{{ auth()->id() }}"
         data-actions-colspan="{{ $canManageAgents ? 8 : 7 }}"></div>
 
-    <div class="mx-auto max-w-7xl">
+    <div class="mx-auto max-w-8xl">
         <div class="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
             <div>
                 <h1 class="text-2xl font-bold text-concierge-navy lg:text-3xl">Agents</h1>
@@ -200,20 +200,22 @@
 
                 <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
                     <div>
-                        <label for="modal_name" class="block text-sm font-medium text-concierge-navy">Name</label>
+                        <label for="modal_name" class="block text-sm font-medium text-concierge-navy">Name <span
+                                class="text-rose-600">*</span></label>
                         <input id="modal_name" name="name" type="text" required autocomplete="name"
                             class="mt-1.5 w-full rounded-xl border border-slate-200 bg-slate-50/80 px-4 py-2.5 text-sm focus:border-concierge-accent focus:bg-white focus:outline-none focus:ring-2 focus:ring-concierge-accent/20">
                     </div>
 
                     <div>
-                        <label for="modal_email" class="block text-sm font-medium text-concierge-navy">Email</label>
+                        <label for="modal_email" class="block text-sm font-medium text-concierge-navy">Email <span
+                                class="text-rose-600">*</span></label>
                         <input id="modal_email" name="email" type="email" required autocomplete="email"
                             class="mt-1.5 w-full rounded-xl border border-slate-200 bg-slate-50/80 px-4 py-2.5 text-sm focus:border-concierge-accent focus:bg-white focus:outline-none focus:ring-2 focus:ring-concierge-accent/20">
                     </div>
 
                     <div>
                         <label for="modal_phone_number" class="block text-sm font-medium text-concierge-navy">Phone
-                            number</label>
+                            number <span class="text-rose-600">*</span></label>
                         <input id="modal_phone_number" name="phone_number" type="text" required autocomplete="tel"
                             class="mt-1.5 w-full rounded-xl border border-slate-200 bg-slate-50/80 px-4 py-2.5 text-sm focus:border-concierge-accent focus:bg-white focus:outline-none focus:ring-2 focus:ring-concierge-accent/20">
                     </div>
@@ -254,10 +256,11 @@
                     </div>
 
                     <div>
-                        <label for="modal_company_id" class="block text-sm font-medium text-concierge-navy">Company</label>
-                        <select id="modal_company_id" name="company_id"
+                        <label for="modal_company_id" class="block text-sm font-medium text-concierge-navy">Company
+                            <span class="text-rose-600">*</span></label>
+                        <select id="modal_company_id" name="company_id" required
                             class="mt-1.5 w-full rounded-xl border border-slate-200 bg-slate-50/80 px-4 py-2.5 text-sm focus:border-concierge-accent focus:bg-white focus:outline-none focus:ring-2 focus:ring-concierge-accent/20">
-                            <option value="">Select company</option>
+                            <option value="" disabled selected>Select company</option>
                             @foreach ($companies as $company)
                                 <option value="{{ $company->id }}">{{ $company->name }}</option>
                             @endforeach
@@ -265,7 +268,8 @@
                     </div>
 
                     <div>
-                        <label for="modal_role" class="block text-sm font-medium text-concierge-navy">Role</label>
+                        <label for="modal_role" class="block text-sm font-medium text-concierge-navy">Role <span
+                                class="text-rose-600">*</span></label>
                         <select id="modal_role" name="role" required
                             class="mt-1.5 w-full rounded-xl border border-slate-200 bg-slate-50/80 px-4 py-2.5 text-sm focus:border-concierge-accent focus:bg-white focus:outline-none focus:ring-2 focus:ring-concierge-accent/20">
                             <option value="agent" selected>Agent</option>
@@ -285,7 +289,8 @@
                     </div>
 
                     <div>
-                        <label for="modal_password" class="block text-sm font-medium text-concierge-navy">Password</label>
+                        <label for="modal_password" class="block text-sm font-medium text-concierge-navy">Password <span
+                                class="text-rose-600">*</span></label>
                         <div class="relative mt-1.5">
                             <input id="modal_password" name="password" type="password" required
                                 autocomplete="new-password"
@@ -315,7 +320,7 @@
 
                     <div>
                         <label for="modal_confirm_password" class="block text-sm font-medium text-concierge-navy">Confirm
-                            password</label>
+                            password <span class="text-rose-600">*</span></label>
                         <div class="relative mt-1.5">
                             <input id="modal_confirm_password" name="confirm_password" type="password" required
                                 autocomplete="new-password"
@@ -383,21 +388,24 @@
                     <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
                         <div>
                             <label for="edit_modal_name"
-                                class="block text-sm font-medium text-concierge-navy">Name</label>
+                                class="block text-sm font-medium text-concierge-navy">Name <span
+                                    class="text-rose-600">*</span></label>
                             <input id="edit_modal_name" name="name" type="text" required autocomplete="name"
                                 class="mt-1.5 w-full rounded-xl border border-slate-200 bg-slate-50/80 px-4 py-2.5 text-sm focus:border-concierge-accent focus:bg-white focus:outline-none focus:ring-2 focus:ring-concierge-accent/20">
                         </div>
 
                         <div>
                             <label for="edit_modal_email"
-                                class="block text-sm font-medium text-concierge-navy">Email</label>
+                                class="block text-sm font-medium text-concierge-navy">Email <span
+                                    class="text-rose-600">*</span></label>
                             <input id="edit_modal_email" name="email" type="email" required autocomplete="email"
                                 class="mt-1.5 w-full rounded-xl border border-slate-200 bg-slate-50/80 px-4 py-2.5 text-sm focus:border-concierge-accent focus:bg-white focus:outline-none focus:ring-2 focus:ring-concierge-accent/20">
                         </div>
 
                         <div>
                             <label for="edit_modal_phone_number"
-                                class="block text-sm font-medium text-concierge-navy">Phone number</label>
+                                class="block text-sm font-medium text-concierge-navy">Phone number <span
+                                    class="text-rose-600">*</span></label>
                             <input id="edit_modal_phone_number" name="phone_number" type="text" required
                                 autocomplete="tel"
                                 class="mt-1.5 w-full rounded-xl border border-slate-200 bg-slate-50/80 px-4 py-2.5 text-sm focus:border-concierge-accent focus:bg-white focus:outline-none focus:ring-2 focus:ring-concierge-accent/20">
@@ -440,10 +448,11 @@
 
                         <div>
                             <label for="edit_modal_company_id"
-                                class="block text-sm font-medium text-concierge-navy">Company</label>
-                            <select id="edit_modal_company_id" name="company_id"
+                                class="block text-sm font-medium text-concierge-navy">Company <span
+                                    class="text-rose-600">*</span></label>
+                            <select id="edit_modal_company_id" name="company_id" required
                                 class="mt-1.5 w-full rounded-xl border border-slate-200 bg-slate-50/80 px-4 py-2.5 text-sm focus:border-concierge-accent focus:bg-white focus:outline-none focus:ring-2 focus:ring-concierge-accent/20">
-                                <option value="">Select company</option>
+                                <option value="" disabled>Select company</option>
                                 @foreach ($companies as $company)
                                     <option value="{{ $company->id }}">{{ $company->name }}</option>
                                 @endforeach
@@ -451,7 +460,8 @@
                         </div>
 
                         <div>
-                            <label for="edit_modal_role" class="block text-sm font-medium text-concierge-navy">Role</label>
+                            <label for="edit_modal_role" class="block text-sm font-medium text-concierge-navy">Role <span
+                                    class="text-rose-600">*</span></label>
                             <select id="edit_modal_role" name="role" required
                                 class="mt-1.5 w-full rounded-xl border border-slate-200 bg-slate-50/80 px-4 py-2.5 text-sm focus:border-concierge-accent focus:bg-white focus:outline-none focus:ring-2 focus:ring-concierge-accent/20">
                                 <option value="agent">Agent</option>

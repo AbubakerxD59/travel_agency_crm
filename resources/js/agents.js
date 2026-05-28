@@ -523,24 +523,6 @@ document.querySelectorAll('[data-close-permissions-modal]').forEach((btn) => {
     btn.addEventListener('click', closePermissionsModal);
 });
 
-modal?.addEventListener('click', (e) => {
-    if (e.target === modal) {
-        closeAgentModal();
-    }
-});
-
-editModal?.addEventListener('click', (e) => {
-    if (e.target === editModal) {
-        closeEditAgentModal();
-    }
-});
-
-permissionsModal?.addEventListener('click', (e) => {
-    if (e.target === permissionsModal) {
-        closePermissionsModal();
-    }
-});
-
 document.addEventListener('click', async (e) => {
     const root = elementFromClickTarget(e.target);
     if (!root?.closest('#agents-index-table')) {

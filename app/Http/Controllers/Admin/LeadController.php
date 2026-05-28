@@ -11,6 +11,7 @@ use App\Models\Company;
 use App\Models\Destination;
 use App\Models\Lead;
 use App\Models\User;
+use App\Services\AgentWebPushService;
 use App\Notifications\LeadAssignedNotification;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\DB;
@@ -174,26 +175,21 @@ class LeadController extends Controller
     {
         $data = $request->validated();
 
-        $companyId = $data['company_id'] ?? Company::query()->value('id');
-        if ($companyId === null) {
-            return back()->withInput()->with('error', __('Please add a company first, then assign the lead.'));
-        }
-
         $destinationId = Destination::query()->value('id');
         if ($destinationId === null) {
             return back()->withInput()->with('error', __('Please add a destination first, then assign the lead.'));
         }
 
         $lead = Lead::create([
-            'agent_id' => $data['agent_id'] ?? null,
-            'lead_assign_date' => ! empty($data['agent_id']) ? now() : null,
+            'agent_id' => $data['agent_id'],
+            'lead_assign_date' => now(),
             'customer_name' => $data['customer_name'],
             'phone_number' => $data['phone_number'],
             'email' => $data['email'] ?? null,
-            'company_id' => $companyId,
-            'city' => $data['city'] ?? null,
-            'total_passengers' => $data['total_passengers'] ?? null,
-            'source' => $data['source'] ?? null,
+            'company_id' => $data['company_id'],
+            'city' => $data['city'],
+            'total_passengers' => $data['total_passengers'],
+            'source' => $data['source'],
             'notes' => $data['notes'] ?? null,
             'order_type' => 'Assigned',
             'status' => Lead::STATUS_NEW,
@@ -206,7 +202,7 @@ class LeadController extends Controller
             'ziarat_madinah' => false,
         ]);
 
-        $this->notifyAssignedAgent($lead, null, (int) ($data['agent_id'] ?? 0));
+        $this->notifyAssignedAgent($lead, null, (int) $data['agent_id']);
 
         return redirect()
             ->route('admin.leads.index')
@@ -217,29 +213,22 @@ class LeadController extends Controller
     {
         $data = $request->validated();
         $previousAgentId = (int) ($lead->agent_id ?? 0);
-        $nextAgentId = $data['agent_id'] ?? null;
-
-        $companyId = $data['company_id'] ?? $lead->company_id ?? Company::query()->value('id');
-        if ($companyId === null) {
-            return back()->withInput()->with('error', __('Please add a company first, then update the lead.'));
-        }
+        $nextAgentId = (int) $data['agent_id'];
 
         $lead->update([
             'agent_id' => $nextAgentId,
-            'lead_assign_date' => $nextAgentId === null
-                ? null
-                : ($lead->agent_id !== (int) $nextAgentId ? now() : $lead->lead_assign_date),
+            'lead_assign_date' => (int) $lead->agent_id !== $nextAgentId ? now() : $lead->lead_assign_date,
             'customer_name' => $data['customer_name'],
             'phone_number' => $data['phone_number'],
             'email' => $data['email'] ?? null,
-            'company_id' => $companyId,
-            'city' => $data['city'] ?? null,
-            'total_passengers' => $data['total_passengers'] ?? null,
-            'source' => $data['source'] ?? null,
+            'company_id' => $data['company_id'],
+            'city' => $data['city'],
+            'total_passengers' => $data['total_passengers'],
+            'source' => $data['source'],
             'notes' => $data['notes'] ?? null,
         ]);
         $lead->refresh();
-        $this->notifyAssignedAgent($lead, $previousAgentId, (int) ($nextAgentId ?? 0));
+        $this->notifyAssignedAgent($lead, $previousAgentId, $nextAgentId);
 
         return redirect()
             ->route('admin.leads.index')
@@ -417,10 +406,11 @@ class LeadController extends Controller
             return;
         }
 
-        $agent->notify(new LeadAssignedNotification(
-            $lead,
-            $previousAgentId !== null && $previousAgentId > 0 && $previousAgentId !== $nextAgentId
-        ));
+        $isReassigned = $previousAgentId !== null && $previousAgentId > 0 && $previousAgentId !== $nextAgentId;
+
+        $agent->notify(new LeadAssignedNotification($lead, $isReassigned));
+
+        app(AgentWebPushService::class)->sendLeadAssigned($agent, $lead, $isReassigned);
 
         // Keep sent_at null until polling endpoint fetches the notification once.
         if (Schema::hasColumn('notifications', 'sent_at')) {

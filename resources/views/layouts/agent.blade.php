@@ -8,9 +8,9 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-    @vite(['resources/css/app.css', 'resources/js/app.js', 'resources/js/agent-notifications-poller.js'])
+    @vite(['resources/css/app.css', 'resources/js/app.js', 'resources/js/agent-notifications-poller.js', 'resources/js/agent-web-push.js'])
 </head>
-<body class="min-h-screen bg-concierge-page font-sans text-slate-800 antialiased @yield('body_class')">
+<body class="concierge-sidebar-drawer min-h-screen bg-concierge-page font-sans text-slate-800 antialiased @yield('body_class')">
     <div
         id="admin-sidebar-overlay"
         class="admin-sidebar-overlay fixed inset-0 z-[100] bg-slate-900/55 backdrop-blur-[2px] lg:hidden"
@@ -25,6 +25,7 @@
             @include('partials.admin.navbar')
 
             <main class="flex-1 overflow-auto p-6 lg:p-8">
+                @include('partials.agent.push-alerts-banner')
                 @yield('content')
             </main>
         </div>

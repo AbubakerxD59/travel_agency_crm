@@ -3,7 +3,10 @@ import Swal from 'sweetalert2';
 import './folder-date-range-picker';
 import './folder-form-date-pickers';
 
-window.Swal = Swal;
+/** Do not dismiss confirmation dialogs when clicking the backdrop. */
+window.Swal = Swal.mixin({
+    allowOutsideClick: false,
+});
 
 function initAdminSidebar() {
     const html = document.documentElement;
@@ -18,10 +21,12 @@ function initAdminSidebar() {
 
     /** Align with Tailwind `lg` (1024px): drawer only below this width. */
     const mqDesktop = window.matchMedia('(min-width: 1024px)');
-    const forceDrawerMode = body.classList.contains('folder-form-sidebar-drawer');
+    const forceDrawerMode =
+        body.classList.contains('concierge-sidebar-drawer') ||
+        body.classList.contains('folder-form-sidebar-drawer');
     const useDrawerMode = () => forceDrawerMode || !mqDesktop.matches;
 
-    if (forceDrawerMode) {
+    if (useDrawerMode()) {
         toggle.classList.remove('lg:hidden');
         overlay.classList.remove('lg:hidden');
         sidebar.querySelectorAll('.admin-sidebar-close').forEach((btn) => btn.classList.remove('lg:hidden'));

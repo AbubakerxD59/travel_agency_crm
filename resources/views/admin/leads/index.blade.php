@@ -2,8 +2,6 @@
 
 @section('title', 'Lead Management')
 
-@section('body_class', 'folder-form-sidebar-drawer')
-
 @section('content')
     <div class="mx-auto max-w-8xl">
         <div class="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
@@ -192,13 +190,13 @@
                         @forelse ($leads as $lead)
                             <tr class="hover:bg-slate-50/50">
                                 <td class="px-4 py-4 text-concierge-navy lg:px-6">
-                                    @if ($lead->agent)
+                                    @if ($lead->agent_id && $lead->agent)
                                         <a href="{{ route('admin.agents.overview', $lead->agent) }}"
                                             class="font-medium text-concierge-accent hover:underline">
-                                            {{ $lead->agent->name }}
+                                            {{ lead_agent_display_name($lead) }}
                                         </a>
                                     @else
-                                        Unassigned
+                                        {{ lead_agent_display_name($lead) }}
                                     @endif
                                 </td>
                                 <td class="px-4 py-4 text-concierge-navy lg:px-6">{{ $lead->customer_name ?? '—' }}</td>
@@ -324,10 +322,11 @@
                     <input type="hidden" name="_method" id="assign_lead_form_method" value="">
                     <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
                         <div>
-                            <label for="assign_company_id" class="block text-sm font-medium text-concierge-navy">Company</label>
-                            <select id="assign_company_id" name="company_id"
+                            <label for="assign_company_id" class="block text-sm font-medium text-concierge-navy">Company
+                                <span class="text-rose-600">*</span></label>
+                            <select id="assign_company_id" name="company_id" required
                                 class="mt-1.5 w-full rounded-xl border border-slate-200 bg-slate-50/80 px-4 py-2.5 text-sm focus:border-concierge-accent focus:bg-white focus:outline-none focus:ring-2 focus:ring-concierge-accent/20">
-                                <option value="">Select company</option>
+                                <option value="" disabled @selected(old('company_id') === null || old('company_id') === '')>Select company</option>
                                 @foreach ($companies as $company)
                                     <option value="{{ $company->id }}" @selected((string) old('company_id') === (string) $company->id)>
                                         {{ $company->name }}
@@ -336,10 +335,11 @@
                             </select>
                         </div>
                         <div>
-                            <label for="assign_agent_id" class="block text-sm font-medium text-concierge-navy">Agent</label>
-                            <select id="assign_agent_id" name="agent_id"
+                            <label for="assign_agent_id" class="block text-sm font-medium text-concierge-navy">Agent
+                                <span class="text-rose-600">*</span></label>
+                            <select id="assign_agent_id" name="agent_id" required
                                 class="mt-1.5 w-full rounded-xl border border-slate-200 bg-slate-50/80 px-4 py-2.5 text-sm focus:border-concierge-accent focus:bg-white focus:outline-none focus:ring-2 focus:ring-concierge-accent/20">
-                                <option value="">Select agent</option>
+                                <option value="" disabled @selected(old('agent_id') === null || old('agent_id') === '')>Select agent</option>
                                 @foreach ($agents as $agent)
                                     <option value="{{ $agent->id }}" data-company-id="{{ $agent->company_id ?? '' }}"
                                         @selected((string) old('agent_id') === (string) $agent->id)>{{ $agent->name }}
@@ -370,24 +370,26 @@
                                 class="mt-1.5 w-full rounded-xl border border-slate-200 bg-slate-50/80 px-4 py-2.5 text-sm focus:border-concierge-accent focus:bg-white focus:outline-none focus:ring-2 focus:ring-concierge-accent/20">
                         </div>
                         <div>
-                            <label for="assign_city" class="block text-sm font-medium text-concierge-navy">City</label>
-                            <input id="assign_city" name="city" type="text" value="{{ old('city') }}"
+                            <label for="assign_city" class="block text-sm font-medium text-concierge-navy">City
+                                <span class="text-rose-600">*</span></label>
+                            <input id="assign_city" name="city" type="text" required value="{{ old('city') }}"
                                 class="mt-1.5 w-full rounded-xl border border-slate-200 bg-slate-50/80 px-4 py-2.5 text-sm focus:border-concierge-accent focus:bg-white focus:outline-none focus:ring-2 focus:ring-concierge-accent/20">
                         </div>
                         <div>
                             <label for="assign_total_passengers" class="block text-sm font-medium text-concierge-navy">Total
-                                Passengers</label>
+                                Passengers <span class="text-rose-600">*</span></label>
                             <input id="assign_total_passengers" name="total_passengers" type="number" min="1" max="500"
-                                step="1" value="{{ old('total_passengers') }}"
+                                step="1" required value="{{ old('total_passengers') }}"
                                 class="mt-1.5 w-full rounded-xl border border-slate-200 bg-slate-50/80 px-4 py-2.5 text-sm focus:border-concierge-accent focus:bg-white focus:outline-none focus:ring-2 focus:ring-concierge-accent/20"
                                 placeholder="e.g. 4">
                         </div>
                         <div>
                             <label for="assign_source"
-                                class="block text-sm font-medium text-concierge-navy">Source</label>
-                            <select id="assign_source" name="source"
+                                class="block text-sm font-medium text-concierge-navy">Source <span
+                                    class="text-rose-600">*</span></label>
+                            <select id="assign_source" name="source" required
                                 class="mt-1.5 w-full rounded-xl border border-slate-200 bg-slate-50/80 px-4 py-2.5 text-sm focus:border-concierge-accent focus:bg-white focus:outline-none focus:ring-2 focus:ring-concierge-accent/20">
-                                <option value="">Select source</option>
+                                <option value="" disabled @selected(old('source') === null || old('source') === '')>Select source</option>
                                 @foreach (getSources() as $sourceKey => $sourceLabelOption)
                                     <option value="{{ $sourceKey }}" @selected(old('source') === $sourceKey)>
                                         {{ $sourceLabelOption }}</option>
@@ -403,7 +405,11 @@
 
                     @if ($errors->any())
                         <div class="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-800">
-                            {{ $errors->first() }}
+                            <ul class="list-inside list-disc space-y-1">
+                                @foreach ($errors->all() as $error)
+                                    <li>{{ $error }}</li>
+                                @endforeach
+                            </ul>
                         </div>
                     @endif
 
@@ -574,11 +580,6 @@
         });
         document.querySelectorAll('[data-close-assign-lead-modal]').forEach((btn) => {
             btn.addEventListener('click', closeAssignLeadModal);
-        });
-        assignLeadModal?.addEventListener('click', (event) => {
-            if (event.target === assignLeadModal) {
-                closeAssignLeadModal();
-            }
         });
 
         assignCompanySelect?.addEventListener('change', () => filterAssignLeadAgents(false));

@@ -8,7 +8,7 @@
          data-can-manage="{{ $canManageCompanies ? '1' : '0' }}"
          data-actions-colspan="{{ $canManageCompanies ? 6 : 5 }}"></div>
 
-    <div class="mx-auto max-w-7xl">
+    <div class="mx-auto max-w-8xl">
         <div class="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
             <div>
                 <h1 class="text-2xl font-bold text-concierge-navy lg:text-3xl">Companies</h1>
@@ -122,12 +122,9 @@
             <form id="store-company-form" method="POST" action="{{ route('admin.companies.store') }}" enctype="multipart/form-data" class="space-y-4 px-6 py-5">
                 @csrf
 
-                <div>
-                    <label for="modal_company_image" class="block text-sm font-medium text-concierge-navy">Image</label>
-                    <input id="modal_company_image" name="image" type="file" accept="image/jpeg,image/png,image/gif,image/webp"
-                           class="mt-1.5 w-full rounded-xl border border-slate-200 bg-slate-50/80 px-4 py-2 text-sm file:mr-4 file:rounded-lg file:border-0 file:bg-concierge-navy file:px-3 file:py-1.5 file:text-sm file:font-medium file:text-white hover:file:bg-concierge-navy-deep">
-                    <p class="mt-1 text-xs text-concierge-muted">JPEG, PNG, GIF, or WebP. Max 2 MB.</p>
-                </div>
+                @include('partials.companies.image-upload-field', [
+                    'inputId' => 'modal_company_image',
+                ])
 
                 <div>
                     <label for="modal_company_name" class="block text-sm font-medium text-concierge-navy">Name</label>
@@ -182,17 +179,10 @@
                     @csrf
                     <input type="hidden" name="_method" value="PATCH">
 
-                    <div id="edit-company-image-preview-wrap" class="hidden">
-                        <p class="text-sm font-medium text-concierge-navy">Current image</p>
-                        <img id="edit-company-image-preview" src="" alt="" class="mt-2 h-16 w-16 rounded-lg border border-slate-200 object-cover">
-                    </div>
-
-                    <div>
-                        <label for="edit_modal_company_image" class="block text-sm font-medium text-concierge-navy">Image</label>
-                        <input id="edit_modal_company_image" name="image" type="file" accept="image/jpeg,image/png,image/gif,image/webp"
-                               class="mt-1.5 w-full rounded-xl border border-slate-200 bg-slate-50/80 px-4 py-2 text-sm file:mr-4 file:rounded-lg file:border-0 file:bg-concierge-navy file:px-3 file:py-1.5 file:text-sm file:font-medium file:text-white hover:file:bg-concierge-navy-deep">
-                        <p class="mt-1 text-xs text-concierge-muted">Leave empty to keep the current image. Max 2 MB.</p>
-                    </div>
+                    @include('partials.companies.image-upload-field', [
+                        'inputId' => 'edit_modal_company_image',
+                        'optionalHint' => 'Drag & drop a new image to replace, or leave empty to keep the current image. Max 2 MB.',
+                    ])
 
                     <div>
                         <label for="edit_modal_company_name" class="block text-sm font-medium text-concierge-navy">Name</label>

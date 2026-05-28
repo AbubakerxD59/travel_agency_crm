@@ -4,6 +4,8 @@ use App\Http\Controllers\Agent\DashboardController as AgentDashboardController;
 use App\Http\Controllers\Agent\FolderController as AgentFolderController;
 use App\Http\Controllers\Agent\LeadController as AgentLeadController;
 use App\Http\Controllers\Agent\NotificationController as AgentNotificationController;
+use App\Http\Controllers\Agent\PushSubscriptionController;
+use App\Http\Controllers\FolderInvoiceController;
 use Illuminate\Support\Facades\Route;
 
 Route::prefix('agent')->name('agent.')->middleware('role:agent')->group(function () {
@@ -20,6 +22,12 @@ Route::prefix('agent')->name('agent.')->middleware('role:agent')->group(function
         ->name('notifications.open');
     Route::get('/notifications/poll', [AgentNotificationController::class, 'poll'])
         ->name('notifications.poll');
+    Route::get('/push/vapid-public-key', [PushSubscriptionController::class, 'vapidPublicKey'])
+        ->name('push.vapid-public-key');
+    Route::post('/push/subscribe', [PushSubscriptionController::class, 'store'])
+        ->name('push.subscribe');
+    Route::delete('/push/subscribe', [PushSubscriptionController::class, 'destroy'])
+        ->name('push.unsubscribe');
     // Lead routes
     Route::get('/leads', [AgentLeadController::class, 'index'])
         ->middleware('can:leads.access')
@@ -43,5 +51,8 @@ Route::prefix('agent')->name('agent.')->middleware('role:agent')->group(function
     Route::get('/folders/upcoming', [AgentFolderController::class, 'upcoming'])
         ->middleware('can:folders.access')
         ->name('folders.upcoming');
+    Route::get('/folders/{folder}/invoice', [FolderInvoiceController::class, 'show'])
+        ->middleware('can:folders.access')
+        ->name('folders.invoice');
     Route::resource('folders', AgentFolderController::class)->middleware('can:folders.access');
 });

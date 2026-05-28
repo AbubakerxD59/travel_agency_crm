@@ -157,7 +157,7 @@ class StoreLeadRequest extends FormRequest
     {
         return [
             'order_type' => 'order type',
-            'vendor_reference' => 'vendor reference',
+            'vendor_reference' => 'invoice number',
             'company_id' => 'company',
             'destination_id' => 'destination',
             'travel_date' => 'travel date',

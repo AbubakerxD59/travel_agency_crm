@@ -3,7 +3,7 @@
 @section('title', 'Folder Management')
 
 @section('content')
-    <div class="mx-auto max-w-7xl">
+    <div class="mx-auto max-w-8xl">
         <div class="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
             <div>
                 <h1 class="text-2xl font-bold text-concierge-navy lg:text-3xl">Folder Management</h1>
@@ -33,7 +33,7 @@
                             class="border-b border-slate-100 bg-slate-50/80 text-xs font-semibold uppercase tracking-wide text-concierge-muted">
                             <th class="px-4 py-4 lg:px-6">Customer Name</th>
                             <th class="px-4 py-4 lg:px-6">Order type</th>
-                            <th class="px-4 py-4 lg:px-6">Vendor Ref#</th>
+                            <th class="px-4 py-4 lg:px-6">Invoice Number</th>
                             <th class="px-4 py-4 lg:px-6">Company</th>
                             <th class="px-4 py-4 lg:px-6">Travel date</th>
                             <th class="px-4 py-4 lg:px-6">Destination</th>
@@ -140,6 +140,10 @@
                                                     d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931z" />
                                             </svg>
                                         </a>
+                                        @include('partials.folders.invoice-action', [
+                                            'folder' => $folder,
+                                            'routeName' => 'agent.folders.invoice',
+                                        ])
                                         <a href="{{ route('agent.folders.show', $folder) }}"
                                             class="lead-row-action inline-flex cursor-pointer rounded-lg p-2 text-concierge-muted transition hover:bg-slate-100 hover:text-concierge-accent"
                                             title="View" aria-label="View">

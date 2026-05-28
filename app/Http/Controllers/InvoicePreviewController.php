@@ -39,6 +39,12 @@ class InvoicePreviewController extends Controller
             'passengers' => $passengers,
             'invoice_total' => 6516,
             'amount_due' => 5916,
+            'approved_payments' => [
+                [
+                    'amount_formatted' => '£ 600',
+                    'payment_date' => format_invoice_date(Carbon::parse('2026-02-10')),
+                ],
+            ],
             'balance_due_date' => format_invoice_date(Carbon::parse('2026-02-11')),
             'hotels' => [
                 [

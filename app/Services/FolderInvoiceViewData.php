@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Models\Folder;
 use App\Models\FolderHotelDetail;
+use App\Models\FolderPayment;
 
 class FolderInvoiceViewData
 {
@@ -53,7 +54,7 @@ class FolderInvoiceViewData
             ],
             'booking_date' => format_invoice_date($folder->booking_date ?? $folder->created_at ?? now()),
             'invoice_number' => $folder->vendor_reference ?: (string) $folder->id,
-            'agent_name' => $folder->agent?->name ?? '—',
+            'agent_name' => folder_agent_display_name($folder),
             'travel_date' => format_invoice_date($folder->travel_date),
             'destination' => $folder->destination?->name ?? '—',
             'passenger_count' => $folder->passengers->count(),
@@ -68,6 +69,18 @@ class FolderInvoiceViewData
             ])->all(),
             'invoice_total' => $invoiceTotal,
             'amount_due' => $amountDue,
+            'approved_payments' => $folder->payments
+                ->where('approval_status', FolderPayment::STATUS_APPROVED)
+                ->sortBy([
+                    ['payment_date', 'asc'],
+                    ['id', 'asc'],
+                ])
+                ->values()
+                ->map(fn ($payment) => [
+                    'amount_formatted' => '£ '.number_format((float) ($payment->amount ?? 0), 0),
+                    'payment_date' => format_invoice_date($payment->payment_date),
+                ])
+                ->all(),
             'balance_due_date' => format_invoice_date($folder->balance_due_date),
             'hotels' => $folder->hotelDetails->map(fn (FolderHotelDetail $hotel) => [
                 'name' => $hotel->hotel_name ?? '—',

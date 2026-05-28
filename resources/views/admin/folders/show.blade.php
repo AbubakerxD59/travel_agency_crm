@@ -3,7 +3,7 @@
 @section('title', 'Folder #' . $folder->id)
 
 @section('content')
-    <div class="mx-auto max-w-7xl">
+    <div class="mx-auto max-w-8xl">
         <div
             class="rounded-2xl border border-slate-200/70 bg-gradient-to-r from-white via-slate-50/60 to-white p-6 shadow-sm lg:p-8">
             <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
@@ -31,14 +31,14 @@
             <dl class="mt-4 grid grid-cols-1 gap-3 md:grid-cols-2">
                 <div class="rounded-xl border border-slate-100 bg-slate-50/50 px-4 py-3">
                     <dt class="text-xs uppercase tracking-wide text-concierge-muted">Agent</dt>
-                    <dd class="mt-1 text-sm font-medium text-concierge-navy">{{ $folder->agent?->name ?? 'Unassigned' }}</dd>
+                    <dd class="mt-1 text-sm font-medium text-concierge-navy">{{ folder_agent_display_name($folder) }}</dd>
                 </div>
                 <div class="rounded-xl border border-slate-100 bg-slate-50/50 px-4 py-3">
                     <dt class="text-xs uppercase tracking-wide text-concierge-muted">Order Type</dt>
                     <dd class="mt-1 text-sm font-medium text-concierge-navy">{{ $folder->order_type ?? '—' }}</dd>
                 </div>
                 <div class="rounded-xl border border-slate-100 bg-slate-50/50 px-4 py-3">
-                    <dt class="text-xs uppercase tracking-wide text-concierge-muted">Vendor Ref#</dt>
+                    <dt class="text-xs uppercase tracking-wide text-concierge-muted">Invoice Number</dt>
                     <dd class="mt-1 text-sm font-medium text-concierge-navy">{{ $folder->vendor_reference ?? '—' }}</dd>
                 </div>
                 <div class="rounded-xl border border-slate-100 bg-slate-50/50 px-4 py-3">
@@ -359,6 +359,7 @@
                             <th class="border border-slate-200 px-2 py-2">Date of Payment</th>
                             <th class="border border-slate-200 px-2 py-2">Mode of Payment</th>
                             <th class="border border-slate-200 px-2 py-2">Bank</th>
+                            <th class="border border-slate-200 px-2 py-2">Receipt</th>
                             <th class="border border-slate-200 px-2 py-2">Status</th>
                         </tr>
                     </thead>
@@ -371,6 +372,12 @@
                                 <td class="border border-slate-200 px-2 py-2">{{ $p->mode_of_payment ?? '—' }}</td>
                                 <td class="border border-slate-200 px-2 py-2">{{ $p->bank?->name ?? '—' }}</td>
                                 <td class="border border-slate-200 px-2 py-2">
+                                    <a href="{{ route('admin.folder-payments.show', $p) }}"
+                                        class="text-sm font-medium text-concierge-navy underline">
+                                        {{ $p->imageUrl() ? __('View image') : __('Upload') }}
+                                    </a>
+                                </td>
+                                <td class="border border-slate-200 px-2 py-2">
                                     @if (($p->approval_status ?? 'approved') === 'pending')
                                         <span class="font-medium text-amber-700">Pending</span>
                                     @elseif (($p->approval_status ?? '') === 'rejected')
@@ -378,10 +385,13 @@
                                     @else
                                         <span class="text-concierge-muted">Approved</span>
                                     @endif
+                                    @if ($p->isLocked())
+                                        @include('partials.folders.payment-locked-icon', ['class' => 'ml-1 inline-flex h-5 w-5 items-center justify-center rounded bg-slate-200 text-slate-600'])
+                                    @endif
                                 </td>
                             </tr>
                         @empty
-                            <tr><td class="border border-slate-200 px-3 py-4 text-center text-concierge-muted" colspan="6">No payments recorded.</td></tr>
+                            <tr><td class="border border-slate-200 px-3 py-4 text-center text-concierge-muted" colspan="7">No payments recorded.</td></tr>
                         @endforelse
                     </tbody>
                 </table>

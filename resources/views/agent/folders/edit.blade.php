@@ -127,8 +127,8 @@
                         </select>
                     </div>
                     <div class="min-w-0">
-                        <label for="lead_vendor_reference" class="block text-sm font-medium text-concierge-navy">Vendor
-                            reference <span class="font-normal text-concierge-muted">(optional)</span></label>
+                        <label for="lead_vendor_reference" class="block text-sm font-medium text-concierge-navy">Invoice
+                            Number <span class="font-normal text-concierge-muted">(optional)</span></label>
                         <input id="lead_vendor_reference" name="vendor_reference" type="text"
                             value="{{ old('vendor_reference', $lead->vendor_reference) }}" class="{{ $fieldClass }}">
                     </div>

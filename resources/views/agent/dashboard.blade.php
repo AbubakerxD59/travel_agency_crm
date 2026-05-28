@@ -3,7 +3,7 @@
 @section('title', 'Dashboard')
 
 @section('content')
-    <div class="mx-auto max-w-7xl">
+    <div class="mx-auto max-w-8xl">
         <div class="mb-8">
             <h1 class="text-2xl font-bold text-concierge-navy lg:text-3xl">Dashboard</h1>
             <p class="mt-1 text-concierge-muted">Overview of your concierge operations.</p>

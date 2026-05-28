@@ -3,7 +3,7 @@
 @section('title', 'Payment approvals')
 
 @section('content')
-    <div class="mx-auto max-w-7xl">
+    <div class="mx-auto max-w-8xl">
         <div class="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
             <div>
                 <h1 class="text-2xl font-bold text-concierge-navy lg:text-3xl">Payment management</h1>
@@ -40,6 +40,7 @@
                         <th class="border border-slate-200 px-3 py-2">Date</th>
                         <th class="border border-slate-200 px-3 py-2">Mode</th>
                         <th class="border border-slate-200 px-3 py-2">Bank</th>
+                        <th class="border border-slate-200 px-3 py-2">Image</th>
                         <th class="border border-slate-200 px-3 py-2">Status</th>
                         <th class="border border-slate-200 px-3 py-2">Actions</th>
                     </tr>
@@ -51,7 +52,8 @@
                                 <a href="{{ route('admin.folders.show', $payment->folder) }}"
                                     class="font-medium text-concierge-navy underline">#{{ $payment->folder_id }}</a>
                             </td>
-                            <td class="border border-slate-200 px-3 py-2">{{ $payment->folder?->agent?->name ?? '—' }}
+                            <td class="border border-slate-200 px-3 py-2">
+                                {{ $payment->folder ? folder_agent_display_name($payment->folder) : '—' }}
                             </td>
                             <td class="border border-slate-200 px-3 py-2">{{ $payment->folder?->customer_name ?? '—' }}
                             </td>
@@ -62,6 +64,17 @@
                             <td class="border border-slate-200 px-3 py-2">{{ $payment->mode_of_payment }}</td>
                             <td class="border border-slate-200 px-3 py-2">{{ $payment->bank?->name ?? '—' }}</td>
                             <td class="border border-slate-200 px-3 py-2">
+                                @if ($payment->imageUrl())
+                                    <a href="{{ route('admin.folder-payments.show', $payment) }}"
+                                        class="inline-block">
+                                        <img src="{{ $payment->imageUrl() }}" alt=""
+                                            class="h-10 w-10 rounded-lg border border-slate-200 object-cover">
+                                    </a>
+                                @else
+                                    <span class="text-concierge-muted">—</span>
+                                @endif
+                            </td>
+                            <td class="border border-slate-200 px-3 py-2">
                                 @if ($payment->approval_status === 'pending')
                                     <span class="font-medium text-amber-700">Pending</span>
                                 @elseif ($payment->approval_status === 'rejected')
@@ -69,10 +82,17 @@
                                 @else
                                     <span class="text-concierge-muted">Approved</span>
                                 @endif
+                                @if ($payment->isLocked())
+                                    @include('partials.folders.payment-locked-icon', ['class' => 'ml-1 inline-flex h-5 w-5 items-center justify-center rounded bg-slate-200 text-slate-600'])
+                                @endif
                             </td>
                             <td class="border border-slate-200 px-3 py-2">
-                                @if ($payment->approval_status === 'pending')
-                                    <div class="flex flex-wrap gap-2">
+                                <div class="flex flex-wrap items-center gap-2">
+                                    <a href="{{ route('admin.folder-payments.show', $payment) }}"
+                                        class="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-concierge-navy hover:bg-slate-50">
+                                        View
+                                    </a>
+                                    @if ($payment->approval_status === 'pending' && ! $payment->isLocked())
                                         <form method="POST"
                                             action="{{ route('admin.folder-payments.approve', $payment) }}"
                                             onsubmit="return confirm({{ json_encode(__('Approve this payment?')) }})">
@@ -91,15 +111,13 @@
                                                 Reject
                                             </button>
                                         </form>
-                                    </div>
-                                @else
-                                    <span class="text-concierge-muted">—</span>
-                                @endif
+                                    @endif
+                                </div>
                             </td>
                         </tr>
                     @empty
                         <tr>
-                            <td class="border border-slate-200 px-4 py-8 text-center text-concierge-muted" colspan="10">
+                            <td class="border border-slate-200 px-4 py-8 text-center text-concierge-muted" colspan="11">
                                 No payments recorded.</td>
                         </tr>
                     @endforelse

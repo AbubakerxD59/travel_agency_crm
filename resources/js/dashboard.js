@@ -6,13 +6,31 @@ const CONFETTI_ICON = '🎉';
 
 /**
  * @param {string} name
- * @param {{ salesDoneTotal?: number, isTopPerformer?: boolean }} [options]
+ * @param {{ salesDoneTotal?: number, performanceRate?: number, isTopPerformer?: boolean }} [options]
  */
 function formatAgentLabel(name, options = {}) {
-    const { salesDoneTotal, isTopPerformer = false } = options;
-    let label = salesDoneTotal != null ? `${name} (${salesDoneTotal})` : name;
+    const { salesDoneTotal, performanceRate, isTopPerformer = false } = options;
+    let label = name;
+
+    if (performanceRate != null) {
+        label = `${name} (${formatPerformanceRate(performanceRate)})`;
+    } else if (salesDoneTotal != null) {
+        label = `${name} (${salesDoneTotal})`;
+    }
 
     return isTopPerformer ? `${CONFETTI_ICON} ${label}` : label;
+}
+
+/**
+ * @param {number} rate
+ */
+function formatPerformanceRate(rate) {
+    const value = Number(rate);
+    if (!Number.isFinite(value)) {
+        return '0%';
+    }
+
+    return Number.isInteger(value) ? `${value}%` : `${value.toFixed(1)}%`;
 }
 
 /**
@@ -50,6 +68,9 @@ function initAgentPerformanceChart() {
     const agents = config.agents ?? [];
     const agentOptions = Array.isArray(config.agentOptions) ? config.agentOptions : [];
     const highlightTopPerformer = cfgEl.dataset.highlightTopPerformer === 'true';
+    const highestPerformanceButton = document.getElementById('admin-agent-chart-highest-performance-button');
+    const highestPerformanceMenu = document.getElementById('admin-agent-chart-highest-performance-menu');
+    let sortByHighestPerformance = Boolean(config.sortByHighestPerformance);
     const topPerformerState = {
         ids: highlightTopPerformer ? parseTopPerformerAgentIds(config) : new Set(),
     };
@@ -71,17 +92,19 @@ function initAgentPerformanceChart() {
     const muted = rootStyles.getPropertyValue('--color-concierge-muted').trim() || '#64748b';
 
     /**
-     * @param {Array<{ id?: number, name: string, salesDoneTotal?: number, color: string, data: number[] }>} chartAgents
+     * @param {Array<{ id?: number, name: string, salesDoneTotal?: number, performanceRate?: number, color: string, data: number[] }>} chartAgents
      */
     function mapChartDatasets(chartAgents) {
         return chartAgents.map((a) => {
             const agentId = a.id != null ? String(a.id) : '';
             const isTopPerformer = highlightTopPerformer && topPerformerState.ids.has(agentId);
-            const showSalesTotal = highlightTopPerformer && a.salesDoneTotal != null;
+            const showPerformanceRate = sortByHighestPerformance && a.performanceRate != null;
+            const showSalesTotal = highlightTopPerformer && !showPerformanceRate && a.salesDoneTotal != null;
 
             return {
                 label: formatAgentLabel(a.name, {
                     salesDoneTotal: showSalesTotal ? a.salesDoneTotal : undefined,
+                    performanceRate: showPerformanceRate ? a.performanceRate : undefined,
                     isTopPerformer,
                 }),
                 agentId,
@@ -182,6 +205,7 @@ function initAgentPerformanceChart() {
         agentCombobox = createSearchableAgentCombobox(agentFilterWrap, agentOptions, {
             highlightTopPerformer,
             topPerformerState,
+            getSortByHighestPerformance: () => sortByHighestPerformance,
         });
     }
 
@@ -210,6 +234,7 @@ function initAgentPerformanceChart() {
             return;
         }
 
+        sortByHighestPerformance = Boolean(nextConfig?.sortByHighestPerformance);
         applyTopPerformerFromConfig(nextConfig);
         if (Array.isArray(nextConfig?.agentOptions)) {
             agentCombobox?.setAgentOptions?.(nextConfig.agentOptions);
@@ -247,6 +272,10 @@ function initAgentPerformanceChart() {
         const agentId = currentAgentIdParam();
         if (agentId) {
             params.set('agent_id', agentId);
+        }
+
+        if (sortByHighestPerformance) {
+            params.set('highest_performance', '1');
         }
 
         try {
@@ -323,6 +352,25 @@ function initAgentPerformanceChart() {
         return customDatePicker;
     }
 
+    if (highestPerformanceButton && highestPerformanceMenu) {
+        initHighestPerformanceDropdown({
+            button: highestPerformanceButton,
+            menu: highestPerformanceMenu,
+            chartEndpoint,
+            getDashboardParams: dashboardGlobalFilterParams,
+            onAgentSelect: async (agentId) => {
+                sortByHighestPerformance = true;
+                agentCombobox?.selectAgentById?.(agentId);
+                agentCombobox?.setDisabled(true);
+                await fetchAndApplyChartData();
+                agentCombobox?.setDisabled(false);
+            },
+            formatPerformanceRate,
+            highlightTopPerformer,
+            topPerformerState,
+        });
+    }
+
     agentCombobox?.onSelectionCommit(async () => {
         agentCombobox?.setDisabled(true);
 
@@ -395,11 +443,12 @@ function initAgentPerformanceChart() {
  *
  * @param {HTMLElement} mountEl
  * @param {Array<{ id: number, name: string, salesDoneTotal?: number }>} agents
- * @param {{ highlightTopPerformer?: boolean, topPerformerState?: { ids: Set<string> } }} [options]
+ * @param {{ highlightTopPerformer?: boolean, topPerformerState?: { ids: Set<string> }, getSortByHighestPerformance?: () => boolean }} [options]
  */
 function createSearchableAgentCombobox(mountEl, agents, options = {}) {
     const highlightTopPerformer = Boolean(options.highlightTopPerformer);
     const topPerformerState = options.topPerformerState ?? { ids: new Set() };
+    const getSortByHighestPerformance = options.getSortByHighestPerformance ?? (() => false);
 
     function displayAgentName(choice) {
         if (choice.id === '') {
@@ -407,10 +456,12 @@ function createSearchableAgentCombobox(mountEl, agents, options = {}) {
         }
 
         const isTop = highlightTopPerformer && topPerformerState.ids.has(choice.id);
-        const showSalesTotal = highlightTopPerformer && choice.salesDoneTotal != null;
+        const showPerformanceRate = getSortByHighestPerformance() && choice.performanceRate != null;
+        const showSalesTotal = highlightTopPerformer && !showPerformanceRate && choice.salesDoneTotal != null;
 
         return formatAgentLabel(choice.name, {
             salesDoneTotal: showSalesTotal ? choice.salesDoneTotal : undefined,
+            performanceRate: showPerformanceRate ? choice.performanceRate : undefined,
             isTopPerformer: isTop,
         });
     }
@@ -431,6 +482,7 @@ function createSearchableAgentCombobox(mountEl, agents, options = {}) {
                 id: String(a.id),
                 name: String(a.name),
                 salesDoneTotal: a.salesDoneTotal ?? 0,
+                performanceRate: a.performanceRate ?? 0,
             })),
         ];
     }
@@ -683,6 +735,21 @@ function createSearchableAgentCombobox(mountEl, agents, options = {}) {
         getAgentId() {
             return selectedAgentId;
         },
+        /** @param {string | number} agentId */
+        selectAgentById(agentId) {
+            const id = agentId === '' || agentId == null ? '' : String(agentId);
+            const choice = allChoices.find((c) => c.id === id);
+            if (!choice && id !== '') {
+                return;
+            }
+
+            selectedAgentId = id;
+            selectedAgentName = choice?.name ?? '';
+            syncInputToSelection();
+            if (listOpen) {
+                renderOptions();
+            }
+        },
         setDisabled(v) {
             input.disabled = v;
             if (v && listOpen) {
@@ -715,6 +782,186 @@ function createSearchableAgentCombobox(mountEl, agents, options = {}) {
             }
         },
     };
+}
+
+/**
+ * @param {{
+ *   button: HTMLButtonElement,
+ *   menu: HTMLElement,
+ *   chartEndpoint: string,
+ *   getDashboardParams: () => URLSearchParams,
+ *   onAgentSelect: (agentId: string) => Promise<void>,
+ *   formatPerformanceRate: (rate: number) => string,
+ *   highlightTopPerformer: boolean,
+ *   topPerformerState: { ids: Set<string> },
+ * }} options
+ */
+function initHighestPerformanceDropdown(options) {
+    const {
+        button,
+        menu,
+        chartEndpoint,
+        getDashboardParams,
+        onAgentSelect,
+        formatPerformanceRate,
+        highlightTopPerformer,
+        topPerformerState,
+    } = options;
+
+    let isLoading = false;
+
+    function closeMenu() {
+        menu.classList.add('hidden');
+        button.setAttribute('aria-expanded', 'false');
+    }
+
+    function openMenu() {
+        menu.classList.remove('hidden');
+        button.setAttribute('aria-expanded', 'true');
+    }
+
+    function renderLoading() {
+        menu.replaceChildren();
+        const loading = document.createElement('p');
+        loading.className = 'px-4 py-3 text-sm text-concierge-muted';
+        loading.textContent = 'Loading rankings...';
+        menu.appendChild(loading);
+    }
+
+    function renderEmpty() {
+        menu.replaceChildren();
+        const empty = document.createElement('p');
+        empty.className = 'px-4 py-3 text-sm text-concierge-muted';
+        empty.textContent = 'No agents match the selected filters.';
+        menu.appendChild(empty);
+    }
+
+    /**
+     * @param {Array<{ id: number, name: string, performanceRate?: number, salesDoneTotal?: number }>} agents
+     */
+    function renderAgentList(agents) {
+        menu.replaceChildren();
+
+        if (!agents.length) {
+            renderEmpty();
+            return;
+        }
+
+        const sorted = [...agents].sort(
+            (a, b) => (Number(b.performanceRate) || 0) - (Number(a.performanceRate) || 0),
+        );
+
+        sorted.forEach((agent, index) => {
+            const agentId = String(agent.id);
+            const isTopPerformer = highlightTopPerformer && topPerformerState.ids.has(agentId);
+            const item = document.createElement('button');
+            item.type = 'button';
+            item.role = 'menuitem';
+            item.className =
+                'flex w-full cursor-pointer items-center justify-between gap-3 px-4 py-2.5 text-left text-sm text-concierge-navy transition hover:bg-slate-50';
+            item.dataset.agentId = agentId;
+
+            const nameWrap = document.createElement('span');
+            nameWrap.className = 'min-w-0 flex items-center gap-2';
+            const rank = document.createElement('span');
+            rank.className = 'w-5 shrink-0 text-xs font-semibold tabular-nums text-concierge-muted';
+            rank.textContent = String(index + 1);
+            const name = document.createElement('span');
+            name.className = 'truncate font-medium';
+            name.textContent = isTopPerformer ? `${CONFETTI_ICON} ${agent.name}` : agent.name;
+            nameWrap.appendChild(rank);
+            nameWrap.appendChild(name);
+
+            const rate = document.createElement('span');
+            rate.className = 'shrink-0 font-semibold tabular-nums text-concierge-navy';
+            rate.textContent = formatPerformanceRate(Number(agent.performanceRate) || 0);
+
+            item.appendChild(nameWrap);
+            item.appendChild(rate);
+
+            item.addEventListener('click', async () => {
+                if (isLoading) {
+                    return;
+                }
+                isLoading = true;
+                item.disabled = true;
+                try {
+                    await onAgentSelect(agentId);
+                } finally {
+                    isLoading = false;
+                    item.disabled = false;
+                    closeMenu();
+                }
+            });
+
+            menu.appendChild(item);
+        });
+    }
+
+    async function loadRankings() {
+        if (!chartEndpoint) {
+            renderEmpty();
+            return;
+        }
+
+        renderLoading();
+        isLoading = true;
+        button.disabled = true;
+
+        const params = getDashboardParams();
+        params.set('highest_performance', '1');
+
+        try {
+            const response = await fetch(`${chartEndpoint}?${params.toString()}`, {
+                headers: { Accept: 'application/json' },
+            });
+
+            if (!response.ok) {
+                renderEmpty();
+                return;
+            }
+
+            const payload = await response.json();
+            if (highlightTopPerformer && Array.isArray(payload?.topPerformerAgentIds)) {
+                topPerformerState.ids = new Set(payload.topPerformerAgentIds.map((id) => String(id)));
+            }
+
+            const agentOptions = Array.isArray(payload?.agentOptions) ? payload.agentOptions : [];
+            renderAgentList(agentOptions);
+        } catch {
+            renderEmpty();
+        } finally {
+            isLoading = false;
+            button.disabled = false;
+        }
+    }
+
+    button.addEventListener('click', async () => {
+        if (isLoading) {
+            return;
+        }
+
+        if (!menu.classList.contains('hidden')) {
+            closeMenu();
+            return;
+        }
+
+        openMenu();
+        await loadRankings();
+    });
+
+    document.addEventListener('click', (event) => {
+        if (menu.classList.contains('hidden')) {
+            return;
+        }
+        if (!(event.target instanceof Node)) {
+            return;
+        }
+        if (menu.contains(event.target) || button.contains(event.target)) {
+            return;
+        }
+        closeMenu();
+    });
 }
 
 if (document.readyState === 'loading') {

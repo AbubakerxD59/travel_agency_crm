@@ -19,6 +19,7 @@ class Lead extends Model
 
     protected $fillable = [
         'agent_id',
+        'agent_name',
         'lead_assign_date',
         'customer_name',
         'phone_number',
@@ -31,6 +32,15 @@ class Lead extends Model
         'status',
         'not_converted_reason',
     ];
+
+    protected static function booted(): void
+    {
+        static::saving(function (Lead $lead): void {
+            if ($lead->isDirty('agent_id')) {
+                lead_sync_agent_name_from_user($lead);
+            }
+        });
+    }
 
     protected $casts = [
         'lead_assign_date' => 'datetime',
@@ -81,7 +91,7 @@ class Lead extends Model
      */
     public function agent(): BelongsTo
     {
-        return $this->belongsTo(User::class, 'agent_id');
+        return $this->belongsTo(User::class, 'agent_id')->withTrashed();
     }
 
     /**

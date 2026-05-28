@@ -134,21 +134,247 @@ function companyImageCellHtml(imageUrl) {
     return '<span class="inline-flex h-10 w-10 items-center justify-center rounded-lg border border-dashed border-slate-200 bg-slate-50 text-xs text-concierge-muted">—</span>';
 }
 
-function setEditCompanyImagePreview(imageUrl) {
-    const wrap = document.getElementById('edit-company-image-preview-wrap');
-    const img = document.getElementById('edit-company-image-preview');
-    if (!wrap || !img) {
+const MAX_COMPANY_IMAGE_BYTES = 2 * 1024 * 1024;
+const COMPANY_IMAGE_TYPES = new Set(['image/jpeg', 'image/png', 'image/gif', 'image/webp']);
+
+/** @type {WeakMap<Element, { objectUrl: string | null, existingUrl: string | null, hasNewFile: boolean }>} */
+const companyImageUploadState = new WeakMap();
+
+/** @param {Element | null | undefined} root */
+function companyImageUploadParts(root) {
+    if (!(root instanceof Element)) {
+        return null;
+    }
+
+    return {
+        root,
+        dropzone: root.querySelector('[data-company-image-dropzone]'),
+        input: root.querySelector('[data-company-image-input]'),
+        empty: root.querySelector('[data-company-image-empty]'),
+        preview: root.querySelector('[data-company-image-preview]'),
+        previewImg: root.querySelector('[data-company-image-preview-img]'),
+        removeBtn: root.querySelector('[data-company-image-remove]'),
+    };
+}
+
+/** @param {{ root: Element }} parts */
+function revokeCompanyImageObjectUrl(parts) {
+    const state = companyImageUploadState.get(parts.root);
+    if (state?.objectUrl) {
+        URL.revokeObjectURL(state.objectUrl);
+        state.objectUrl = null;
+    }
+}
+
+/** @param {File} file */
+function validateCompanyImageFile(file) {
+    if (!COMPANY_IMAGE_TYPES.has(file.type)) {
+        toastr.error('Please choose a JPEG, PNG, GIF, or WebP image.');
+        return false;
+    }
+    if (file.size > MAX_COMPANY_IMAGE_BYTES) {
+        toastr.error('Image must be 2 MB or smaller.');
+        return false;
+    }
+    return true;
+}
+
+/**
+ * @param {NonNullable<ReturnType<typeof companyImageUploadParts>>} parts
+ * @param {{ showPreview: boolean, src?: string, alt?: string }} opts
+ */
+function renderCompanyImageUpload(parts, { showPreview, src = '', alt = '' }) {
+    const { dropzone, empty, preview, previewImg } = parts;
+    if (!dropzone || !empty || !preview || !previewImg) {
         return;
     }
 
-    if (imageUrl) {
-        img.src = imageUrl;
-        wrap.classList.remove('hidden');
+    if (showPreview && src) {
+        previewImg.src = src;
+        previewImg.alt = alt;
+        preview.classList.remove('hidden');
+        empty.classList.add('hidden');
+        dropzone.classList.add('company-image-dropzone--has-preview');
+        return;
+    }
+
+    previewImg.removeAttribute('src');
+    previewImg.alt = '';
+    preview.classList.add('hidden');
+    empty.classList.remove('hidden');
+    dropzone.classList.remove('company-image-dropzone--has-preview');
+}
+
+/** @param {Element} root */
+function resetCompanyImageUpload(root, { existingUrl = null } = {}) {
+    const parts = companyImageUploadParts(root);
+    if (!parts?.input) {
+        return;
+    }
+
+    revokeCompanyImageObjectUrl(parts);
+    parts.input.value = '';
+
+    companyImageUploadState.set(parts.root, {
+        objectUrl: null,
+        existingUrl: existingUrl || null,
+        hasNewFile: false,
+    });
+
+    if (existingUrl) {
+        renderCompanyImageUpload(parts, {
+            showPreview: true,
+            src: existingUrl,
+            alt: 'Current company image',
+        });
     } else {
-        img.removeAttribute('src');
-        wrap.classList.add('hidden');
+        renderCompanyImageUpload(parts, { showPreview: false });
     }
 }
+
+/**
+ * @param {NonNullable<ReturnType<typeof companyImageUploadParts>>} parts
+ * @param {File} file
+ */
+function applyFileToCompanyImageUpload(parts, file) {
+    if (!validateCompanyImageFile(file)) {
+        return;
+    }
+
+    revokeCompanyImageObjectUrl(parts);
+
+    const objectUrl = URL.createObjectURL(file);
+    const transfer = new DataTransfer();
+    transfer.items.add(file);
+    parts.input.files = transfer.files;
+
+    const state = companyImageUploadState.get(parts.root) ?? {
+        objectUrl: null,
+        existingUrl: null,
+        hasNewFile: false,
+    };
+    state.objectUrl = objectUrl;
+    state.hasNewFile = true;
+    companyImageUploadState.set(parts.root, state);
+
+    renderCompanyImageUpload(parts, {
+        showPreview: true,
+        src: objectUrl,
+        alt: file.name,
+    });
+}
+
+/**
+ * @param {NonNullable<ReturnType<typeof companyImageUploadParts>>} parts
+ * @param {{ keepExisting?: boolean }} opts
+ */
+function clearCompanyImageUpload(parts, { keepExisting = false } = {}) {
+    revokeCompanyImageObjectUrl(parts);
+    parts.input.value = '';
+
+    const state = companyImageUploadState.get(parts.root) ?? {
+        objectUrl: null,
+        existingUrl: null,
+        hasNewFile: false,
+    };
+    state.hasNewFile = false;
+    companyImageUploadState.set(parts.root, state);
+
+    if (keepExisting && state.existingUrl) {
+        renderCompanyImageUpload(parts, {
+            showPreview: true,
+            src: state.existingUrl,
+            alt: 'Current company image',
+        });
+        return;
+    }
+
+    renderCompanyImageUpload(parts, { showPreview: false });
+}
+
+/** @param {string | null} imageUrl */
+function setEditCompanyImagePreview(imageUrl) {
+    const root = editForm?.querySelector('[data-company-image-upload]');
+    if (!root) {
+        return;
+    }
+    resetCompanyImageUpload(root, { existingUrl: imageUrl });
+}
+
+/** @param {Element} root */
+function initCompanyImageUpload(root) {
+    const parts = companyImageUploadParts(root);
+    if (!parts?.dropzone || !parts.input) {
+        return;
+    }
+
+    companyImageUploadState.set(parts.root, {
+        objectUrl: null,
+        existingUrl: null,
+        hasNewFile: false,
+    });
+
+    let dragDepth = 0;
+
+    parts.dropzone.addEventListener('click', (e) => {
+        if (e.target instanceof Element && e.target.closest('[data-company-image-remove]')) {
+            return;
+        }
+        parts.input.click();
+    });
+
+    parts.dropzone.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault();
+            parts.input.click();
+        }
+    });
+
+    parts.input.addEventListener('change', () => {
+        const file = parts.input.files?.[0];
+        if (file) {
+            applyFileToCompanyImageUpload(parts, file);
+        }
+    });
+
+    parts.removeBtn?.addEventListener('click', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        const state = companyImageUploadState.get(parts.root);
+        clearCompanyImageUpload(parts, { keepExisting: Boolean(state?.existingUrl && state.hasNewFile) });
+    });
+
+    parts.dropzone.addEventListener('dragenter', (e) => {
+        e.preventDefault();
+        dragDepth += 1;
+        parts.dropzone.classList.add('company-image-dropzone--dragover');
+    });
+
+    parts.dropzone.addEventListener('dragover', (e) => {
+        e.preventDefault();
+    });
+
+    parts.dropzone.addEventListener('dragleave', (e) => {
+        e.preventDefault();
+        dragDepth -= 1;
+        if (dragDepth <= 0) {
+            dragDepth = 0;
+            parts.dropzone.classList.remove('company-image-dropzone--dragover');
+        }
+    });
+
+    parts.dropzone.addEventListener('drop', (e) => {
+        e.preventDefault();
+        dragDepth = 0;
+        parts.dropzone.classList.remove('company-image-dropzone--dragover');
+        const file = e.dataTransfer?.files?.[0];
+        if (file) {
+            applyFileToCompanyImageUpload(parts, file);
+        }
+    });
+}
+
+document.querySelectorAll('[data-company-image-upload]').forEach(initCompanyImageUpload);
 
 function companyActionButtonsInnerHtml(companyId) {
     const id = String(companyId);
@@ -361,7 +587,13 @@ function elementFromClickTarget(target) {
 companyListFilterInput?.addEventListener('input', applyCompanyListFilter);
 companyListFilterInput?.addEventListener('search', applyCompanyListFilter);
 
-document.getElementById('open-company-modal')?.addEventListener('click', openCompanyModal);
+document.getElementById('open-company-modal')?.addEventListener('click', () => {
+    const uploadRoot = form?.querySelector('[data-company-image-upload]');
+    if (uploadRoot) {
+        resetCompanyImageUpload(uploadRoot);
+    }
+    openCompanyModal();
+});
 
 document.querySelectorAll('[data-close-company-modal]').forEach((btn) => {
     btn.addEventListener('click', closeCompanyModal);
@@ -369,18 +601,6 @@ document.querySelectorAll('[data-close-company-modal]').forEach((btn) => {
 
 document.querySelectorAll('[data-close-edit-company-modal]').forEach((btn) => {
     btn.addEventListener('click', closeEditCompanyModal);
-});
-
-modal?.addEventListener('click', (e) => {
-    if (e.target === modal) {
-        closeCompanyModal();
-    }
-});
-
-editModal?.addEventListener('click', (e) => {
-    if (e.target === editModal) {
-        closeEditCompanyModal();
-    }
 });
 
 document.addEventListener('click', async (e) => {
@@ -542,6 +762,10 @@ form?.addEventListener('submit', async (e) => {
         if (res.ok) {
             toastr.success(data.message ?? 'Company created successfully.');
             form.reset();
+            const uploadRoot = form.querySelector('[data-company-image-upload]');
+            if (uploadRoot) {
+                resetCompanyImageUpload(uploadRoot);
+            }
             const sel = document.getElementById('modal_country_id');
             if (sel) {
                 sel.selectedIndex = 0;

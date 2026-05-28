@@ -36,25 +36,6 @@ class CompanyImageStorage
 
     public function url(?string $path): ?string
     {
-        if ($path === null || $path === '') {
-            return null;
-        }
-
-        if (Str::startsWith($path, ['http://', 'https://'])) {
-            return $path;
-        }
-
-        $normalized = str_replace('\\', '/', $path);
-
-        if (Str::startsWith($normalized, '/storage/')) {
-            return $normalized;
-        }
-
-        if (! Storage::disk('public')->exists($normalized)) {
-            return null;
-        }
-
-        // Relative URL so images work regardless of APP_URL host/port (e.g. 127.0.0.1:8000 vs localhost).
-        return '/storage/'.ltrim($normalized, '/');
+        return public_storage_url($path);
     }
 }

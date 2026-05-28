@@ -18,7 +18,22 @@ class NotificationController extends Controller
         $newlyFetched = (clone $unreadQuery)
             ->whereNull('sent_at')
             ->latest()
-            ->get(['id']);
+            ->get();
+
+        $newNotifications = $newlyFetched
+            ->map(function ($notification): array {
+                $data = is_array($notification->data) ? $notification->data : [];
+
+                return [
+                    'id' => $notification->id,
+                    'title' => (string) ($data['title'] ?? 'Notification'),
+                    'message' => (string) ($data['message'] ?? ''),
+                    'type' => (string) ($data['type'] ?? ''),
+                    'customer_name' => (string) ($data['customer_name'] ?? ''),
+                ];
+            })
+            ->values()
+            ->all();
 
         if ($newlyFetched->isNotEmpty()) {
             $user->notifications()
@@ -48,6 +63,7 @@ class NotificationController extends Controller
         return response()->json([
             'unread_count' => $unreadCount,
             'new_count' => $newlyFetched->count(),
+            'new_notifications' => $newNotifications,
             'has_unread' => $unreadCount > 0,
             'notifications' => $notifications,
         ]);

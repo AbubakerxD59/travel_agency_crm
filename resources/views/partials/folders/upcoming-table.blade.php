@@ -12,7 +12,7 @@
                         <th class="px-4 py-4 lg:px-6">Agent</th>
                         <th class="px-4 py-4 lg:px-6">Customer Name</th>
                         <th class="px-4 py-4 lg:px-6">Order Type</th>
-                        <th class="px-4 py-4 lg:px-6">Vendor Ref#</th>
+                        <th class="px-4 py-4 lg:px-6">Invoice Number</th>
                         <th class="px-4 py-4 lg:px-6">Company</th>
                         <th class="px-4 py-4 lg:px-6">Destination</th>
                         <th class="px-4 py-4 lg:px-6">Travel Date</th>
@@ -20,7 +20,7 @@
                     @else
                         <th class="px-4 py-4 lg:px-6">Customer Name</th>
                         <th class="px-4 py-4 lg:px-6">Order type</th>
-                        <th class="px-4 py-4 lg:px-6">Vendor Ref#</th>
+                        <th class="px-4 py-4 lg:px-6">Invoice Number</th>
                         <th class="px-4 py-4 lg:px-6">Company</th>
                         <th class="px-4 py-4 lg:px-6">Travel date</th>
                         <th class="px-4 py-4 lg:px-6">Destination</th>
@@ -56,16 +56,7 @@
                     <tr class="{{ folder_list_row_class($folder) }}">
                         @if ($isAdmin)
                             <td class="px-4 py-4 text-concierge-navy lg:px-6">
-                                @if ($folder->agent && $folder->agent->roleName() === 'agent')
-                                    <a href="{{ route('admin.agents.overview', $folder->agent) }}"
-                                        class="font-medium text-concierge-accent hover:underline">
-                                        {{ $folder->agent->name }}
-                                    </a>
-                                @else
-                                    <a class="font-medium text-concierge-accent">
-                                        {{ $folder->agent?->name ?? '—' }}
-                                    </a>
-                                @endif
+                                @include('partials.folders.agent-name-cell', ['folder' => $folder])
                             </td>
                             <td class="px-4 py-4 text-concierge-muted lg:px-6">{{ $folder->customer_name ?? '—' }}</td>
                             <td class="px-4 py-4 text-concierge-navy lg:px-6">{{ $folder->order_type ?? '—' }}</td>
@@ -161,12 +152,10 @@
                                         </svg>
                                     </a>
                                 @endif
-                                @if ($isAdmin)
-                                    @include('partials.folders.invoice-action', [
-                                        'folder' => $folder,
-                                        'routeName' => 'admin.folders.invoice',
-                                    ])
-                                @endif
+                                @include('partials.folders.invoice-action', [
+                                    'folder' => $folder,
+                                    'routeName' => ($routePrefix ?? 'admin') . '.folders.invoice',
+                                ])
                                 <a href="{{ route(($routePrefix ?? 'admin') . '.folders.show', $folder) }}"
                                     class="lead-row-action inline-flex cursor-pointer rounded-lg p-2 text-concierge-muted transition hover:bg-slate-100 hover:text-concierge-accent"
                                     title="View" aria-label="View">

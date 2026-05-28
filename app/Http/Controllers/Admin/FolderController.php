@@ -7,6 +7,7 @@ use App\Models\Bank;
 use App\Models\Company;
 use App\Models\Destination;
 use App\Models\Folder;
+use App\Models\FolderPayment;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\JsonResponse;
@@ -158,9 +159,14 @@ class FolderController extends Controller
         }
 
         if ($section === 'payments') {
-            $request->merge([
-                'payments' => folder_filter_non_empty_payment_rows($request->input('payments')),
-            ]);
+            $payments = folder_filter_non_empty_payment_rows($request->input('payments'));
+            if ($request->filled('folder_id')) {
+                $folder = Folder::query()->find($request->integer('folder_id'));
+                if ($folder !== null) {
+                    $payments = folder_strip_locked_payment_rows($folder, $payments);
+                }
+            }
+            $request->merge(['payments' => $payments]);
         }
 
         if ($section === 'other_details') {
@@ -328,11 +334,15 @@ class FolderController extends Controller
                     ? [[]]
                     : $folder->payments
                         ->map(fn ($p) => [
+                            'id' => $p->id,
                             'amount' => $p->amount,
                             'reference_no' => $p->reference_no,
                             'payment_date' => optional($p->payment_date)->format('Y-m-d'),
                             'mode_of_payment' => $p->mode_of_payment,
                             'bank_id' => $p->bank_id,
+                            'approval_status' => $p->approval_status,
+                            'is_locked' => $p->isLocked(),
+                            'image_url' => $p->imageUrl(),
                         ])->toArray()),
             'isEditMode' => true,
             'leadRoutePrefix' => 'admin',
@@ -343,7 +353,7 @@ class FolderController extends Controller
 
     public function update(Request $request, Folder $folder): RedirectResponse
     {
-        $validated = $this->validateFolder($this->mergeWithDraftSections($request));
+        $validated = $this->validateFolder($this->mergeWithDraftSections($request), $folder);
         [$flashType, $flashMessage, $_folder] = $this->persistFolder($validated, $folder, $request);
 
         if ($flashType === 'error') {
@@ -357,8 +367,12 @@ class FolderController extends Controller
             ->with($flashType, $flashMessage);
     }
 
-    private function validateFolder(array $payload): array
+    private function validateFolder(array $payload, ?Folder $folder = null): array
     {
+        if ($folder !== null && is_array($payload['payments'] ?? null)) {
+            $payload['payments'] = folder_strip_locked_payment_rows($folder, $payload['payments']);
+        }
+
         $payload['payments'] = folder_filter_non_empty_payment_rows($payload['payments'] ?? null);
         $payload['other_details'] = folder_filter_non_empty_other_detail_rows($payload['other_details'] ?? null);
         $payload['itineraries'] = folder_filter_non_empty_itinerary_rows($payload['itineraries'] ?? null);
@@ -367,7 +381,7 @@ class FolderController extends Controller
         $payload['visa_details'] = folder_filter_non_empty_visa_detail_rows($payload['visa_details'] ?? null);
 
         $validated = Validator::make($payload, [
-            'agent_id' => ['nullable', 'integer', 'exists:users,id'],
+            'agent_id' => team_member_user_id_validation_rules(),
             'order_type' => ['required', 'string', Rule::in(folder_order_types())],
             'vendor_reference' => ['required', 'string', 'max:255'],
             'customer_name' => ['required', 'string', 'max:255'],
@@ -453,11 +467,13 @@ class FolderController extends Controller
             'other_details.*.margin' => ['nullable', 'numeric'],
             'other_details.*.sell' => ['nullable', 'numeric', 'min:0'],
             'payments' => ['nullable', 'array'],
+            'payments.*.id' => ['nullable', 'integer', 'exists:folder_payments,id'],
             'payments.*.amount' => ['required', 'numeric', 'min:0'],
             'payments.*.reference_no' => ['nullable', 'string', 'max:100'],
             'payments.*.payment_date' => ['required', 'date'],
             'payments.*.mode_of_payment' => ['required', 'string', Rule::in(folder_payment_modes())],
             'payments.*.bank_id' => ['nullable', 'integer', 'exists:banks,id'],
+            ...folder_payment_image_validation_rules(),
         ])->validate();
 
         folder_assert_payment_rows_bank_when_required($validated['payments'] ?? []);
@@ -609,11 +625,13 @@ class FolderController extends Controller
             ],
             'payments' => [
                 'payments' => ['nullable', 'array'],
+                'payments.*.id' => ['nullable', 'integer', 'exists:folder_payments,id'],
                 'payments.*.amount' => ['required', 'numeric', 'min:0'],
                 'payments.*.reference_no' => ['nullable', 'string', 'max:100'],
                 'payments.*.payment_date' => ['required', 'date'],
                 'payments.*.mode_of_payment' => ['required', 'string', Rule::in(folder_payment_modes())],
                 'payments.*.bank_id' => ['nullable', 'integer', 'exists:banks,id'],
+                ...folder_payment_image_validation_rules(),
             ],
         ];
     }
@@ -652,7 +670,6 @@ class FolderController extends Controller
                     $folder->transportDetails()->delete();
                     $folder->visaDetails()->delete();
                     $folder->otherDetails()->delete();
-                    $folder->payments()->delete();
                 }
 
                 $folder->itineraries()->createMany($validated['itineraries'] ?? []);
@@ -662,7 +679,7 @@ class FolderController extends Controller
                 $folder->transportDetails()->createMany($validated['transport_details'] ?? []);
                 $folder->visaDetails()->createMany($validated['visa_details'] ?? []);
                 $folder->otherDetails()->createMany(folder_other_details_for_storage($validated['other_details'] ?? null));
-                $folder->payments()->createMany(folder_normalized_payments_for_storage($validated['payments'] ?? [], 'approved'));
+                folder_sync_folder_payments($folder, $validated['payments'] ?? [], FolderPayment::STATUS_APPROVED, $request);
             });
         } catch (Throwable $e) {
             report($e);

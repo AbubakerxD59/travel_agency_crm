@@ -3,7 +3,7 @@
 @section('title', 'Folder #' . $folder->id)
 
 @section('content')
-    <div class="mx-auto max-w-7xl">
+    <div class="mx-auto max-w-8xl">
         <div
             class="rounded-2xl border border-slate-200/70 bg-gradient-to-r from-white via-slate-50/60 to-white p-6 shadow-sm lg:p-8">
             <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
@@ -29,14 +29,14 @@
             <dl class="mt-4 grid grid-cols-1 gap-3 md:grid-cols-2">
                 <div class="rounded-xl border border-slate-100 bg-slate-50/50 px-4 py-3">
                     <dt class="text-xs uppercase tracking-wide text-concierge-muted">Agent</dt>
-                    <dd class="mt-1 text-sm font-medium text-concierge-navy">{{ $folder->agent?->name ?? 'Unassigned' }}</dd>
+                    <dd class="mt-1 text-sm font-medium text-concierge-navy">{{ folder_agent_display_name($folder) }}</dd>
                 </div>
                 <div class="rounded-xl border border-slate-100 bg-slate-50/50 px-4 py-3">
                     <dt class="text-xs uppercase tracking-wide text-concierge-muted">Order Type</dt>
                     <dd class="mt-1 text-sm font-medium text-concierge-navy">{{ $folder->order_type ?? '—' }}</dd>
                 </div>
                 <div class="rounded-xl border border-slate-100 bg-slate-50/50 px-4 py-3">
-                    <dt class="text-xs uppercase tracking-wide text-concierge-muted">Vendor Ref#</dt>
+                    <dt class="text-xs uppercase tracking-wide text-concierge-muted">Invoice Number</dt>
                     <dd class="mt-1 text-sm font-medium text-concierge-navy">{{ $folder->vendor_reference ?? '—' }}</dd>
                 </div>
                 <div class="rounded-xl border border-slate-100 bg-slate-50/50 px-4 py-3">
@@ -378,6 +378,9 @@
                                         <span class="font-medium text-rose-700">Rejected</span>
                                     @else
                                         <span class="text-concierge-muted">Approved</span>
+                                    @endif
+                                    @if ($p->isLocked())
+                                        @include('partials.folders.payment-locked-icon', ['class' => 'ml-1 inline-flex h-5 w-5 items-center justify-center rounded bg-slate-200 text-slate-600'])
                                     @endif
                                 </td>
                             </tr>

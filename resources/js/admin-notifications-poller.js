@@ -1,3 +1,5 @@
+import { LeadAlertAudio } from './lead-alert-audio';
+
 function initAdminNotificationPoller() {
     const notificationIcon = document.getElementById('admin-notification-icon');
     const notificationDot = document.getElementById('admin-notification-dot');
@@ -9,44 +11,15 @@ function initAdminNotificationPoller() {
     }
 
     const pollUrl = notificationIcon.dataset.pollUrl || '';
+    const alertSoundUrl =
+        notificationIcon.dataset.alertSoundUrl || '/sounds/mixkit-confirmation-tone-2867.wav';
+
     if (!pollUrl) {
         return;
     }
 
-    let audioCtx = null;
-
-    function ensureAudioContext() {
-        if (audioCtx) {
-            return audioCtx;
-        }
-        const Ctx = window.AudioContext || window.webkitAudioContext;
-        if (!Ctx) {
-            return null;
-        }
-        audioCtx = new Ctx();
-        return audioCtx;
-    }
-
-    function playNotificationTone() {
-        const ctx = ensureAudioContext();
-        if (!ctx) {
-            return;
-        }
-        if (ctx.state === 'suspended') {
-            ctx.resume().catch(() => {});
-        }
-        const osc = ctx.createOscillator();
-        const gain = ctx.createGain();
-        osc.type = 'sine';
-        osc.frequency.setValueAtTime(880, ctx.currentTime);
-        gain.gain.setValueAtTime(0.0001, ctx.currentTime);
-        gain.gain.exponentialRampToValueAtTime(0.08, ctx.currentTime + 0.01);
-        gain.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + 0.22);
-        osc.connect(gain);
-        gain.connect(ctx.destination);
-        osc.start();
-        osc.stop(ctx.currentTime + 0.24);
-    }
+    const paymentAlertAudio = new LeadAlertAudio(alertSoundUrl);
+    let isPolling = false;
 
     function setUnreadUI(unreadCount) {
         const count = Number(unreadCount || 0);
@@ -107,6 +80,8 @@ function initAdminNotificationPoller() {
     }
 
     notificationIcon.addEventListener('click', () => {
+        void paymentAlertAudio.unlock();
+
         if (notificationDropdown.classList.contains('hidden')) {
             openDropdown();
             return;
@@ -125,7 +100,26 @@ function initAdminNotificationPoller() {
         closeDropdown();
     });
 
+    /**
+     * @param {object} payload
+     */
+    async function handlePollPayload(payload) {
+        setUnreadUI(payload.unread_count ?? 0);
+        renderNotifications(payload.notifications ?? []);
+
+        const newItems = Array.isArray(payload.new_notifications) ? payload.new_notifications : [];
+        if (newItems.length > 0) {
+            await paymentAlertAudio.alertForNewPaymentNotifications(newItems);
+        }
+    }
+
     async function poll() {
+        if (isPolling) {
+            return;
+        }
+
+        isPolling = true;
+
         try {
             const response = await fetch(pollUrl, {
                 headers: {
@@ -133,23 +127,22 @@ function initAdminNotificationPoller() {
                     'X-Requested-With': 'XMLHttpRequest',
                 },
                 credentials: 'same-origin',
+                cache: 'no-store',
             });
             if (!response.ok) {
                 return;
             }
 
             const payload = await response.json();
-            setUnreadUI(payload.unread_count ?? 0);
-            renderNotifications(payload.notifications ?? []);
-            if (Number(payload.new_count || 0) > 0) {
-                playNotificationTone();
-            }
+            await handlePollPayload(payload);
         } catch {
             // Keep polling on next interval.
+        } finally {
+            isPolling = false;
         }
     }
 
-    poll();
+    void poll();
     window.setInterval(poll, 3000);
 }
 

@@ -2,11 +2,10 @@
 
 @php
     $isEditMode = (bool) ($isEditMode ?? false);
+    $showPaymentStatusColumn = $isEditMode;
 @endphp
 
 @section('title', $isEditMode ? 'Edit folder' : 'New folder')
-@section('body_class', 'folder-form-sidebar-drawer')
-
 @section('content')
     <div class="mx-auto max-w-8xl">
         <div class="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
@@ -25,7 +24,7 @@
         </div>
 
         <div class="mt-8 rounded-2xl border border-slate-200/80 bg-white p-6 shadow-sm sm:p-8">
-            <form id="lead-create-form" method="POST"
+            <form id="lead-create-form" method="POST" enctype="multipart/form-data"
                 action="{{ $isEditMode ? route(($leadRoutePrefix ?? 'admin') . '.' . ($leadRouteResource ?? 'leads') . '.update', $lead) : route(($leadRoutePrefix ?? 'admin') . '.' . ($leadRouteResource ?? 'leads') . '.store') }}"
                 data-folder-list-url="{{ route(($leadRoutePrefix ?? 'admin') . '.' . ($leadRouteResource ?? 'leads') . '.index') }}"
                 class="space-y-4">
@@ -109,8 +108,7 @@
                     </div>
                     <div class="min-w-0">
                         <label for="lead_vendor_reference" class="block text-sm font-medium text-concierge-navy"><span
-                                class="text-rose-600">*</span> Vendor
-                            reference</label>
+                                class="text-rose-600">*</span> Invoice Number</label>
                         <input id="lead_vendor_reference" name="vendor_reference" type="text" required
                             value="{{ old('vendor_reference', $lead->vendor_reference ?? '') }}" class="{{ $fieldClass }}">
                     </div>
@@ -1200,7 +1198,7 @@
                     </div>
 
                     <div class="overflow-x-auto">
-                        <table class="min-w-[720px] w-full border-collapse text-xs sm:text-sm">
+                        <table class="min-w-[860px] w-full border-collapse text-xs sm:text-sm">
                             <thead>
                                 <tr class="bg-slate-100 text-left text-concierge-muted">
                                     <th class="border border-slate-200 px-2 py-2">Action</th>
@@ -1212,37 +1210,58 @@
                                     <th class="border border-slate-200 px-2 py-2"><span class="text-rose-600">*</span>
                                         Mode of Payment</th>
                                     <th class="border border-slate-200 px-2 py-2">Bank</th>
+                                    <th class="border border-slate-200 px-2 py-2">Receipt</th>
+                                    @if ($showPaymentStatusColumn)
+                                        <th class="border border-slate-200 px-2 py-2">Status</th>
+                                    @endif
                                 </tr>
                             </thead>
                             <tbody id="payment-rows">
                                 @foreach ($paymentRows as $i => $row)
-                                    <tr class="payment-row bg-white">
+                                    @php
+                                        $paymentLocked = (bool) data_get($row, 'is_locked', false);
+                                        $paymentStatus = (string) data_get($row, 'approval_status', '');
+                                        if ($paymentStatus === '' && data_get($row, 'id')) {
+                                            $paymentStatus = 'pending';
+                                        }
+                                    @endphp
+                                    <tr class="payment-row bg-white" data-locked="{{ $paymentLocked ? '1' : '0' }}">
                                         <td class="border border-slate-200 px-2 py-2 align-top">
-                                            <button type="button"
-                                                class="remove-payment-row inline-flex cursor-pointer items-center justify-center rounded-md border border-rose-200 px-2 py-1 text-xs font-medium text-rose-700 hover:bg-rose-50">
-                                                X
-                                            </button>
+                                            @if ($paymentLocked)
+                                                <input type="hidden" name="payments[{{ $i }}][id]"
+                                                    value="{{ data_get($row, 'id') }}">
+                                                @include('partials.folders.payment-locked-icon')
+                                            @else
+                                                <button type="button"
+                                                    class="remove-payment-row inline-flex cursor-pointer items-center justify-center rounded-md border border-rose-200 px-2 py-1 text-xs font-medium text-rose-700 hover:bg-rose-50">
+                                                    X
+                                                </button>
+                                            @endif
                                         </td>
                                         <td class="border border-slate-200 px-2 py-2">
                                             <input type="number" min="0" step="0.01"
                                                 name="payments[{{ $i }}][amount]"
                                                 value="{{ data_get($row, 'amount') }}"
-                                                class="w-full rounded-lg border border-slate-200 bg-white px-2 py-1.5 text-sm">
+                                                @disabled($paymentLocked) @readonly($paymentLocked)
+                                                class="w-full rounded-lg border border-slate-200 bg-white px-2 py-1.5 text-sm disabled:cursor-not-allowed disabled:bg-slate-50">
                                         </td>
                                         <td class="border border-slate-200 px-2 py-2">
                                             <input type="text" name="payments[{{ $i }}][reference_no]"
                                                 value="{{ data_get($row, 'reference_no') }}"
                                                 maxlength="100"
-                                                class="w-full rounded-lg border border-slate-200 bg-white px-2 py-1.5 text-sm">
+                                                @disabled($paymentLocked) @readonly($paymentLocked)
+                                                class="w-full rounded-lg border border-slate-200 bg-white px-2 py-1.5 text-sm disabled:cursor-not-allowed disabled:bg-slate-50">
                                         </td>
                                         <td class="border border-slate-200 px-2 py-2">
                                             <input type="date" name="payments[{{ $i }}][payment_date]"
                                                 value="{{ data_get($row, 'payment_date') }}"
-                                                class="w-full rounded-lg border border-slate-200 bg-white px-2 py-1.5 text-sm">
+                                                @disabled($paymentLocked) @readonly($paymentLocked)
+                                                class="w-full rounded-lg border border-slate-200 bg-white px-2 py-1.5 text-sm disabled:cursor-not-allowed disabled:bg-slate-50">
                                         </td>
                                         <td class="border border-slate-200 px-2 py-2">
                                             <select name="payments[{{ $i }}][mode_of_payment]"
-                                                class="payment-mode-select w-full rounded-lg border border-slate-200 bg-white px-2 py-1.5 text-sm">
+                                                @disabled($paymentLocked)
+                                                class="payment-mode-select w-full rounded-lg border border-slate-200 bg-white px-2 py-1.5 text-sm disabled:cursor-not-allowed disabled:bg-slate-50">
                                                 <option value="" disabled @selected(!data_get($row, 'mode_of_payment'))>Select mode</option>
                                                 @foreach ($paymentModes as $pm)
                                                     <option value="{{ $pm }}" @selected(data_get($row, 'mode_of_payment') == $pm)>{{ $pm }}</option>
@@ -1251,19 +1270,38 @@
                                         </td>
                                         <td class="border border-slate-200 px-2 py-2">
                                             <select name="payments[{{ $i }}][bank_id]"
-                                                class="payment-bank-select w-full rounded-lg border border-slate-200 bg-white px-2 py-1.5 text-sm">
+                                                @disabled($paymentLocked)
+                                                class="payment-bank-select w-full rounded-lg border border-slate-200 bg-white px-2 py-1.5 text-sm disabled:cursor-not-allowed disabled:bg-slate-50">
                                                 <option value="">—</option>
                                                 @foreach ($banksForForm as $bank)
                                                     <option value="{{ $bank->id }}" @selected((string) data_get($row, 'bank_id') === (string) $bank->id)>{{ $bank->name }}</option>
                                                 @endforeach
                                             </select>
                                         </td>
+                                        <td class="border border-slate-200 px-2 py-2 align-top">
+                                            @include('partials.folders.payment-image-field', [
+                                                'index' => $i,
+                                                'row' => $row,
+                                                'locked' => $paymentLocked,
+                                            ])
+                                        </td>
+                                        @if ($showPaymentStatusColumn)
+                                            <td class="border border-slate-200 px-2 py-2 align-top">
+                                                @include('partials.folders.payment-status-badge', [
+                                                    'status' => $paymentStatus,
+                                                    'locked' => $paymentLocked,
+                                                ])
+                                            </td>
+                                        @endif
                                     </tr>
                                 @endforeach
                             </tbody>
                         </table>
                     </div>
-                    <p class="text-xs text-concierge-muted">Optional. Bank is required for Bank Transfer and Card Payment.
+                    <p class="text-xs text-concierge-muted">Optional. Attach a receipt image per payment (JPEG, PNG, GIF, or WebP, max 2 MB). Bank is required for Bank Transfer and Card Payment.
+                        @if ($showPaymentStatusColumn)
+                            {{ __('Approved or rejected payments are locked and cannot be changed.') }}
+                        @endif
                     </p>
                 </div>
 
@@ -2441,6 +2479,7 @@
 
             const paymentModes = @json($paymentModes);
             const bankOptions = @json($banksForForm->map(fn ($b) => ['id' => $b->id, 'name' => $b->name])->values());
+            const showPaymentStatusColumn = @json($showPaymentStatusColumn);
 
             function selectFieldClass() {
                 return 'w-full rounded-lg border border-slate-200 bg-white px-2 py-1.5 text-sm';
@@ -2554,15 +2593,40 @@
                 bankCell.appendChild(makeBankSelect(index));
                 row.appendChild(bankCell);
 
+                const imageCell = document.createElement('td');
+                imageCell.className = 'border border-slate-200 px-2 py-2 align-top';
+                imageCell.innerHTML = `
+                    <div class="payment-image-field min-w-[8.5rem] space-y-1.5">
+                        <input type="hidden" name="payments[${index}][form_index]" value="${index}" data-payment-form-index>
+                        <input type="file" name="payments[${index}][image]" accept="image/jpeg,image/png,image/gif,image/webp"
+                            class="block w-full max-w-[10rem] cursor-pointer text-xs text-concierge-muted file:mr-2 file:cursor-pointer file:rounded-lg file:border-0 file:bg-concierge-navy file:px-2 file:py-1 file:text-xs file:font-medium file:text-white hover:file:bg-concierge-navy-deep">
+                    </div>
+                `;
+                row.appendChild(imageCell);
+
+                if (showPaymentStatusColumn) {
+                    const statusCell = document.createElement('td');
+                    statusCell.className = 'border border-slate-200 px-2 py-2 align-top';
+                    statusCell.innerHTML =
+                        '<div class="flex flex-col gap-1"><span class="text-sm font-medium text-amber-700">Pending</span></div>';
+                    row.appendChild(statusCell);
+                }
+
                 syncBankFieldForRow(row);
                 return row;
             }
 
             function renumberRows() {
                 [...tableBody.querySelectorAll('.payment-row')].forEach((row, idx) => {
-                    row.querySelectorAll('input[name^="payments["], select[name^="payments["]').forEach((field) => {
+                    row.querySelectorAll(
+                        'input[name^="payments["], select[name^="payments["], input[type="file"][name^="payments["]'
+                    ).forEach((field) => {
                         field.name = field.name.replace(/payments\[\d+\]/, `payments[${idx}]`);
                     });
+                    const formIndexEl = row.querySelector('[data-payment-form-index]');
+                    if (formIndexEl instanceof HTMLInputElement) {
+                        formIndexEl.value = String(idx);
+                    }
                     syncBankFieldForRow(row);
                 });
             }
@@ -2589,7 +2653,11 @@
                 if (!removeBtn) {
                     return;
                 }
-                removeBtn.closest('.payment-row')?.remove();
+                const row = removeBtn.closest('.payment-row');
+                if (row?.dataset.locked === '1') {
+                    return;
+                }
+                row?.remove();
                 ensureOneRow();
             });
 
@@ -2969,12 +3037,20 @@
                     .forEach(removeFieldError);
             }
 
+            function isLockedPaymentRow(row) {
+                return row instanceof HTMLElement && row.dataset.locked === '1';
+            }
+
             function validateRequiredRowFields(rowSelector, requiredFields, inputPrefix) {
                 clearRowErrors(rowSelector);
                 const rows = [...document.querySelectorAll(rowSelector)];
                 let firstInvalidField = null;
 
                 rows.forEach((row) => {
+                    if (isLockedPaymentRow(row)) {
+                        return;
+                    }
+
                     requiredFields.forEach((fieldName) => {
                         const input = row.querySelector(
                             `input[name^="${inputPrefix}["][name$="[${fieldName}]"], select[name^="${inputPrefix}["][name$="[${fieldName}]"], textarea[name^="${inputPrefix}["][name$="[${fieldName}]"]`,
@@ -3012,6 +3088,10 @@
                 let firstInvalidField = null;
 
                 rows.forEach((row) => {
+                    if (isLockedPaymentRow(row)) {
+                        return;
+                    }
+
                     if (!rowHasAnyValue(row)) {
                         return;
                     }
@@ -3049,7 +3129,9 @@
             }
 
             function collectSectionRows(sectionName, rowSelector) {
-                return [...document.querySelectorAll(rowSelector)].map((row) => {
+                return [...document.querySelectorAll(rowSelector)]
+                    .filter((row) => !(sectionName === 'payments' && isLockedPaymentRow(row)))
+                    .map((row) => {
                     const rowData = {};
                     row.querySelectorAll(
                             `input[name^="${sectionName}["], select[name^="${sectionName}["], textarea[name^="${sectionName}["]`
@@ -3086,6 +3168,9 @@
                         },
                         body: JSON.stringify({
                             [sectionName]: rows,
+                            @if ($isEditMode)
+                                folder_id: {{ (int) $lead->id }},
+                            @endif
                         }),
                     });
 
@@ -3175,6 +3260,10 @@
                         return;
                     }
                     for (const row of document.querySelectorAll('#payment-rows .payment-row')) {
+                        if (isLockedPaymentRow(row)) {
+                            continue;
+                        }
+
                         const hasAny = [...row.querySelectorAll('input, select')].some((field) => {
                             const v = field.value;
                             return typeof v === 'string' && v.trim() !== '';

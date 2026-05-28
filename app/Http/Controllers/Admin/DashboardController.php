@@ -21,14 +21,15 @@ class DashboardController extends Controller
         $stats = $this->buildLeadStats($filters);
         $leadsBySource = $this->buildLeadsBySource($filters);
         $agents = $this->agentsForDashboard($filters);
-        $agentsByPerformance = $this->sortAgentsBySalesDone($agents, $filters['start'], $filters['end'], $filters['companyId']);
+        $sortByHighestPerformance = $request->boolean('highest_performance');
 
-        $dashboardAgentChart = array_merge(
-            $this->buildAgentChartData($agentsByPerformance, $filters['start'], $filters['end'], $filters['companyId']),
-            [
-                'agentOptions' => $this->mapAgentOptions($agentsByPerformance, $filters['start'], $filters['end'], $filters['companyId']),
-                'topPerformerAgentIds' => $this->resolveTopSalesPerformerAgentIds($agents, $filters['start'], $filters['end'], $filters['companyId']),
-            ],
+        $dashboardAgentChart = $this->buildAgentPerformanceChartPayload(
+            $agents,
+            $agents,
+            $filters['start'],
+            $filters['end'],
+            $filters['companyId'],
+            $sortByHighestPerformance,
         );
 
         return view('admin.dashboard', [
@@ -39,9 +40,7 @@ class DashboardController extends Controller
             'selectedEndDate' => $filters['endDate'],
             'selectedDateFilterLabel' => $filters['dateLabel'],
             'totalLeads' => $stats['totalLeads'],
-            'totalFollowUps' => $stats['totalFollowUps'],
-            'totalSalesDone' => $stats['totalSalesDone'],
-            'totalNotConverted' => $stats['totalNotConverted'],
+            'leadStatusStats' => $stats['leadStatusStats'],
             'leadsBySource' => $leadsBySource,
             'dashboardAgentChart' => $dashboardAgentChart,
         ]);
@@ -58,17 +57,18 @@ class DashboardController extends Controller
             $chartAgents = $allAgents->where('id', $filterAgentId)->values();
         }
 
-        $agentsByPerformance = $this->sortAgentsBySalesDone($allAgents, $filters['start'], $filters['end'], $filters['companyId']);
+        $sortByHighestPerformance = $request->boolean('highest_performance');
 
-        $payload = array_merge(
-            $this->buildAgentChartData($chartAgents, $filters['start'], $filters['end'], $filters['companyId']),
-            [
-                'agentOptions' => $this->mapAgentOptions($agentsByPerformance, $filters['start'], $filters['end'], $filters['companyId']),
-                'topPerformerAgentIds' => $this->resolveTopSalesPerformerAgentIds($allAgents, $filters['start'], $filters['end'], $filters['companyId']),
-            ],
+        return response()->json(
+            $this->buildAgentPerformanceChartPayload(
+                $allAgents,
+                $chartAgents,
+                $filters['start'],
+                $filters['end'],
+                $filters['companyId'],
+                $sortByHighestPerformance,
+            ),
         );
-
-        return response()->json($payload);
     }
 
     /**
@@ -122,21 +122,32 @@ class DashboardController extends Controller
 
     /**
      * @param  array{companyId: ?int, start: Carbon, end: Carbon}  $filters
-     * @return array{totalLeads: int, totalFollowUps: int, totalSalesDone: int, totalNotConverted: int}
+     * @return array{totalLeads: int, leadStatusStats: list<array{key: string, label: string, count: int}>}
      */
     private function buildLeadStats(array $filters): array
     {
         $base = $this->dashboardLeadsQuery($filters);
+        $totalLeads = (clone $base)->count();
 
-        $totalFollowUps = (clone $base)->where('status', Lead::STATUS_FOLLOW_UP)->count();
-        $totalSalesDone = (clone $base)->where('status', Lead::STATUS_SALE_DONE)->count();
-        $totalNotConverted = (clone $base)->where('status', Lead::STATUS_NOT_CONVERTED)->count();
+        /** @var Collection<string, int> $countsByStatus */
+        $countsByStatus = (clone $base)
+            ->selectRaw('status, COUNT(*) as total')
+            ->groupBy('status')
+            ->pluck('total', 'status')
+            ->map(fn ($total): int => (int) $total);
+
+        $leadStatusStats = [];
+        foreach (Lead::statusLabels() as $key => $label) {
+            $leadStatusStats[] = [
+                'key' => $key,
+                'label' => $label,
+                'count' => $countsByStatus[$key] ?? 0,
+            ];
+        }
 
         return [
-            'totalLeads' => $totalFollowUps + $totalSalesDone + $totalNotConverted,
-            'totalFollowUps' => $totalFollowUps,
-            'totalSalesDone' => $totalSalesDone,
-            'totalNotConverted' => $totalNotConverted,
+            'totalLeads' => $totalLeads,
+            'leadStatusStats' => $leadStatusStats,
         ];
     }
 
@@ -155,18 +166,6 @@ class DashboardController extends Controller
     }
 
     /**
-     * @return list<string>
-     */
-    private function dashboardPipelineStatuses(): array
-    {
-        return [
-            Lead::STATUS_FOLLOW_UP,
-            Lead::STATUS_SALE_DONE,
-            Lead::STATUS_NOT_CONVERTED,
-        ];
-    }
-
-    /**
      * @param  array{companyId: ?int, start: Carbon, end: Carbon}  $filters
      * @return list<array{key: string, label: string, count: int}>
      */
@@ -174,7 +173,6 @@ class DashboardController extends Controller
     {
         $countsBySource = [];
         $rows = $this->dashboardLeadsQuery($filters)
-            ->whereIn('status', $this->dashboardPipelineStatuses())
             ->selectRaw('source, COUNT(*) as total')
             ->groupBy('source')
             ->get();
@@ -234,6 +232,102 @@ class DashboardController extends Controller
         return $query;
     }
 
+    private function assignedLeadsQuery(Carbon $start, Carbon $end, ?int $companyId = null): Builder
+    {
+        $query = Lead::query()
+            ->whereNotNull('agent_id')
+            ->whereBetween('created_at', [$start, $end]);
+
+        if ($companyId) {
+            $query->where('company_id', $companyId);
+        }
+
+        return $query;
+    }
+
+    /**
+     * @return array{
+     *     labels: list<string>,
+     *     agents: list<array<string, mixed>>,
+     *     agentOptions: list<array<string, mixed>>,
+     *     topPerformerAgentIds: list<int>,
+     *     sortByHighestPerformance: bool,
+     * }
+     */
+    private function buildAgentPerformanceChartPayload(
+        Collection $allAgents,
+        Collection $chartAgents,
+        Carbon $start,
+        Carbon $end,
+        ?int $companyId,
+        bool $sortByHighestPerformance,
+    ): array {
+        $metrics = $this->agentPerformanceMetrics($allAgents, $start, $end, $companyId);
+        $sortedAgents = $sortByHighestPerformance
+            ? $this->sortAgentsByPerformanceRate($allAgents, $metrics)
+            : $this->sortAgentsBySalesDone($allAgents, $start, $end, $companyId);
+
+        return array_merge(
+            $this->buildAgentChartData($chartAgents, $start, $end, $companyId, $sortByHighestPerformance, $metrics),
+            [
+                'agentOptions' => $this->mapAgentOptions($sortedAgents, $metrics),
+                'topPerformerAgentIds' => $sortByHighestPerformance
+                    ? $this->resolveTopPerformanceAgentIds($metrics)
+                    : $this->resolveTopSalesPerformerAgentIds($allAgents, $start, $end, $companyId),
+                'sortByHighestPerformance' => $sortByHighestPerformance,
+            ],
+        );
+    }
+
+    /**
+     * @return Collection<int, array{successful: int, assigned: int, rate: float}>
+     */
+    private function agentPerformanceMetrics(
+        Collection $agents,
+        Carbon $start,
+        Carbon $end,
+        ?int $companyId = null,
+    ): Collection {
+        if ($agents->isEmpty()) {
+            return collect();
+        }
+
+        $agentIds = $agents->pluck('id');
+
+        /** @var Collection<int|string, int> $assignedTotals */
+        $assignedTotals = $this->assignedLeadsQuery($start, $end, $companyId)
+            ->selectRaw('agent_id, COUNT(*) as total')
+            ->whereIn('agent_id', $agentIds)
+            ->groupBy('agent_id')
+            ->pluck('total', 'agent_id')
+            ->map(fn ($total): int => (int) $total);
+
+        /** @var Collection<int|string, int> $successfulTotals */
+        $successfulTotals = $this->salesDoneTotalsByAgent($agents, $start, $end, $companyId);
+
+        return $agents->mapWithKeys(function (User $agent) use ($assignedTotals, $successfulTotals): array {
+            $successful = $successfulTotals[$agent->id] ?? 0;
+            $assigned = $assignedTotals[$agent->id] ?? 0;
+
+            return [
+                $agent->id => [
+                    'successful' => $successful,
+                    'assigned' => $assigned,
+                    'rate' => $this->calculatePerformanceRate($successful, $assigned),
+                ],
+            ];
+        });
+    }
+
+    private function calculatePerformanceRate(int $successful, int $assigned): float
+    {
+        if ($assigned < 1) {
+            return 0.0;
+        }
+
+        return round(($successful / $assigned) * 100, 1);
+    }
+
     /**
      * @return Collection<int|string, int>
      */
@@ -253,18 +347,76 @@ class DashboardController extends Controller
     }
 
     /**
-     * @return list<array{id: int, name: string, salesDoneTotal: int}>
+     * @param  Collection<int, array{successful: int, assigned: int, rate: float}>  $metrics
+     * @return list<array{id: int, name: string, salesDoneTotal: int, assignedLeadsTotal: int, performanceRate: float}>
      */
-    private function mapAgentOptions(Collection $agents, Carbon $start, Carbon $end, ?int $companyId = null): array
+    private function mapAgentOptions(Collection $agents, Collection $metrics): array
     {
-        $totals = $this->salesDoneTotalsByAgent($agents, $start, $end, $companyId);
+        return $agents
+            ->map(function (User $agent) use ($metrics): array {
+                $agentMetrics = $metrics[$agent->id] ?? ['successful' => 0, 'assigned' => 0, 'rate' => 0.0];
+
+                return [
+                    'id' => $agent->id,
+                    'name' => $agent->name,
+                    'salesDoneTotal' => $agentMetrics['successful'],
+                    'assignedLeadsTotal' => $agentMetrics['assigned'],
+                    'performanceRate' => $agentMetrics['rate'],
+                ];
+            })
+            ->values()
+            ->all();
+    }
+
+    /**
+     * @param  Collection<int, array{successful: int, assigned: int, rate: float}>  $metrics
+     * @return Collection<int, User>
+     */
+    private function sortAgentsByPerformanceRate(Collection $agents, Collection $metrics): Collection
+    {
+        if ($agents->isEmpty()) {
+            return $agents;
+        }
 
         return $agents
-            ->map(fn (User $a): array => [
-                'id' => $a->id,
-                'name' => $a->name,
-                'salesDoneTotal' => $totals[$a->id] ?? 0,
-            ])
+            ->sort(function (User $a, User $b) use ($metrics): int {
+                $metricsA = $metrics[$a->id] ?? ['successful' => 0, 'assigned' => 0, 'rate' => 0.0];
+                $metricsB = $metrics[$b->id] ?? ['successful' => 0, 'assigned' => 0, 'rate' => 0.0];
+
+                $byRate = $metricsB['rate'] <=> $metricsA['rate'];
+                if ($byRate !== 0) {
+                    return $byRate;
+                }
+
+                $bySuccessful = $metricsB['successful'] <=> $metricsA['successful'];
+                if ($bySuccessful !== 0) {
+                    return $bySuccessful;
+                }
+
+                return strcasecmp($a->name, $b->name);
+            })
+            ->values();
+    }
+
+    /**
+     * @param  Collection<int, array{successful: int, assigned: int, rate: float}>  $metrics
+     * @return list<int>
+     */
+    private function resolveTopPerformanceAgentIds(Collection $metrics): array
+    {
+        if ($metrics->isEmpty()) {
+            return [];
+        }
+
+        $maxRate = (float) $metrics->max(fn (array $metric): float => $metric['rate']);
+        if ($maxRate <= 0) {
+            return [];
+        }
+
+        return $metrics
+            ->filter(fn (array $metric): bool => $metric['rate'] === $maxRate)
+            ->keys()
+            ->map(fn ($id): int => (int) $id)
             ->values()
             ->all();
     }
@@ -336,8 +488,13 @@ class DashboardController extends Controller
         Carbon $start,
         Carbon $end,
         ?int $companyId = null,
+        bool $sortByHighestPerformance = false,
+        ?Collection $metrics = null,
     ): array {
-        $agents = $this->sortAgentsBySalesDone($agents, $start, $end, $companyId);
+        $metrics ??= $this->agentPerformanceMetrics($agents, $start, $end, $companyId);
+        $agents = $sortByHighestPerformance
+            ? $this->sortAgentsByPerformanceRate($agents, $metrics)
+            : $this->sortAgentsBySalesDone($agents, $start, $end, $companyId);
         $salesTotals = $this->salesDoneTotalsByAgent($agents, $start, $end, $companyId);
         $groupByMonth = $start->diffInDays($end) > 62;
 
@@ -387,15 +544,24 @@ class DashboardController extends Controller
             '#7c2d12',
         ];
 
-        $chartAgents = $agents->values()->map(function (User $agent, int $index) use ($rowsByAgent, $bucketKeys, $agentColors, $salesTotals): array {
+        $chartAgents = $agents->values()->map(function (User $agent, int $index) use (
+            $rowsByAgent,
+            $bucketKeys,
+            $agentColors,
+            $salesTotals,
+            $metrics,
+        ): array {
             $totalsByBucket = collect($rowsByAgent->get($agent->id, []))
                 ->pluck('total', 'bucket')
                 ->map(fn ($total): int => (int) $total);
+            $agentMetrics = $metrics[$agent->id] ?? ['successful' => 0, 'assigned' => 0, 'rate' => 0.0];
 
             return [
                 'id' => $agent->id,
                 'name' => $agent->name,
                 'salesDoneTotal' => $salesTotals[$agent->id] ?? 0,
+                'assignedLeadsTotal' => $agentMetrics['assigned'],
+                'performanceRate' => $agentMetrics['rate'],
                 'color' => $agentColors[$index % count($agentColors)],
                 'data' => collect($bucketKeys)->map(
                     fn (string $key): int => (int) ($totalsByBucket[$key] ?? 0)

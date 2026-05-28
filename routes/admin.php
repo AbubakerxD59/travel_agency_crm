@@ -16,6 +16,12 @@ Route::prefix('admin')->name('admin.')->middleware('role:super-admin')->group(fu
         ->name('notifications.open');
 
     Route::get('/folder-payments', [FolderPaymentController::class, 'index'])->name('folder-payments.index');
+    Route::get('/folder-payments/{folder_payment}', [FolderPaymentController::class, 'show'])
+        ->name('folder-payments.show');
+    Route::post('/folder-payments/{folder_payment}/image', [FolderPaymentController::class, 'updateImage'])
+        ->name('folder-payments.image.update');
+    Route::delete('/folder-payments/{folder_payment}/image', [FolderPaymentController::class, 'destroyImage'])
+        ->name('folder-payments.image.destroy');
     Route::post('/folder-payments/{folder_payment}/approve', [FolderPaymentController::class, 'approve'])
         ->name('folder-payments.approve');
     Route::post('/folder-payments/{folder_payment}/reject', [FolderPaymentController::class, 'reject'])

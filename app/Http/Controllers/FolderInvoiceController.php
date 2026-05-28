@@ -24,7 +24,11 @@ class FolderInvoiceController extends Controller
     {
         $user = $request->user();
 
-        if ($user === null || ! $user->can('folders.access') || $user->hasRole('agent')) {
+        if ($user === null || ! $user->can('folders.access')) {
+            abort(403);
+        }
+
+        if ($user->hasRole('agent') && (int) $folder->agent_id !== (int) $user->id) {
             abort(403);
         }
     }

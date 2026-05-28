@@ -73,8 +73,18 @@ class Folder extends Model
         return $query->orderByDesc('is_incomplete_booking');
     }
 
+    protected static function booted(): void
+    {
+        static::saving(function (Folder $folder): void {
+            if ($folder->isDirty('agent_id')) {
+                folder_sync_agent_name_from_user($folder);
+            }
+        });
+    }
+
     protected $fillable = [
         'agent_id',
+        'agent_name',
         'order_type',
         'vendor_reference',
         'customer_name',
@@ -107,7 +117,7 @@ class Folder extends Model
      */
     public function agent(): BelongsTo
     {
-        return $this->belongsTo(User::class, 'agent_id');
+        return $this->belongsTo(User::class, 'agent_id')->withTrashed();
     }
 
     /**

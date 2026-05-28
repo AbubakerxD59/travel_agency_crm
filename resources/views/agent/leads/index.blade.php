@@ -2,14 +2,12 @@
 
 @section('title', 'Lead Management')
 
-@section('body_class', 'folder-form-sidebar-drawer')
-
 @section('content')
     <div class="mx-auto max-w-8xl">
         <div class="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
             <div>
                 <h1 class="text-2xl font-bold text-concierge-navy lg:text-3xl">Lead Management</h1>
-                <p class="mt-1 max-w-2xl text-sm text-concierge-muted">Umrah and Hajj bookings: assignment, vendor reference,
+                <p class="mt-1 max-w-2xl text-sm text-concierge-muted">Umrah and Hajj bookings: assignment, invoice number,
                     travel dates, and ziarat options.</p>
             </div>
             @if ($canCreateLeads)
@@ -111,37 +109,22 @@
                                 </td>
                                 <td class="px-4 py-4 text-right lg:px-6">
                                     <div class="inline-flex items-center justify-end gap-1 whitespace-nowrap">
-                                        <div class="relative inline-flex">
-                                            <button type="button"
-                                                data-status-toggle
-                                                data-lead-id="{{ $lead->id }}"
-                                                data-current-status="{{ $lead->status }}"
-                                                data-status-url="{{ route('agent.leads.status', $lead) }}"
-                                                class="lead-row-action inline-flex cursor-pointer rounded-lg p-2 text-concierge-muted transition hover:bg-slate-100 hover:text-concierge-navy"
-                                                title="Edit" aria-label="Edit">
-                                                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none"
-                                                    viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5"
-                                                    aria-hidden="true">
-                                                    <path stroke-linecap="round" stroke-linejoin="round"
-                                                        d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931z" />
-                                                </svg>
-                                            </button>
-                                            <div data-status-dropdown="{{ $lead->id }}"
-                                                class="absolute right-0 top-full z-20 mt-2 hidden w-44 rounded-xl border border-slate-200 bg-white p-2 text-left shadow-xl update-status-dropdown">
-                                                <p class="px-2 pb-2 text-xs font-semibold uppercase tracking-wide text-concierge-muted">
-                                                    Update status
-                                                </p>
-                                                @foreach ($statuses as $statusKey => $statusLabel)
-                                                    <button type="button"
-                                                        data-status-option
-                                                        data-lead-id="{{ $lead->id }}"
-                                                        data-status="{{ $statusKey }}"
-                                                        class="mb-1 block w-full rounded-lg px-2 py-1.5 text-left text-sm text-concierge-navy hover:bg-slate-100 {{ $lead->status === $statusKey ? 'bg-slate-100 font-semibold' : '' }}">
-                                                        {{ $statusLabel }}
-                                                    </button>
-                                                @endforeach
-                                            </div>
-                                        </div>
+                                        <button type="button"
+                                            data-status-toggle
+                                            data-lead-id="{{ $lead->id }}"
+                                            data-current-status="{{ $lead->status }}"
+                                            data-status-url="{{ route('agent.leads.status', $lead) }}"
+                                            class="lead-row-action inline-flex cursor-pointer rounded-lg p-2 text-concierge-muted transition hover:bg-slate-100 hover:text-concierge-navy"
+                                            title="Update status" aria-label="Update status"
+                                            aria-haspopup="true" aria-expanded="false"
+                                            aria-controls="lead-status-dropdown">
+                                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none"
+                                                viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5"
+                                                aria-hidden="true">
+                                                <path stroke-linecap="round" stroke-linejoin="round"
+                                                    d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931z" />
+                                            </svg>
+                                        </button>
                                         <a href="{{ route('agent.leads.show', $lead) }}"
                                             class="lead-row-action inline-flex cursor-pointer rounded-lg p-2 text-concierge-muted transition hover:bg-slate-100 hover:text-concierge-accent"
                                             title="View" aria-label="View">
@@ -172,6 +155,16 @@
                     {{ $leads->links() }}
                 </div>
             @endif
+        </div>
+
+        <div id="lead-status-dropdown"
+            class="lead-status-dropdown-portal fixed z-[60] hidden w-44 rounded-xl border border-slate-200 bg-white p-2 text-left shadow-xl ring-1 ring-black/5"
+            role="menu" aria-labelledby="lead-status-dropdown-title" hidden>
+            <p id="lead-status-dropdown-title"
+                class="px-2 pb-2 text-xs font-semibold uppercase tracking-wide text-concierge-muted">
+                Update status
+            </p>
+            <div id="lead-status-dropdown-options"></div>
         </div>
 
         <div id="not-converted-modal"
@@ -369,18 +362,84 @@
             let notConvertedPendingUrl = '';
             let notConvertedPendingLeadId = '';
 
-            function closeAllDropdowns() {
-                document.querySelectorAll('[data-status-dropdown]').forEach((dropdown) => {
-                    dropdown.classList.add('hidden');
+            const statusDropdown = document.getElementById('lead-status-dropdown');
+            const statusDropdownOptions = document.getElementById('lead-status-dropdown-options');
+            const statusLabels = @json($statuses);
+            let activeStatusToggle = null;
+
+            function closeStatusDropdown() {
+                if (!statusDropdown) {
+                    return;
+                }
+                statusDropdown.classList.add('hidden');
+                statusDropdown.hidden = true;
+                activeStatusToggle?.setAttribute('aria-expanded', 'false');
+                activeStatusToggle = null;
+            }
+
+            function renderStatusOptions(leadId, currentStatus) {
+                if (!statusDropdownOptions) {
+                    return;
+                }
+
+                statusDropdownOptions.replaceChildren();
+                Object.entries(statusLabels).forEach(([statusKey, statusLabel]) => {
+                    const option = document.createElement('button');
+                    option.type = 'button';
+                    option.dataset.statusOption = '';
+                    option.dataset.leadId = String(leadId);
+                    option.dataset.status = statusKey;
+                    option.className =
+                        'mb-1 block w-full cursor-pointer rounded-lg px-2 py-1.5 text-left text-sm text-concierge-navy hover:bg-slate-100';
+                    option.textContent = statusLabel;
+                    if (statusKey === currentStatus) {
+                        option.classList.add('bg-slate-100', 'font-semibold');
+                    }
+                    statusDropdownOptions.appendChild(option);
                 });
             }
 
-            function setStatusSelection(leadId, status) {
-                document.querySelectorAll(`[data-status-option][data-lead-id="${leadId}"]`).forEach((button) => {
-                    const isSelected = button.getAttribute('data-status') === status;
-                    button.classList.toggle('bg-slate-100', isSelected);
-                    button.classList.toggle('font-semibold', isSelected);
-                });
+            function positionStatusDropdown(anchor) {
+                if (!statusDropdown || !anchor) {
+                    return;
+                }
+
+                statusDropdown.classList.remove('hidden');
+                statusDropdown.hidden = false;
+
+                const rect = anchor.getBoundingClientRect();
+                const dropdownWidth = statusDropdown.offsetWidth;
+                const dropdownHeight = statusDropdown.offsetHeight;
+                const margin = 8;
+                const viewportPadding = 8;
+
+                let left = rect.right - dropdownWidth;
+                left = Math.max(viewportPadding, Math.min(left, window.innerWidth - dropdownWidth - viewportPadding));
+
+                const spaceBelow = window.innerHeight - rect.bottom;
+                const openAbove = spaceBelow < dropdownHeight + margin && rect.top > dropdownHeight + margin;
+                const top = openAbove ? rect.top - dropdownHeight - margin : rect.bottom + margin;
+
+                statusDropdown.style.left = `${left}px`;
+                statusDropdown.style.top = `${Math.max(viewportPadding, top)}px`;
+            }
+
+            function openStatusDropdown(toggle) {
+                if (!statusDropdown) {
+                    return;
+                }
+
+                const leadId = toggle.getAttribute('data-lead-id');
+                const currentStatus = toggle.getAttribute('data-current-status') ?? '';
+                if (!leadId) {
+                    return;
+                }
+
+                renderStatusOptions(leadId, currentStatus);
+                activeStatusToggle = toggle;
+                toggle.setAttribute('aria-expanded', 'true');
+                positionStatusDropdown(toggle);
+                requestAnimationFrame(() => positionStatusDropdown(toggle));
             }
 
             function hideNotConvertedModalError() {
@@ -472,7 +531,6 @@
                 if (toggle) {
                     toggle.setAttribute('data-current-status', payload.status ?? status);
                 }
-                setStatusSelection(leadId, payload.status ?? status);
                 toastSuccess(payload.message ?? 'Lead status updated successfully.');
             }
 
@@ -482,12 +540,6 @@
 
             notConvertedReasonInput?.addEventListener('input', () => {
                 hideNotConvertedModalError();
-            });
-
-            notConvertedModal?.addEventListener('click', (event) => {
-                if (event.target === notConvertedModal) {
-                    closeNotConvertedModal();
-                }
             });
 
             notConvertedModalSubmit?.addEventListener('click', async () => {
@@ -524,74 +576,81 @@
                 }
                 if (notConvertedModal && !notConvertedModal.classList.contains('hidden')) {
                     closeNotConvertedModal();
+                    return;
                 }
+                closeStatusDropdown();
             });
+
+            window.addEventListener('resize', closeStatusDropdown);
+            window.addEventListener('scroll', closeStatusDropdown, true);
 
             document.addEventListener('click', async (event) => {
                 const toggleButton = event.target.closest('[data-status-toggle]');
                 const statusOptionButton = event.target.closest('[data-status-option]');
+
+                if (statusOptionButton) {
+                    const leadId = statusOptionButton.getAttribute('data-lead-id');
+                    const status = statusOptionButton.getAttribute('data-status');
+                    const toggle = document.querySelector(`[data-status-toggle][data-lead-id="${leadId}"]`);
+                    const url = toggle?.getAttribute('data-status-url');
+                    if (!leadId || !status || !url) {
+                        closeStatusDropdown();
+                        return;
+                    }
+
+                    if (status === STATUS_NOT_CONVERTED) {
+                        closeStatusDropdown();
+                        openNotConvertedModal(url, leadId);
+                        return;
+                    }
+
+                    statusOptionButton.disabled = true;
+                    statusOptionButton.classList.add('opacity-60');
+
+                    try {
+                        const payload = await updateLeadStatus(url, status);
+                        applyStatusUpdatePayload(leadId, payload, status);
+                    } catch (error) {
+                        console.log(error);
+                        toastError(
+                            error instanceof Error ? error.message : 'Could not update status. Please try again.',
+                        );
+                    } finally {
+                        statusOptionButton.disabled = false;
+                        statusOptionButton.classList.remove('opacity-60');
+                        closeStatusDropdown();
+                    }
+
+                    return;
+                }
 
                 if (toggleButton) {
                     if (notConvertedModal && !notConvertedModal.classList.contains('hidden')) {
                         closeNotConvertedModal();
                     }
 
-                    const leadId = toggleButton.getAttribute('data-lead-id');
-                    if (!leadId) {
+                    const isSameToggle = activeStatusToggle === toggleButton;
+                    const isOpen = statusDropdown && !statusDropdown.classList.contains('hidden');
+                    if (isOpen && isSameToggle) {
+                        closeStatusDropdown();
                         return;
                     }
 
-                    const dropdown = document.querySelector(`[data-status-dropdown="${leadId}"]`);
-                    if (!dropdown) {
-                        return;
-                    }
-
-                    const isHidden = dropdown.classList.contains('hidden');
-                    closeAllDropdowns();
-                    if (isHidden) {
-                        dropdown.classList.remove('hidden');
-                    }
+                    closeStatusDropdown();
+                    openStatusDropdown(toggleButton);
                     return;
                 }
 
-                if (!statusOptionButton) {
-                    if (notConvertedModal && !notConvertedModal.classList.contains('hidden')
-                        && notConvertedModal.contains(event.target)) {
-                        return;
-                    }
-                    closeAllDropdowns();
+                if (statusDropdown?.contains(event.target)) {
                     return;
                 }
 
-                const leadId = statusOptionButton.getAttribute('data-lead-id');
-                const status = statusOptionButton.getAttribute('data-status');
-                const toggle = document.querySelector(`[data-status-toggle][data-lead-id="${leadId}"]`);
-                const url = toggle?.getAttribute('data-status-url');
-                if (!leadId || !status || !url) {
-                    closeAllDropdowns();
+                if (notConvertedModal && !notConvertedModal.classList.contains('hidden')
+                    && notConvertedModal.contains(event.target)) {
                     return;
                 }
 
-                if (status === STATUS_NOT_CONVERTED) {
-                    closeAllDropdowns();
-                    openNotConvertedModal(url, leadId);
-                    return;
-                }
-
-                statusOptionButton.disabled = true;
-                statusOptionButton.classList.add('opacity-60');
-
-                try {
-                    const payload = await updateLeadStatus(url, status);
-                    applyStatusUpdatePayload(leadId, payload, status);
-                } catch (error) {
-                    console.log(error);
-                    toastError(error instanceof Error ? error.message : 'Could not update status. Please try again.');
-                } finally {
-                    statusOptionButton.disabled = false;
-                    statusOptionButton.classList.remove('opacity-60');
-                    closeAllDropdowns();
-                }
+                closeStatusDropdown();
             });
         })();
     </script>
@@ -662,11 +721,6 @@
 
             document.querySelectorAll('[data-close-new-lead-modal]').forEach((btn) => {
                 btn.addEventListener('click', closeNewLeadModal);
-            });
-            newLeadModal?.addEventListener('click', (event) => {
-                if (event.target === newLeadModal) {
-                    closeNewLeadModal();
-                }
             });
 
             @if ($errors->any())

@@ -3,7 +3,7 @@
 @section('title', 'Lead #' . $lead->id)
 
 @section('content')
-    <div class="mx-auto max-w-7xl">
+    <div class="mx-auto max-w-8xl">
         <div
             class="rounded-2xl border border-slate-200/70 bg-gradient-to-r from-white via-slate-50/60 to-white p-6 shadow-sm lg:p-8">
             <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
@@ -30,7 +30,7 @@
                             Update status
                         </button>
                         <div id="lead-status-dropdown"
-                            class="absolute right-0 top-full z-20 mt-2 hidden w-44 rounded-xl border border-slate-200 bg-white p-2 text-left shadow-xl view-update-status-dropdown">
+                            class="absolute right-0 top-full z-20 mt-2 hidden w-44 rounded-xl border border-slate-200 bg-white p-2 text-left shadow-xl">
                             <p class="px-2 pb-2 text-xs font-semibold uppercase tracking-wide text-concierge-muted">
                                 Update status
                             </p>
@@ -52,7 +52,7 @@
             <dl class="mt-4 grid grid-cols-1 gap-3 md:grid-cols-2">
                 <div class="rounded-xl border border-slate-100 bg-slate-50/50 px-4 py-3">
                     <dt class="text-xs uppercase tracking-wide text-concierge-muted">Agent</dt>
-                    <dd class="mt-1 text-sm font-medium text-concierge-navy">{{ $lead->agent?->name ?? 'Unassigned' }}</dd>
+                    <dd class="mt-1 text-sm font-medium text-concierge-navy">{{ lead_agent_display_name($lead) }}</dd>
                 </div>
                 <div class="rounded-xl border border-slate-100 bg-slate-50/50 px-4 py-3">
                     <dt class="text-xs uppercase tracking-wide text-concierge-muted">Customer name</dt>
@@ -318,12 +318,6 @@
 
             notConvertedReasonInput?.addEventListener('input', () => {
                 hideNotConvertedModalError();
-            });
-
-            notConvertedModal?.addEventListener('click', (event) => {
-                if (event.target === notConvertedModal) {
-                    closeNotConvertedModal();
-                }
             });
 
             notConvertedModalSubmit?.addEventListener('click', async () => {

@@ -70,7 +70,7 @@
 
     <div class="mt-1.5 flex flex-col gap-2 sm:flex-row">
         <input id="folder-search-agent" name="search" type="search"
-            placeholder="Search by customer name, order type, or vendor ref#" value="{{ $search ?? '' }}"
+            placeholder="Search by customer name, order type, or invoice number" value="{{ $search ?? '' }}"
             class="w-full rounded-xl border border-slate-200 bg-slate-50/80 px-4 py-2.5 text-sm text-slate-800 placeholder:text-slate-400 focus:border-concierge-accent focus:bg-white focus:outline-none focus:ring-2 focus:ring-concierge-accent/20">
         <div class="flex shrink-0 gap-2">
             <button type="submit"
