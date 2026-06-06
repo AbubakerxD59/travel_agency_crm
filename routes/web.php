@@ -4,6 +4,22 @@ use App\Http\Controllers\Auth\LoginController;
 use App\Http\Controllers\InvoicePreviewController;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Storage;
+use Symfony\Component\HttpFoundation\BinaryFileResponse;
+
+Route::get('/agent-notification-sw.js', function (): BinaryFileResponse {
+    $path = public_path('agent-notification-sw.js');
+
+    abort_unless(is_file($path), 404);
+
+    $response = response()->file($path, [
+        'Content-Type' => 'application/javascript; charset=UTF-8',
+        'Cache-Control' => 'public, max-age=0, must-revalidate',
+    ]);
+
+    $response->headers->set('Service-Worker-Allowed', '/');
+
+    return $response;
+})->name('agent.notification.sw');
 
 /*
 | Fallback when public/storage symlink is missing (common on first deploy).

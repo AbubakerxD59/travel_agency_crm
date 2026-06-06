@@ -29,6 +29,7 @@ class InvoicePreviewController extends Controller
         ];
 
         return [
+            'direct_line' => config('invoice.company.phone'),
             'company' => config('invoice.company'),
             'booking_date' => format_invoice_date(Carbon::parse('2026-02-08')),
             'invoice_number' => '4109',
@@ -92,8 +93,11 @@ class InvoicePreviewController extends Controller
                     ],
                 ],
             ],
-            'other_services' => [
-                ['description' => '06x EVW Visa'],
+            'other_details' => [
+                ['supplier' => '', 'description' => 'Airport meet & greet'],
+            ],
+            'visa_details' => [
+                ['supplier' => '', 'description' => '06x EVW Visa'],
             ],
             'transport' => [
                 [

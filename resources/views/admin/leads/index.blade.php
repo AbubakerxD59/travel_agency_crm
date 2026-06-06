@@ -377,9 +377,9 @@
                         </div>
                         <div>
                             <label for="assign_total_passengers" class="block text-sm font-medium text-concierge-navy">Total
-                                Passengers <span class="text-rose-600">*</span></label>
-                            <input id="assign_total_passengers" name="total_passengers" type="number" min="1" max="500"
-                                step="1" required value="{{ old('total_passengers') }}"
+                                Passengers</label>
+                            <input id="assign_total_passengers" name="total_passengers" type="text"
+                                value="{{ old('total_passengers') }}"
                                 class="mt-1.5 w-full rounded-xl border border-slate-200 bg-slate-50/80 px-4 py-2.5 text-sm focus:border-concierge-accent focus:bg-white focus:outline-none focus:ring-2 focus:ring-concierge-accent/20"
                                 placeholder="e.g. 4">
                         </div>

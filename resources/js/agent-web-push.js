@@ -2,6 +2,8 @@
  * Web Push subscription for agent lead alerts (OS notification sound in background).
  */
 
+import { registerAppServiceWorker } from './service-worker-register';
+
 function urlBase64ToUint8Array(base64String) {
     const padding = '='.repeat((4 - (base64String.length % 4)) % 4);
     const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
@@ -63,7 +65,7 @@ function initAgentWebPush() {
     }
 
     async function ensureServiceWorkerRegistration() {
-        const registration = await navigator.serviceWorker.register(serviceWorkerUrl, { scope: '/' });
+        const registration = await registerAppServiceWorker(serviceWorkerUrl);
         await navigator.serviceWorker.ready;
 
         return registration;

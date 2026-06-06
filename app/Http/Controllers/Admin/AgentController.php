@@ -9,6 +9,7 @@ use App\Http\Requests\UpdateAgentRequest;
 use App\Models\Company;
 use App\Models\Lead;
 use App\Models\User;
+use App\Support\AgentCnicPhotoStorage;
 use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
@@ -22,8 +23,9 @@ use Throwable;
 
 class AgentController extends Controller
 {
-    public function __construct()
-    {
+    public function __construct(
+        private readonly AgentCnicPhotoStorage $agentCnicPhotos,
+    ) {
         $this->middleware('can:agents.create')->only(['index', 'store']);
         $this->middleware('can:agents.manage')->only([
             'show',
@@ -65,6 +67,7 @@ class AgentController extends Controller
                     'name',
                     'email',
                     'phone_number',
+                    'direct_line',
                     'agent_cnic',
                     'home_address',
                     'guardian_name',
@@ -74,6 +77,7 @@ class AgentController extends Controller
                     'manager_id',
                     'password',
                 ]);
+                $data['agent_cnic_photo'] = $this->agentCnicPhotos->store($request->file('agent_cnic_photo'));
                 $user = User::create($data);
                 $user->assignRole($request->validated('role'));
                 $user->givePermissionTo(
@@ -187,6 +191,7 @@ class AgentController extends Controller
                 'name',
                 'email',
                 'phone_number',
+                'direct_line',
                 'agent_cnic',
                 'home_address',
                 'guardian_name',
@@ -198,6 +203,13 @@ class AgentController extends Controller
             if ($request->filled('password')) {
                 $data['password'] = $request->validated('password');
             }
+
+            $uploadedCnicPhoto = $request->file('agent_cnic_photo');
+            if ($uploadedCnicPhoto !== null && $uploadedCnicPhoto->isValid()) {
+                $this->agentCnicPhotos->delete($agent->agent_cnic_photo);
+                $data['agent_cnic_photo'] = $this->agentCnicPhotos->store($uploadedCnicPhoto);
+            }
+
             $agent->update($data);
             $agent->syncRoles([$request->validated('role')]);
         } catch (Throwable $e) {
@@ -316,7 +328,10 @@ class AgentController extends Controller
             'name' => $user->name,
             'email' => $user->email,
             'phone_number' => $user->phone_number,
+            'direct_line' => $user->direct_line,
             'agent_cnic' => $user->agent_cnic,
+            'agent_cnic_photo' => $user->agent_cnic_photo,
+            'agent_cnic_photo_url' => $user->agentCnicPhotoUrl(),
             'home_address' => $user->home_address,
             'guardian_name' => $user->guardian_name,
             'guardian_phone_number' => $user->guardian_phone_number,

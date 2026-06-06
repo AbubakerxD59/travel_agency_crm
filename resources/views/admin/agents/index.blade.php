@@ -221,10 +221,27 @@
                     </div>
 
                     <div>
+                        <label for="modal_direct_line" class="block text-sm font-medium text-concierge-navy">Direct
+                            line</label>
+                        <input id="modal_direct_line" name="direct_line" type="text" autocomplete="tel"
+                            class="mt-1.5 w-full rounded-xl border border-slate-200 bg-slate-50/80 px-4 py-2.5 text-sm focus:border-concierge-accent focus:bg-white focus:outline-none focus:ring-2 focus:ring-concierge-accent/20">
+                    </div>
+
+                    <div>
                         <label for="modal_agent_cnic" class="block text-sm font-medium text-concierge-navy">Agent
                             CNIC</label>
                         <input id="modal_agent_cnic" name="agent_cnic" type="text"
                             class="mt-1.5 w-full rounded-xl border border-slate-200 bg-slate-50/80 px-4 py-2.5 text-sm focus:border-concierge-accent focus:bg-white focus:outline-none focus:ring-2 focus:ring-concierge-accent/20">
+                    </div>
+
+                    <div class="col-span-full">
+                        @include('partials.companies.image-upload-field', [
+                            'inputId' => 'modal_agent_cnic_photo',
+                            'inputName' => 'agent_cnic_photo',
+                            'label' => 'Agent CNIC photo',
+                            'ariaLabel' => 'Upload agent CNIC photo',
+                            'optionalHint' => 'Optional. JPEG, PNG, GIF, or WebP. Max 2 MB.',
+                        ])
                     </div>
 
                     <div class="col-span-full">
@@ -412,10 +429,27 @@
                         </div>
 
                         <div>
+                            <label for="edit_modal_direct_line"
+                                class="block text-sm font-medium text-concierge-navy">Direct line</label>
+                            <input id="edit_modal_direct_line" name="direct_line" type="text" autocomplete="tel"
+                                class="mt-1.5 w-full rounded-xl border border-slate-200 bg-slate-50/80 px-4 py-2.5 text-sm focus:border-concierge-accent focus:bg-white focus:outline-none focus:ring-2 focus:ring-concierge-accent/20">
+                        </div>
+
+                        <div>
                             <label for="edit_modal_agent_cnic" class="block text-sm font-medium text-concierge-navy">Agent
                                 CNIC</label>
                             <input id="edit_modal_agent_cnic" name="agent_cnic" type="text"
                                 class="mt-1.5 w-full rounded-xl border border-slate-200 bg-slate-50/80 px-4 py-2.5 text-sm focus:border-concierge-accent focus:bg-white focus:outline-none focus:ring-2 focus:ring-concierge-accent/20">
+                        </div>
+
+                        <div class="col-span-full">
+                            @include('partials.companies.image-upload-field', [
+                                'inputId' => 'edit_modal_agent_cnic_photo',
+                                'inputName' => 'agent_cnic_photo',
+                                'label' => 'Agent CNIC photo',
+                                'ariaLabel' => 'Upload agent CNIC photo',
+                                'optionalHint' => 'Optional. Upload a new image to replace the current CNIC photo. JPEG, PNG, GIF, or WebP. Max 2 MB.',
+                            ])
                         </div>
 
                         <div class="col-span-full">

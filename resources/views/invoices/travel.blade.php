@@ -15,22 +15,33 @@
             box-sizing: border-box;
         }
 
-        body {
-            margin: 0;
-            font-family: Arial, Helvetica, sans-serif;
-            color: #111;
-            background: #e8e8e8;
-        }
-
         .invoice-page {
+            --inv-font: "Segoe UI", Arial, Helvetica, sans-serif;
+            --inv-text-xs: 9px;
+            --inv-text-sm: 10px;
+            --inv-text-base: 11px;
+            --inv-text-md: 12px;
+            --inv-leading: 1.42;
+            --inv-leading-tight: 1.32;
             width: 210mm;
             min-height: 297mm;
             margin: 16px auto;
             padding: 10mm 12mm 12mm;
             background: #fff;
             box-shadow: 0 2px 16px rgba(0, 0, 0, 0.12);
-            font-size: 15px;
-            line-height: 1.5rem;
+            font-family: var(--inv-font);
+            font-size: var(--inv-text-base);
+            line-height: var(--inv-leading);
+            color: #111;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+
+        body {
+            margin: 0;
+            font-family: var(--inv-font, "Segoe UI", Arial, Helvetica, sans-serif);
+            color: #111;
+            background: #e8e8e8;
         }
 
         @media print {
@@ -56,6 +67,8 @@
             align-items: flex-start;
             gap: 12px;
             margin-bottom: 10px;
+            font-size: var(--inv-text-base);
+            line-height: var(--inv-leading-tight);
         }
 
         .invoice-header__meta--right {
@@ -64,16 +77,19 @@
 
         .invoice-header__brand {
             text-align: center;
-            margin-bottom: 14px;
+            margin-bottom: 12px;
+            font-size: var(--inv-text-sm);
+            line-height: var(--inv-leading-tight);
         }
 
         .invoice-logo {
             display: inline-block;
             background: #000;
             color: #fff;
-            padding: 10px 22px 8px;
+            padding: 8px 18px 6px;
             font-weight: 700;
-            letter-spacing: 0.02em;
+            font-size: var(--inv-text-md);
+            letter-spacing: 0.03em;
         }
 
         .invoice-website {
@@ -82,20 +98,22 @@
         }
 
         .invoice-brand-email {
-            margin-top: 6px;
-            color: #222;
+            margin-top: 4px;
+            color: #333;
         }
 
         table {
             width: 100%;
             border-collapse: collapse;
-            margin-bottom: 2rem;
+            margin-bottom: 1.1rem;
+            font-size: var(--inv-text-sm);
+            line-height: var(--inv-leading-tight);
         }
 
         th,
         td {
             border: 1px solid #000;
-            padding: 5px 6px;
+            padding: 4px 6px;
             vertical-align: top;
         }
 
@@ -108,6 +126,7 @@
         .table-summary th,
         .table-summary td {
             text-align: center;
+            font-size: var(--inv-text-base);
         }
 
         .table-passengers {
@@ -116,11 +135,17 @@
 
         .table-passengers th {
             text-align: center;
+            font-size: var(--inv-text-sm);
+        }
+
+        .table-passengers td {
+            font-size: var(--inv-text-sm);
         }
 
         .table-passengers td.price {
             text-align: right;
             white-space: nowrap;
+            font-variant-numeric: tabular-nums;
         }
 
         .table-passengers td.valign-top {
@@ -129,13 +154,15 @@
 
         .invoice-transactions-paid {
             margin: 0;
-            padding-left: 1.35rem;
+            padding-left: 1.15rem;
             text-align: left;
             list-style: decimal;
+            font-size: var(--inv-text-sm);
+            line-height: var(--inv-leading-tight);
         }
 
         .invoice-transactions-paid li {
-            margin-bottom: 0.65rem;
+            margin-bottom: 0.35rem;
         }
 
         .invoice-transactions-paid li:last-child {
@@ -150,11 +177,15 @@
         .invoice-transaction-date {
             display: block;
             font-weight: 400;
+            color: #333;
         }
 
         .disclaimer {
-            margin: 10px 0 12px;
+            margin: 8px 0 10px;
             text-align: justify;
+            font-size: var(--inv-text-xs);
+            line-height: 1.45;
+            color: #222;
         }
 
         .payment-wrap {
@@ -176,25 +207,36 @@
         .table-payment td:last-child {
             text-align: right;
             white-space: nowrap;
+            font-variant-numeric: tabular-nums;
         }
 
         .table-hotels {
-            margin-top: 2rem;
+            margin-top: 1.1rem;
+        }
+
+        .table-hotels th,
+        .table-hotels td {
+            font-size: var(--inv-text-sm);
         }
 
         .section-title {
             margin: 0 0 8px;
             text-align: center;
             font-weight: 700;
+            font-size: var(--inv-text-md);
             text-decoration: underline;
-            letter-spacing: 0.04em;
+            letter-spacing: 0.06em;
+            text-transform: uppercase;
         }
 
         .itinerary-bar {
             margin: 0;
-            padding: 6px 8px;
+            padding: 5px 8px;
             text-align: center;
             font-weight: 700;
+            font-size: var(--inv-text-sm);
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
             background: #d9d9d9;
             border: 1px solid #000;
             border-bottom: none;
@@ -203,15 +245,19 @@
         .table-itinerary th {
             text-align: center;
             padding: 4px 3px;
+            font-size: var(--inv-text-xs);
+            letter-spacing: 0.02em;
         }
 
         .table-itinerary td {
-            height: 22px;
+            min-height: 20px;
+            font-size: var(--inv-text-xs);
         }
 
         .table-hotel-itinerary .hotel-itinerary-section-head th {
             text-align: center;
-            padding: 4px 6px;
+            padding: 4px 5px;
+            font-size: var(--inv-text-xs);
         }
 
         .table-hotel-itinerary .hotel-itinerary-section-head th:first-child {
@@ -220,8 +266,9 @@
 
         .table-hotel-itinerary td {
             text-align: center;
-            padding: 4px 6px;
-            height: 22px;
+            padding: 4px 5px;
+            min-height: 20px;
+            font-size: var(--inv-text-xs);
         }
 
         .table-hotel-itinerary td:first-child {
@@ -229,34 +276,40 @@
         }
 
         .table-hotel-itinerary .hotel-itinerary-spacer td {
-            height: 14px;
+            height: 10px;
             padding: 0;
         }
 
         .table-invoice-section th,
         .table-invoice-section td {
-            padding: 4px 6px;
-            height: 22px;
+            padding: 4px 5px;
+            min-height: 20px;
             text-align: left;
+            font-size: var(--inv-text-xs);
         }
 
         .table-other-services th,
-        .table-other-services td {
+        .table-other-services td,
+        .table-visa-details th,
+        .table-visa-details td {
             text-align: left;
         }
 
         .invoice-section-title-row th {
             text-align: center;
             font-weight: 700;
+            font-size: var(--inv-text-sm);
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
             background: #d9d9d9;
             border: 1px solid #000;
-            padding: 6px 8px;
-            letter-spacing: 0.04em;
+            padding: 5px 8px;
         }
 
         .table-transport th {
             text-align: center;
-            padding: 4px 6px;
+            padding: 4px 5px;
+            font-size: var(--inv-text-xs);
         }
 
         .table-transport tr:not(.invoice-section-title-row) th:first-child,
@@ -271,55 +324,70 @@
 
         .table-transport td {
             text-align: center;
+            font-size: var(--inv-text-xs);
         }
 
         .invoice-ziaraats {
-            margin: 14px 0;
+            margin: 12px 0;
+            font-size: var(--inv-text-sm);
+            line-height: var(--inv-leading-tight);
         }
 
         .invoice-ziaraats p {
-            margin: 0;
+            margin: 0 0 4px;
+        }
+
+        .invoice-ziaraats p:last-child {
+            margin-bottom: 0;
         }
 
         .invoice-terms {
-            margin-top: 20px;
-            padding-top: 14px;
+            margin-top: 16px;
+            padding-top: 12px;
             border-top: 1px solid #ccc;
             color: #111;
             text-align: justify;
+            font-size: var(--inv-text-xs);
+            line-height: 1.45;
         }
 
         .invoice-terms__title {
-            margin: 0 0 10px;
+            margin: 0 0 8px;
             font-weight: 700;
+            font-size: var(--inv-text-sm);
         }
 
         .invoice-terms__heading {
-            margin: 12px 0 6px;
+            margin: 10px 0 4px;
             font-weight: 700;
+            font-size: var(--inv-text-xs);
+            letter-spacing: 0.04em;
             text-transform: uppercase;
         }
 
         .invoice-terms__subheading {
             margin: 8px 0 4px;
             font-weight: 700;
+            font-size: var(--inv-text-xs);
         }
 
         .invoice-terms__disclaimer-title {
-            margin: 14px 0 8px;
+            margin: 10px 0 6px;
             font-weight: 700;
+            font-size: var(--inv-text-xs);
         }
 
         .invoice-terms__acknowledgment {
-            margin-top: 16px;
+            margin-top: 12px;
             font-style: italic;
+            font-size: var(--inv-text-xs);
         }
 
         .invoice-terms__signature {
-            margin-top: 24px;
+            margin-top: 16px;
             display: flex;
             flex-direction: column;
-            gap: 10px;
+            gap: 8px;
         }
 
         .invoice-terms__signature-media {
@@ -328,41 +396,44 @@
 
         .invoice-terms__signature-media img {
             display: inline-block;
-            max-height: 48px;
-            max-width: 180px;
+            max-height: 44px;
+            max-width: 170px;
         }
 
         .invoice-terms__signature-logo {
             display: inline-block;
             background: #000;
             color: #fff;
-            padding: 8px 18px 6px;
+            padding: 6px 14px 5px;
             font-weight: 700;
-            letter-spacing: 0.02em;
+            font-size: var(--inv-text-base);
+            letter-spacing: 0.03em;
         }
 
         .invoice-terms__signature-email {
             font-family: "Segoe Script", "Brush Script MT", cursive;
+            font-size: var(--inv-text-sm);
             color: #1a1a1a;
             text-align: left;
         }
 
         .invoice-terms__signature-date {
+            font-size: var(--inv-text-xs);
             color: #333;
             text-align: left;
         }
 
         .invoice-terms p {
-            margin: 0 0 8px;
+            margin: 0 0 6px;
         }
 
         .invoice-terms ul {
-            margin: 0 0 8px;
-            padding-left: 18px;
+            margin: 0 0 6px;
+            padding-left: 15px;
         }
 
         .invoice-terms li {
-            margin-bottom: 4px;
+            margin-bottom: 3px;
         }
 
         .invoice-terms p:last-child,
@@ -382,6 +453,7 @@
             align-items: center;
             margin-top: 18px;
             gap: 12px;
+            font-size: var(--inv-text-sm);
         }
 
         .invoice-footer__box {
@@ -426,13 +498,13 @@
                     <strong>Booking Date:</strong> <br> {{ $booking_date }}
                 </div>
                 <div class="invoice-header__meta--right">
-                    <div><strong>Direct Line:</strong> {{ $company['phone'] }}</div>
+                    <div><strong>Direct Line:</strong> {{ $direct_line }}</div>
                 </div>
             </div>
             <div class="invoice-header__brand">
                 @if (!empty($company['logo_url']))
                     <img src="{{ $company['logo_url'] }}" alt="{{ $company['name'] }}"
-                        style="max-height: 56px; max-width: 200px;">
+                        style="max-height: 48px; max-width: 180px;">
                 @else
                     <div class="invoice-logo">{{ $company['name'] }}</div>
                 @endif
@@ -511,24 +583,23 @@
                     <td colspan="2">Invoice Total:</td>
                     <td class="price">£ {{ number_format($invoice_total, 0) }}</td>
                 </tr>
-                <tr>
-                    <td colspan="4"></td>
-                    <td colspan="2" class="valign-top">Transactions paid:</td>
-                    <td class="price valign-top">
-                        @if (! empty($approved_payments))
+                @if (!empty($approved_payments))
+                    <tr>
+                        <td colspan="4"></td>
+                        <td colspan="2" class="valign-top">Transactions paid:</td>
+                        <td class="price valign-top">
                             <ol class="invoice-transactions-paid">
                                 @foreach ($approved_payments as $payment)
                                     <li>
-                                        <span class="invoice-transaction-amount">{{ $payment['amount_formatted'] }}</span>
+                                        <span
+                                            class="invoice-transaction-amount">{{ $payment['amount_formatted'] }}</span>
                                         <span class="invoice-transaction-date">{{ $payment['payment_date'] }}</span>
                                     </li>
                                 @endforeach
                             </ol>
-                        @else
-                            —
-                        @endif
-                    </td>
-                </tr>
+                        </td>
+                    </tr>
+                @endif
                 <tr>
                     <td colspan="4"></td>
                     <td colspan="2">Amount Due:</td>
@@ -542,173 +613,155 @@
             </tbody>
         </table>
 
-        <table class="table-hotels">
-            <thead>
-                <tr>
-                    <th>Hotel Names</th>
-                    <th>City</th>
-                    <th>Nights</th>
-                    <th>Rooms</th>
-                    <th>Type</th>
-                </tr>
-            </thead>
-            <tbody>
-                @forelse ($hotels as $hotel)
-                    <tr>
-                        <td>{{ $hotel['name'] }}</td>
-                        <td>{{ $hotel['city'] }}</td>
-                        <td>{{ $hotel['nights'] }}</td>
-                        <td>{{ $hotel['rooms'] }}</td>
-                        <td>{{ $hotel['type'] }}</td>
-                    </tr>
-                @empty
-                    <tr>
-                        <td colspan="5">&nbsp;</td>
-                    </tr>
-                @endforelse
-            </tbody>
-        </table>
+        @php
+            $hasPackageDetails =
+                !empty($flight_itinerary) ||
+                !empty($hotel_itinerary) ||
+                !empty($visa_details) ||
+                !empty($other_details) ||
+                !empty($transport);
+        @endphp
 
-        <h2 class="section-title">PACKAGE DETAILS</h2>
-        <p class="itinerary-bar">FLIGHT ITINERARY</p>
-        <table class="table-itinerary">
-            <thead>
-                <tr>
-                    <th>Operated by</th>
-                    <th>Flight No</th>
-                    <th>Departure Date</th>
-                    <th>Departure Time</th>
-                    <th>From</th>
-                    <th>Arrival Time</th>
-                    <th>To</th>
-                    <th>Arrival Date</th>
-                </tr>
-            </thead>
-            <tbody>
-                @forelse ($flight_itinerary as $leg)
-                    <tr>
-                        <td>{{ $leg['operated_by'] ?? '' }}</td>
-                        <td>{{ $leg['flight_no'] ?? '' }}</td>
-                        <td>{{ $leg['departure_date'] ?? '' }}</td>
-                        <td>{{ $leg['departure_time'] ?? '' }}</td>
-                        <td>{{ $leg['from'] ?? '' }}</td>
-                        <td>{{ $leg['arrival_time'] ?? '' }}</td>
-                        <td>{{ $leg['to'] ?? '' }}</td>
-                        <td>{{ $leg['arrival_date'] ?? '' }}</td>
-                    </tr>
-                @empty
-                    @for ($i = 0; $i < 3; $i++)
-                        <tr>
-                            <td colspan="8">&nbsp;</td>
-                        </tr>
-                    @endfor
-                @endforelse
-            </tbody>
-        </table>
+        @if ($hasPackageDetails)
+            <h2 class="section-title">PACKAGE DETAILS</h2>
+        @endif
 
-        <p class="itinerary-bar">HOTEL ITINERARY</p>
-        <table class="table-itinerary table-hotel-itinerary">
-            <tbody>
-                @forelse ($hotel_itinerary ?? [] as $sectionIndex => $section)
-                    @if ($sectionIndex > 0)
-                        <tr class="hotel-itinerary-spacer">
-                            <td colspan="6">&nbsp;</td>
-                        </tr>
-                    @endif
-                    <tr class="hotel-itinerary-section-head">
-                        <th>{{ $section['label'] }}</th>
-                        <th>Room Type</th>
-                        <th>Nights</th>
-                        <th>Check-in</th>
-                        <th>Check-out</th>
-                        <th>Meal</th>
+        @if (!empty($flight_itinerary))
+            <p class="itinerary-bar">FLIGHT ITINERARY</p>
+            <table class="table-itinerary">
+                <thead>
+                    <tr>
+                        <th>Operated by</th>
+                        <th>Flight No</th>
+                        <th>Departure Date</th>
+                        <th>Departure Time</th>
+                        <th>From</th>
+                        <th>Arrival Time</th>
+                        <th>To</th>
+                        <th>Arrival Date</th>
                     </tr>
-                    @foreach ($section['stays'] as $stay)
+                </thead>
+                <tbody>
+                    @foreach ($flight_itinerary as $leg)
                         <tr>
-                            <td>{{ $stay['hotel_name'] }}</td>
-                            <td>{{ $stay['room_type'] }}</td>
-                            <td>{{ $stay['nights'] }}</td>
-                            <td>{{ $stay['check_in'] }}</td>
-                            <td>{{ $stay['check_out'] }}</td>
-                            <td>{{ $stay['meal'] }}</td>
+                            <td>{{ $leg['operated_by'] ?? '' }}</td>
+                            <td>{{ $leg['flight_no'] ?? '' }}</td>
+                            <td>{{ $leg['departure_date'] ?? '' }}</td>
+                            <td>{{ $leg['departure_time'] ?? '' }}</td>
+                            <td>{{ $leg['from'] ?? '' }}</td>
+                            <td>{{ $leg['arrival_time'] ?? '' }}</td>
+                            <td>{{ $leg['to'] ?? '' }}</td>
+                            <td>{{ $leg['arrival_date'] ?? '' }}</td>
                         </tr>
                     @endforeach
-                @empty
-                    <tr class="hotel-itinerary-section-head">
-                        <th>Makkah Hotel</th>
-                        <th>Room Type</th>
-                        <th>Nights</th>
-                        <th>Check-in</th>
-                        <th>Check-out</th>
-                        <th>Meal</th>
-                    </tr>
-                    @for ($i = 0; $i < 2; $i++)
-                        <tr>
-                            <td colspan="6">&nbsp;</td>
+                </tbody>
+            </table>
+        @endif
+
+        @if (!empty($hotel_itinerary))
+            <p class="itinerary-bar">HOTEL ITINERARY</p>
+            <table class="table-itinerary table-hotel-itinerary">
+                <tbody>
+                    @foreach ($hotel_itinerary as $sectionIndex => $section)
+                        @if ($sectionIndex > 0)
+                            <tr class="hotel-itinerary-spacer">
+                                <td colspan="6">&nbsp;</td>
+                            </tr>
+                        @endif
+                        <tr class="hotel-itinerary-section-head">
+                            <th>{{ $section['label'] }}</th>
+                            <th>Room Type</th>
+                            <th>Nights</th>
+                            <th>Check-in</th>
+                            <th>Check-out</th>
+                            <th>Meal</th>
                         </tr>
-                    @endfor
-                @endforelse
-                <tr class="hotel-itinerary-spacer">
-                    <td colspan="6">&nbsp;</td>
-                </tr>
-            </tbody>
-        </table>
+                        @foreach ($section['stays'] as $stay)
+                            <tr>
+                                <td>{{ $stay['hotel_name'] }}</td>
+                                <td>{{ $stay['room_type'] }}</td>
+                                <td>{{ $stay['nights'] }}</td>
+                                <td>{{ $stay['check_in'] }}</td>
+                                <td>{{ $stay['check_out'] }}</td>
+                                <td>{{ $stay['meal'] }}</td>
+                            </tr>
+                        @endforeach
+                    @endforeach
+                </tbody>
+            </table>
+        @endif
 
-        <table class="table-itinerary table-invoice-section table-other-services">
-            <tbody>
-                <tr class="invoice-section-title-row">
-                    <th colspan="1">OTHER SERVICES</th>
-                </tr>
-                <tr>
-                    <th>Other Services</th>
-                </tr>
-                @forelse ($other_services ?? [] as $service)
+        @if (!empty($visa_details))
+            <p class="itinerary-bar">VISA DETAILS</p>
+            <table class="table-itinerary table-invoice-section table-visa-details">
+                <tbody>
                     <tr>
-                        <td>{{ $service['description'] }}</td>
+                        <th>Supplier</th>
+                        <th>Description</th>
                     </tr>
-                @empty
-                    <tr>
-                        <td>&nbsp;</td>
-                    </tr>
-                @endforelse
-            </tbody>
-        </table>
-
-        <table class="table-itinerary table-invoice-section table-transport">
-            <tbody>
-                <tr class="invoice-section-title-row">
-                    <th colspan="5">TRANSPORT</th>
-                </tr>
-                <tr>
-                    <th>Description</th>
-                    <th>Leading passenger</th>
-                    <th>Pickup date</th>
-                    <th>Pickup time</th>
-                    <th>Vehicle</th>
-                </tr>
-                @forelse ($transport ?? [] as $trip)
-                    <tr>
-                        <td>{{ $trip['description'] }}</td>
-                        <td>{{ $trip['leading_passenger'] }}</td>
-                        <td>{{ $trip['pickup_date'] }}</td>
-                        <td>{{ $trip['pickup_time'] }}</td>
-                        <td>{{ $trip['vehicle'] }}</td>
-                    </tr>
-                @empty
-                    @for ($i = 0; $i < 4; $i++)
+                    @foreach ($visa_details as $visa)
                         <tr>
-                            <td colspan="5">&nbsp;</td>
+                            <td>{{ $visa['supplier'] ?: '—' }}</td>
+                            <td>{{ $visa['description'] ?: '—' }}</td>
                         </tr>
-                    @endfor
-                @endforelse
-            </tbody>
-        </table>
+                    @endforeach
+                </tbody>
+            </table>
+        @endif
 
-        <div class="invoice-ziaraats">
-            @foreach ($ziaraats ?? [] as $ziaraat)
-                <p><strong>{{ $ziaraat['label'] }}:</strong> {{ $ziaraat['status'] }}</p>
-            @endforeach
-        </div>
+        @if (!empty($other_details))
+            <table class="table-itinerary table-invoice-section table-other-services">
+                <tbody>
+                    <tr class="invoice-section-title-row">
+                        <th colspan="2">OTHER DETAILS</th>
+                    </tr>
+                    <tr>
+                        <th>Supplier</th>
+                        <th>Description</th>
+                    </tr>
+                    @foreach ($other_details as $detail)
+                        <tr>
+                            <td>{{ $detail['supplier'] ?: '—' }}</td>
+                            <td>{{ $detail['description'] ?: '—' }}</td>
+                        </tr>
+                    @endforeach
+                </tbody>
+            </table>
+        @endif
+
+        @if (!empty($transport))
+            <table class="table-itinerary table-invoice-section table-transport">
+                <tbody>
+                    <tr class="invoice-section-title-row">
+                        <th colspan="5">TRANSPORT</th>
+                    </tr>
+                    <tr>
+                        <th>Description</th>
+                        <th>Leading passenger</th>
+                        <th>Pickup date</th>
+                        <th>Pickup time</th>
+                        <th>Vehicle</th>
+                    </tr>
+                    @foreach ($transport as $trip)
+                        <tr>
+                            <td>{{ $trip['description'] }}</td>
+                            <td>{{ $trip['leading_passenger'] }}</td>
+                            <td>{{ $trip['pickup_date'] }}</td>
+                            <td>{{ $trip['pickup_time'] }}</td>
+                            <td>{{ $trip['vehicle'] }}</td>
+                        </tr>
+                    @endforeach
+                </tbody>
+            </table>
+        @endif
+
+        @if (!empty($ziaraats))
+            <div class="invoice-ziaraats">
+                @foreach ($ziaraats as $ziaraat)
+                    <p><strong>{{ $ziaraat['label'] }}:</strong> {{ $ziaraat['status'] }}</p>
+                @endforeach
+            </div>
+        @endif
 
         @include('invoices.partials.terms-and-conditions', [
             'terms_legal_name' => $terms_legal_name ?? config('invoice.terms_legal_name'),

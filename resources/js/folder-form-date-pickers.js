@@ -19,16 +19,24 @@ function initFolderFormDatePickers() {
         input.autocomplete = 'off';
         input.placeholder = input.placeholder || 'Select date';
 
-        flatpickr(input, {
+        const isRequired = input.required;
+
+        const instance = flatpickr(input, {
             dateFormat: 'Y-m-d',
             altInput: true,
             altFormat: 'd M Y',
             allowInput: false,
             defaultDate: originalValue || null,
             position: 'auto left',
+            onReady(_selectedDates, _dateStr, fp) {
+                if (isRequired && fp.altInput instanceof HTMLInputElement) {
+                    fp.altInput.required = true;
+                }
+            },
         });
 
         initialized.add(input);
+        initialized.add(instance);
     }
 
     function setupAll() {

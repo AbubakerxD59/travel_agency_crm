@@ -192,7 +192,7 @@ class LeadController extends Controller
             'email' => $data['email'] ?? null,
             'company_id' => $data['company_id'],
             'city' => $data['city'],
-            'total_passengers' => $data['total_passengers'],
+            'total_passengers' => $data['total_passengers'] ?? null,
             'source' => $data['source'],
             'notes' => $data['notes'] ?? null,
             'order_type' => 'Assigned',
@@ -230,7 +230,7 @@ class LeadController extends Controller
             'email' => $data['email'] ?? null,
             'company_id' => $data['company_id'],
             'city' => $data['city'],
-            'total_passengers' => $data['total_passengers'],
+            'total_passengers' => $data['total_passengers'] ?? null,
             'source' => $data['source'],
             'notes' => $data['notes'] ?? null,
         ]);

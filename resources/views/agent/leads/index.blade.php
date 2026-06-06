@@ -8,7 +8,7 @@
             <div>
                 <h1 class="text-2xl font-bold text-concierge-navy lg:text-3xl">Lead Management</h1>
                 <p class="mt-1 max-w-2xl text-sm text-concierge-muted">Umrah and Hajj bookings: assignment, invoice number,
-                    travel dates, and ziarat options.</p>
+                    and ziarat options.</p>
             </div>
             @if ($canCreateLeads)
                 <button type="button" id="open-new-lead-modal"
@@ -89,7 +89,7 @@
                             <th class="px-4 py-4 lg:px-6">Phone number</th>
                             <th class="px-4 py-4 lg:px-6">Company name</th>
                             <th class="px-4 py-4 lg:px-6">City</th>
-                            <th class="px-4 py-4 lg:px-6">Travel date</th>
+                            <th class="px-4 py-4 lg:px-6">No. of passengers</th>
                             <th class="px-4 py-4 lg:px-6">Status</th>
                             <th class="px-4 py-4 text-right lg:px-6">Action</th>
                         </tr>
@@ -101,8 +101,9 @@
                                 <td class="px-4 py-4 text-concierge-muted lg:px-6">{{ $lead->phone_number ?? '—' }}</td>
                                 <td class="px-4 py-4 text-concierge-navy lg:px-6">{{ $lead->company?->name ?? '—' }}</td>
                                 <td class="px-4 py-4 text-concierge-muted lg:px-6">{{ $lead->city ?? '—' }}</td>
-                                <td class="whitespace-nowrap px-4 py-4 text-concierge-muted lg:px-6">
-                                    {{ $lead->travel_date?->format('M j, Y') }}</td>
+                                <td class="px-4 py-4 text-concierge-muted lg:px-6">
+                                    {{ $lead->total_passengers !== null ? number_format((int) $lead->total_passengers) : '—' }}
+                                </td>
                                 <td class="whitespace-nowrap px-4 py-4 lg:px-6">
                                     <span data-lead-status-pill="{{ $lead->id }}"
                                         class="concierge-pill concierge-pill-{{ $lead->statusPillClass() }}">{{ $lead->statusLabel() }}</span>
@@ -262,8 +263,8 @@
                             <div>
                                 <label for="new_lead_total_passengers" class="block text-sm font-medium text-concierge-navy">Total
                                     Passengers</label>
-                                <input id="new_lead_total_passengers" name="total_passengers" type="number" min="1" max="500"
-                                    step="1" value="{{ old('total_passengers') }}" placeholder="e.g. 4"
+                                <input id="new_lead_total_passengers" name="total_passengers" type="text"
+                                    value="{{ old('total_passengers') }}" placeholder="e.g. 4"
                                     class="mt-1.5 w-full rounded-xl border border-slate-200 bg-slate-50/80 px-4 py-2.5 text-sm focus:border-concierge-accent focus:bg-white focus:outline-none focus:ring-2 focus:ring-concierge-accent/20">
                             </div>
                             <div>

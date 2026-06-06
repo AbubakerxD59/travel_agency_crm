@@ -2,6 +2,7 @@ import $ from 'jquery';
 import toastr from 'toastr';
 
 import 'toastr/build/toastr.min.css';
+import { initImageDropzone, resetImageDropzone } from './image-dropzone';
 
 window.$ = window.jQuery = $;
 
@@ -39,6 +40,38 @@ const agentsIndexTable = document.getElementById('agents-index-table');
 
 let editingAgentId = null;
 let permissionsAgentId = null;
+
+const storeCnicPhotoUpload = form?.querySelector('[data-company-image-upload]');
+const editCnicPhotoUpload = editForm?.querySelector('[data-company-image-upload]');
+
+function resetStoreAgentCnicPhoto() {
+    if (storeCnicPhotoUpload) {
+        resetImageDropzone(storeCnicPhotoUpload, { existingAlt: 'Agent CNIC photo' });
+    }
+}
+
+function setEditAgentCnicPhotoPreview(imageUrl) {
+    if (editCnicPhotoUpload) {
+        resetImageDropzone(editCnicPhotoUpload, {
+            existingUrl: imageUrl || null,
+            existingAlt: 'Agent CNIC photo',
+        });
+    }
+}
+
+if (storeCnicPhotoUpload) {
+    initImageDropzone(storeCnicPhotoUpload, {
+        existingAlt: 'Agent CNIC photo',
+        onError: (message) => toastr.error(message),
+    });
+}
+
+if (editCnicPhotoUpload) {
+    initImageDropzone(editCnicPhotoUpload, {
+        existingAlt: 'Agent CNIC photo',
+        onError: (message) => toastr.error(message),
+    });
+}
 
 function csrfToken() {
     return document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') ?? '';
@@ -355,6 +388,7 @@ function openAgentModal() {
     if (!modal) {
         return;
     }
+    resetStoreAgentCnicPhoto();
     syncManagerFieldForRole('modal_role', 'modal_manager_field', 'modal_manager_id');
     modal.classList.remove('hidden');
     modal.classList.add('flex');
@@ -389,6 +423,7 @@ function closeEditAgentModal() {
     editingAgentId = null;
     editForm?.reset();
     resetPasswordVisibility();
+    setEditAgentCnicPhotoPreview(null);
 }
 
 function openPermissionsModal() {
@@ -559,7 +594,9 @@ document.addEventListener('click', async (e) => {
             document.getElementById('edit_modal_name').value = a.name ?? '';
             document.getElementById('edit_modal_email').value = a.email ?? '';
             document.getElementById('edit_modal_phone_number').value = a.phone_number ?? '';
+            document.getElementById('edit_modal_direct_line').value = a.direct_line ?? '';
             document.getElementById('edit_modal_agent_cnic').value = a.agent_cnic ?? '';
+            setEditAgentCnicPhotoPreview(a.agent_cnic_photo_url ?? null);
             document.getElementById('edit_modal_home_address').value = a.home_address ?? '';
             document.getElementById('edit_modal_guardian_name').value = a.guardian_name ?? '';
             document.getElementById('edit_modal_guardian_phone_number').value =
@@ -773,6 +810,7 @@ form?.addEventListener('submit', async (e) => {
         if (res.ok) {
             toastr.success(data.message ?? 'Agent created successfully.');
             form.reset();
+            resetStoreAgentCnicPhoto();
             resetPasswordVisibility();
             closeAgentModal();
             if (data.agent) {

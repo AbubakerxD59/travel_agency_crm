@@ -18,6 +18,7 @@ export default defineConfig({
                 'resources/js/admin-dashboard-filters.js',
                 'resources/js/dashboard.js',
                 'resources/js/folder-form-unsaved-guard.js',
+                'resources/js/folder-numeric-inputs.js',
                 'resources/js/folder-payment-show.js',
             ],
             refresh: true,

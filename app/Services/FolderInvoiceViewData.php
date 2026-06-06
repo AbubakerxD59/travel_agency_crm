@@ -44,7 +44,21 @@ class FolderInvoiceViewData
 
         $companyConfig = config('invoice.company');
 
+        $hotelDetails = $this->filterModelsWithInvoiceData($folder->hotelDetails, [
+            'sr_no', 'supplier', 'hotel_name', 'guest_name', 'rooms', 'type', 'meals',
+            'date_in', 'date_out', 'nights', 'supplier_ref', 'status', 'cost', 'margin', 'sell', 'hotel_city',
+        ]);
+        $itineraries = $this->filterModelsWithInvoiceData($folder->itineraries, [
+            'sr_no', 'airline_code', 'airline_number', 'class', 'departure_date',
+            'departure_airport', 'arrival_airport', 'departure_time', 'arrival_time', 'arrival_date',
+        ]);
+        $transportDetails = $this->filterModelsWithInvoiceData($folder->transportDetails, [
+            'supplier', 'description', 'origin', 'destination', 'service_date',
+            'pickup_time', 'vehicle_type', 'cost', 'margin', 'sell', 'sar',
+        ]);
+
         return [
+            'direct_line' => trim((string) ($folder->agent?->direct_line ?? '')) ?: '—',
             'company' => [
                 'name' => $folder->company?->name ?? $companyConfig['name'],
                 'email' => $companyConfig['email'],
@@ -82,14 +96,14 @@ class FolderInvoiceViewData
                 ])
                 ->all(),
             'balance_due_date' => format_invoice_date($folder->balance_due_date),
-            'hotels' => $folder->hotelDetails->map(fn (FolderHotelDetail $hotel) => [
+            'hotels' => $hotelDetails->map(fn (FolderHotelDetail $hotel) => [
                 'name' => $hotel->hotel_name ?? '—',
                 'city' => $hotel->hotel_city ?? '—',
                 'nights' => $hotel->nights !== null ? str_pad((string) $hotel->nights, 2, '0', STR_PAD_LEFT) : '—',
                 'rooms' => $hotel->rooms ?? '—',
                 'type' => $hotel->type ?? '—',
             ])->all(),
-            'flight_itinerary' => $folder->itineraries->map(fn ($leg) => [
+            'flight_itinerary' => $itineraries->map(fn ($leg) => [
                 'operated_by' => $leg->airline_code ?? '',
                 'flight_no' => $leg->airline_number ?? '',
                 'departure_date' => format_invoice_date($leg->departure_date),
@@ -99,17 +113,26 @@ class FolderInvoiceViewData
                 'to' => $leg->arrival_airport ?? '',
                 'arrival_date' => format_invoice_date($leg->arrival_date),
             ])->all(),
-            'hotel_itinerary' => $this->buildHotelItinerary($folder),
-            'other_services' => collect()
-                ->merge($folder->visaDetails->map(fn ($visa) => [
-                    'description' => $visa->description ?? 'Visa service',
-                ]))
-                ->merge($folder->otherDetails->map(fn ($other) => [
-                    'description' => $other->description ?? 'Other service',
-                ]))
+            'hotel_itinerary' => $this->buildHotelItinerary($hotelDetails),
+            'visa_details' => $folder->visaDetails
+                ->filter(fn ($visa) => trim((string) ($visa->description ?? '')) !== ''
+                    || trim((string) ($visa->supplier ?? '')) !== '')
+                ->map(fn ($visa) => [
+                    'supplier' => $visa->supplier ?? '',
+                    'description' => $visa->description ?? '',
+                ])
                 ->values()
                 ->all(),
-            'transport' => $folder->transportDetails->map(function ($transport) use ($folder) {
+            'other_details' => $folder->otherDetails
+                ->filter(fn ($other) => trim((string) ($other->description ?? '')) !== ''
+                    || trim((string) ($other->supplier ?? '')) !== '')
+                ->map(fn ($other) => [
+                    'supplier' => $other->supplier ?? '',
+                    'description' => $other->description ?? '',
+                ])
+                ->values()
+                ->all(),
+            'transport' => $transportDetails->map(function ($transport) use ($folder) {
                 $leadingPassenger = $folder->passengers->first();
 
                 return [
@@ -138,13 +161,14 @@ class FolderInvoiceViewData
     }
 
     /**
+     * @param  \Illuminate\Support\Collection<int, FolderHotelDetail>  $hotelDetails
      * @return list<array{label: string, stays: list<array<string, string>>}>
      */
-    private function buildHotelItinerary(Folder $folder): array
+    private function buildHotelItinerary($hotelDetails): array
     {
         $sections = [];
 
-        foreach ($folder->hotelDetails->groupBy(fn (FolderHotelDetail $hotel) => $hotel->hotel_city ?: 'Hotel') as $city => $hotels) {
+        foreach ($hotelDetails->groupBy(fn (FolderHotelDetail $hotel) => $hotel->hotel_city ?: 'Hotel') as $city => $hotels) {
             $sections[] = [
                 'label' => str_contains(strtolower((string) $city), 'madinah')
                     ? 'Madinah Hotel'
@@ -163,5 +187,41 @@ class FolderInvoiceViewData
         }
 
         return $sections;
+    }
+
+    /**
+     * @param  iterable<int, object>  $models
+     * @param  list<string>  $fields
+     * @return \Illuminate\Support\Collection<int, object>
+     */
+    private function filterModelsWithInvoiceData(iterable $models, array $fields)
+    {
+        return collect($models)
+            ->filter(fn (object $model): bool => $this->modelHasInvoiceData($model, $fields))
+            ->values();
+    }
+
+    /**
+     * @param  list<string>  $fields
+     */
+    private function modelHasInvoiceData(object $model, array $fields): bool
+    {
+        foreach ($fields as $field) {
+            $value = $model->{$field} ?? null;
+
+            if ($value === null) {
+                continue;
+            }
+
+            if (is_string($value) && trim($value) !== '') {
+                return true;
+            }
+
+            if (is_numeric($value)) {
+                return true;
+            }
+        }
+
+        return false;
     }
 }

@@ -2,8 +2,12 @@
     use App\Models\Folder;
 
     $route = request()->route()?->getName();
-    $agentUnreadNotifications = auth()->user()?->unreadNotifications()->count() ?? 0;
-    $agentUpcomingFoldersCount = Folder::countUpcomingByTravelDate(auth()->id());
+    $agentUser = auth()->user();
+    $agentUser?->loadMissing('company');
+    $agentCompany = $agentUser?->company;
+    $agentCompanyLogoUrl = $agentCompany?->imageUrl();
+    $agentUnreadNotifications = $agentUser?->unreadNotifications()->count() ?? 0;
+    $agentUpcomingFoldersCount = Folder::countUpcomingByTravelDate($agentUser?->id);
 @endphp
 
 <aside id="admin-sidebar" class="concierge-fixed-sidebar" aria-label="Main navigation">
@@ -82,4 +86,11 @@
             </div>
         @endcan
     </nav>
+
+    @if ($agentCompanyLogoUrl)
+        <div class="mt-auto border-t border-slate-200/80 px-2 pt-5">
+            <img src="{{ $agentCompanyLogoUrl }}" alt="{{ $agentCompany->name }} logo"
+                class="mx-auto max-h-20 w-full max-w-[180px] object-contain object-center">
+        </div>
+    @endif
 </aside>

@@ -101,7 +101,7 @@ class FolderController extends Controller
         $drafts = $this->draftSections(request());
 
         return view('agent.folders.create', [
-            'companies' => Company::query()->with('country')->orderBy('name')->get(),
+            'companies' => $this->companiesForAgentFolderForm(request()->user()),
             'destinations' => Destination::query()->orderBy('name')->get(),
             'banks' => Bank::query()->orderBy('name')->get(),
             'draftItineraryRows' => $drafts['itineraries'] ?? [[]],
@@ -195,9 +195,6 @@ class FolderController extends Controller
         }
 
         $validated = $validator->validated();
-        if ($section === 'payments') {
-            folder_assert_payment_rows_bank_when_required($validated['payments'] ?? []);
-        }
         $drafts = $this->draftSections($request);
         $drafts[$section] = $validated[$section] ?? [];
         $request->session()->put($this->draftSessionKey($request), $drafts);
@@ -241,7 +238,7 @@ class FolderController extends Controller
 
         return view('agent.folders.create', [
             'lead' => $folder,
-            'companies' => Company::query()->with('country')->orderBy('name')->get(),
+            'companies' => $this->companiesForAgentFolderForm(request()->user()),
             'destinations' => Destination::query()->orderBy('name')->get(),
             'banks' => Bank::query()->orderBy('name')->get(),
             'draftItineraryRows' => $drafts['itineraries'] ?? $folder->itineraries
@@ -413,29 +410,26 @@ class FolderController extends Controller
         $payload['transport_details'] = folder_filter_non_empty_transport_detail_rows($payload['transport_details'] ?? null);
         $payload['visa_details'] = folder_filter_non_empty_visa_detail_rows($payload['visa_details'] ?? null);
 
+        $agentCompanyId = (int) ($request->user()?->company_id ?? 0);
+        if ($agentCompanyId > 0) {
+            $payload['company_id'] = $agentCompanyId;
+        }
+
         $validated = Validator::make($payload, [
             'agent_id' => team_member_user_id_validation_rules(),
             'order_type' => ['required', 'string', Rule::in(folder_order_types())],
             'vendor_reference' => ['required', 'string', 'max:255'],
             'customer_name' => ['required', 'string', 'max:255'],
-            'company_id' => ['required', 'integer', 'exists:companies,id'],
+            'company_id' => $agentCompanyId > 0
+                ? ['required', 'integer', Rule::in([$agentCompanyId])]
+                : ['prohibited'],
             'destination_id' => ['required', 'integer', 'exists:destinations,id'],
             'travel_date' => ['required', 'date'],
             'booking_date' => ['required', 'date'],
             'balance_due_date' => ['required', 'date'],
             'ziarat_option' => ['nullable', 'array'],
             'ziarat_option.*' => ['string', Rule::in(['makkah', 'madinah'])],
-            'itineraries' => ['nullable', 'array'],
-            'itineraries.*.sr_no' => ['required', 'integer', 'min:1'],
-            'itineraries.*.airline_code' => ['required', 'string', 'max:20'],
-            'itineraries.*.airline_number' => ['required', 'string', 'max:30'],
-            'itineraries.*.class' => ['required', 'string', 'max:20'],
-            'itineraries.*.departure_date' => ['required', 'date'],
-            'itineraries.*.departure_airport' => ['required', 'string', 'max:30'],
-            'itineraries.*.arrival_airport' => ['required', 'string', 'max:30'],
-            'itineraries.*.departure_time' => ['required'],
-            'itineraries.*.arrival_time' => ['required'],
-            'itineraries.*.arrival_date' => ['required', 'date'],
+            ...folder_itineraries_validation_rules(),
             'passengers' => ['required', 'array', 'min:1'],
             'passengers.*.title' => ['required', 'string', Rule::in(folder_passenger_titles())],
             'passengers.*.first_name' => ['required', 'string', 'max:100'],
@@ -458,58 +452,12 @@ class FolderController extends Controller
             'package_costs.*.sell' => ['required', 'numeric', 'min:0'],
             'package_costs.*.supplier' => ['required', 'string', 'max:100'],
             'package_costs.*.pnr' => ['required', 'string', 'max:50'],
-            'hotel_details' => ['nullable', 'array'],
-            'hotel_details.*.sr_no' => ['required', 'integer', 'min:1'],
-            'hotel_details.*.supplier' => ['required', 'string', 'max:100'],
-            'hotel_details.*.hotel_name' => ['required', 'string', 'max:150'],
-            'hotel_details.*.guest_name' => ['required', 'string', 'max:150'],
-            'hotel_details.*.rooms' => ['required', 'integer', 'min:0'],
-            'hotel_details.*.type' => ['required', 'string', 'max:100'],
-            'hotel_details.*.meals' => ['required', 'string', Rule::in(folder_hotel_meals_options())],
-            'hotel_details.*.date_in' => ['required', 'date'],
-            'hotel_details.*.date_out' => ['required', 'date'],
-            'hotel_details.*.nights' => ['required', 'integer', 'min:0'],
-            'hotel_details.*.supplier_ref' => ['required', 'string', 'max:100'],
-            'hotel_details.*.status' => ['required', 'string', Rule::in(array_keys(folder_hotel_detail_statuses()))],
-            'hotel_details.*.cost' => ['required', 'numeric', 'min:0'],
-            'hotel_details.*.margin' => ['required', 'numeric'],
-            'hotel_details.*.sell' => ['nullable', 'numeric', 'min:0'],
-            'hotel_details.*.hotel_city' => ['required', 'string', 'max:100', Rule::in(folder_hotel_cities())],
-            'transport_details' => ['nullable', 'array'],
-            'transport_details.*.supplier' => ['required', 'string', 'max:100'],
-            'transport_details.*.description' => ['required', 'string', 'max:255'],
-            'transport_details.*.origin' => ['required', 'string', 'max:150'],
-            'transport_details.*.destination' => ['required', 'string', 'max:150'],
-            'transport_details.*.service_date' => ['required', 'date'],
-            'transport_details.*.pickup_time' => ['required', 'string', 'max:30'],
-            'transport_details.*.vehicle_type' => ['required', 'string', Rule::in(folder_transport_vehicle_types())],
-            'transport_details.*.cost' => ['required', 'numeric', 'min:0'],
-            'transport_details.*.margin' => ['required', 'numeric'],
-            'transport_details.*.sell' => ['nullable', 'numeric', 'min:0'],
-            'transport_details.*.sar' => ['required', 'numeric', 'min:0'],
-            'visa_details' => ['nullable', 'array'],
-            'visa_details.*.supplier' => ['required', 'string', 'max:100'],
-            'visa_details.*.description' => ['required', 'string', 'max:255'],
-            'visa_details.*.cost' => ['required', 'numeric', 'min:0'],
-            'visa_details.*.margin' => ['required', 'numeric'],
-            'visa_details.*.sell' => ['nullable', 'numeric', 'min:0'],
-            'other_details' => ['nullable', 'array'],
-            'other_details.*.supplier' => ['nullable', 'string', 'max:100'],
-            'other_details.*.description' => ['nullable', 'string', 'max:255'],
-            'other_details.*.cost' => ['nullable', 'numeric', 'min:0'],
-            'other_details.*.margin' => ['nullable', 'numeric'],
-            'other_details.*.sell' => ['nullable', 'numeric', 'min:0'],
-            'payments' => ['nullable', 'array'],
-            'payments.*.id' => ['nullable', 'integer', 'exists:folder_payments,id'],
-            'payments.*.amount' => ['required', 'numeric', 'min:0'],
-            'payments.*.reference_no' => ['nullable', 'string', 'max:100'],
-            'payments.*.payment_date' => ['required', 'date'],
-            'payments.*.mode_of_payment' => ['required', 'string', Rule::in(folder_payment_modes())],
-            'payments.*.bank_id' => ['nullable', 'integer', 'exists:banks,id'],
-            ...folder_payment_image_validation_rules(),
+            ...folder_hotel_details_validation_rules(),
+            ...folder_transport_details_validation_rules(),
+            ...folder_visa_details_validation_rules(),
+            ...folder_other_details_validation_rules(),
+            ...folder_payments_validation_rules(),
         ])->validate();
-
-        folder_assert_payment_rows_bank_when_required($validated['payments'] ?? []);
 
         $itineraries = collect($validated['itineraries'] ?? [])
             ->sortBy(fn ($itinerary) => (int) ($itinerary['sr_no'] ?? PHP_INT_MAX))
@@ -572,19 +520,7 @@ class FolderController extends Controller
     private function sectionDraftRules(): array
     {
         return [
-            'itineraries' => [
-                'itineraries' => ['nullable', 'array'],
-                'itineraries.*.sr_no' => ['required', 'integer', 'min:1'],
-                'itineraries.*.airline_code' => ['required', 'string', 'max:20'],
-                'itineraries.*.airline_number' => ['required', 'string', 'max:30'],
-                'itineraries.*.class' => ['required', 'string', 'max:20'],
-                'itineraries.*.departure_date' => ['required', 'date'],
-                'itineraries.*.departure_airport' => ['required', 'string', 'max:30'],
-                'itineraries.*.arrival_airport' => ['required', 'string', 'max:30'],
-                'itineraries.*.departure_time' => ['required'],
-                'itineraries.*.arrival_time' => ['required'],
-                'itineraries.*.arrival_date' => ['required', 'date'],
-            ],
+            'itineraries' => folder_itineraries_validation_rules(),
             'passengers' => [
                 'passengers' => ['required', 'array', 'min:1'],
                 'passengers.*.title' => ['required', 'string', Rule::in(folder_passenger_titles())],
@@ -611,65 +547,11 @@ class FolderController extends Controller
                 'package_costs.*.supplier' => ['required', 'string', 'max:100'],
                 'package_costs.*.pnr' => ['required', 'string', 'max:50'],
             ],
-            'hotel_details' => [
-                'hotel_details' => ['nullable', 'array'],
-                'hotel_details.*.sr_no' => ['required', 'integer', 'min:1'],
-                'hotel_details.*.supplier' => ['required', 'string', 'max:100'],
-                'hotel_details.*.hotel_name' => ['required', 'string', 'max:150'],
-                'hotel_details.*.guest_name' => ['required', 'string', 'max:150'],
-                'hotel_details.*.rooms' => ['required', 'integer', 'min:0'],
-                'hotel_details.*.type' => ['required', 'string', 'max:100'],
-                'hotel_details.*.meals' => ['required', 'string', Rule::in(folder_hotel_meals_options())],
-                'hotel_details.*.date_in' => ['required', 'date'],
-                'hotel_details.*.date_out' => ['required', 'date'],
-                'hotel_details.*.nights' => ['required', 'integer', 'min:0'],
-                'hotel_details.*.supplier_ref' => ['required', 'string', 'max:100'],
-                'hotel_details.*.status' => ['required', 'string', Rule::in(array_keys(folder_hotel_detail_statuses()))],
-                'hotel_details.*.cost' => ['required', 'numeric', 'min:0'],
-                'hotel_details.*.margin' => ['required', 'numeric'],
-                'hotel_details.*.sell' => ['nullable', 'numeric', 'min:0'],
-                'hotel_details.*.hotel_city' => ['required', 'string', 'max:100', Rule::in(folder_hotel_cities())],
-            ],
-            'transport_details' => [
-                'transport_details' => ['nullable', 'array'],
-                'transport_details.*.supplier' => ['required', 'string', 'max:100'],
-                'transport_details.*.description' => ['required', 'string', 'max:255'],
-                'transport_details.*.origin' => ['required', 'string', 'max:150'],
-                'transport_details.*.destination' => ['required', 'string', 'max:150'],
-                'transport_details.*.service_date' => ['required', 'date'],
-                'transport_details.*.pickup_time' => ['required', 'string', 'max:30'],
-                'transport_details.*.vehicle_type' => ['required', 'string', Rule::in(folder_transport_vehicle_types())],
-                'transport_details.*.cost' => ['required', 'numeric', 'min:0'],
-                'transport_details.*.margin' => ['required', 'numeric'],
-                'transport_details.*.sell' => ['nullable', 'numeric', 'min:0'],
-                'transport_details.*.sar' => ['required', 'numeric', 'min:0'],
-            ],
-            'visa_details' => [
-                'visa_details' => ['nullable', 'array'],
-                'visa_details.*.supplier' => ['required', 'string', 'max:100'],
-                'visa_details.*.description' => ['required', 'string', 'max:255'],
-                'visa_details.*.cost' => ['required', 'numeric', 'min:0'],
-                'visa_details.*.margin' => ['required', 'numeric'],
-                'visa_details.*.sell' => ['nullable', 'numeric', 'min:0'],
-            ],
-            'other_details' => [
-                'other_details' => ['nullable', 'array'],
-                'other_details.*.supplier' => ['nullable', 'string', 'max:100'],
-                'other_details.*.description' => ['nullable', 'string', 'max:255'],
-                'other_details.*.cost' => ['nullable', 'numeric', 'min:0'],
-                'other_details.*.margin' => ['nullable', 'numeric'],
-                'other_details.*.sell' => ['nullable', 'numeric', 'min:0'],
-            ],
-            'payments' => [
-                'payments' => ['nullable', 'array'],
-                'payments.*.id' => ['nullable', 'integer', 'exists:folder_payments,id'],
-                'payments.*.amount' => ['required', 'numeric', 'min:0'],
-                'payments.*.reference_no' => ['nullable', 'string', 'max:100'],
-                'payments.*.payment_date' => ['required', 'date'],
-                'payments.*.mode_of_payment' => ['required', 'string', Rule::in(folder_payment_modes())],
-                'payments.*.bank_id' => ['nullable', 'integer', 'exists:banks,id'],
-                ...folder_payment_image_validation_rules(),
-            ],
+            'hotel_details' => folder_hotel_details_validation_rules(),
+            'transport_details' => folder_transport_details_validation_rules(),
+            'visa_details' => folder_visa_details_validation_rules(),
+            'other_details' => folder_other_details_validation_rules(),
+            'payments' => folder_payments_validation_rules(),
         ];
     }
 
@@ -718,7 +600,7 @@ class FolderController extends Controller
                 $folder->itineraries()->createMany($validated['itineraries'] ?? []);
                 $folder->passengers()->createMany($validated['passengers'] ?? []);
                 $folder->packageCosts()->createMany($validated['package_costs'] ?? []);
-                $folder->hotelDetails()->createMany($validated['hotel_details'] ?? []);
+                $folder->hotelDetails()->createMany(folder_hotel_details_for_storage($validated['hotel_details'] ?? null));
                 $folder->transportDetails()->createMany($validated['transport_details'] ?? []);
                 $folder->visaDetails()->createMany($validated['visa_details'] ?? []);
                 $folder->otherDetails()->createMany(folder_other_details_for_storage($validated['other_details'] ?? null));
@@ -821,5 +703,22 @@ class FolderController extends Controller
                         ->orWhere('vendor_reference', 'like', '%'.$search.'%');
                 });
             });
+    }
+
+    /**
+     * @return \Illuminate\Support\Collection<int, Company>
+     */
+    private function companiesForAgentFolderForm(?User $agent)
+    {
+        $companyId = (int) ($agent?->company_id ?? 0);
+        if ($companyId < 1) {
+            return collect();
+        }
+
+        return Company::query()
+            ->with('country')
+            ->whereKey($companyId)
+            ->orderBy('name')
+            ->get();
     }
 }

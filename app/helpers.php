@@ -7,6 +7,7 @@ use App\Models\Lead;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
+use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 
 /**
@@ -34,6 +35,16 @@ function public_storage_url(?string $path): ?string
     }
 
     return asset('storage/'.$normalized);
+}
+
+/**
+ * Root-relative URL for the agent notification service worker.
+ * Avoid asset() here: misconfigured APP_URL values can produce /public/... paths
+ * that break service worker scope on production.
+ */
+function agent_notification_sw_url(): string
+{
+    return '/agent-notification-sw.js';
 }
 
 /**
@@ -675,6 +686,134 @@ function folder_payment_attributes_from_row(array $row, string $approvalStatus):
 }
 
 /**
+ * @param  array<string, mixed>  $row
+ */
+function folder_payment_row_is_storable(array $row): bool
+{
+    $amount = $row['amount'] ?? null;
+    $paymentDate = $row['payment_date'] ?? null;
+    $mode = trim((string) ($row['mode_of_payment'] ?? ''));
+
+    return $amount !== null && $amount !== ''
+        && $paymentDate !== null && $paymentDate !== ''
+        && $mode !== '';
+}
+
+/**
+ * @return array<string, list<\Illuminate\Contracts\Validation\ValidationRule|string>>
+ */
+function folder_itineraries_validation_rules(): array
+{
+    return [
+        'itineraries' => ['nullable', 'array'],
+        'itineraries.*.sr_no' => ['nullable', 'integer', 'min:1'],
+        'itineraries.*.airline_code' => ['nullable', 'string', 'max:20'],
+        'itineraries.*.airline_number' => ['nullable', 'string', 'max:30'],
+        'itineraries.*.class' => ['nullable', 'string', 'max:20'],
+        'itineraries.*.departure_date' => ['nullable', 'date'],
+        'itineraries.*.departure_airport' => ['nullable', 'string', 'max:30'],
+        'itineraries.*.arrival_airport' => ['nullable', 'string', 'max:30'],
+        'itineraries.*.departure_time' => ['nullable'],
+        'itineraries.*.arrival_time' => ['nullable'],
+        'itineraries.*.arrival_date' => ['nullable', 'date'],
+    ];
+}
+
+/**
+ * @return array<string, list<\Illuminate\Contracts\Validation\ValidationRule|string>>
+ */
+function folder_hotel_details_validation_rules(): array
+{
+    return [
+        'hotel_details' => ['nullable', 'array'],
+        'hotel_details.*.sr_no' => ['nullable', 'integer', 'min:1'],
+        'hotel_details.*.supplier' => ['nullable', 'string', 'max:100'],
+        'hotel_details.*.hotel_name' => ['nullable', 'string', 'max:150'],
+        'hotel_details.*.guest_name' => ['nullable', 'string', 'max:150'],
+        'hotel_details.*.rooms' => ['nullable', 'integer', 'min:0'],
+        'hotel_details.*.type' => ['nullable', 'string', 'max:100'],
+        'hotel_details.*.meals' => ['nullable', 'string', Rule::in(folder_hotel_meals_options())],
+        'hotel_details.*.date_in' => ['nullable', 'date'],
+        'hotel_details.*.date_out' => ['nullable', 'date'],
+        'hotel_details.*.nights' => ['nullable', 'integer', 'min:0'],
+        'hotel_details.*.supplier_ref' => ['nullable', 'string', 'max:100'],
+        'hotel_details.*.status' => ['nullable', 'string', Rule::in(array_keys(folder_hotel_detail_statuses()))],
+        'hotel_details.*.cost' => ['nullable', 'numeric', 'min:0'],
+        'hotel_details.*.margin' => ['nullable', 'numeric'],
+        'hotel_details.*.sell' => ['nullable', 'numeric', 'min:0'],
+        'hotel_details.*.hotel_city' => ['nullable', 'string', 'max:100', Rule::in(folder_hotel_cities())],
+    ];
+}
+
+/**
+ * @return array<string, list<\Illuminate\Contracts\Validation\ValidationRule|string>>
+ */
+function folder_transport_details_validation_rules(): array
+{
+    return [
+        'transport_details' => ['nullable', 'array'],
+        'transport_details.*.supplier' => ['nullable', 'string', 'max:100'],
+        'transport_details.*.description' => ['nullable', 'string', 'max:255'],
+        'transport_details.*.origin' => ['nullable', 'string', 'max:150'],
+        'transport_details.*.destination' => ['nullable', 'string', 'max:150'],
+        'transport_details.*.service_date' => ['nullable', 'date'],
+        'transport_details.*.pickup_time' => ['nullable', 'string', 'max:30'],
+        'transport_details.*.vehicle_type' => ['nullable', 'string', Rule::in(folder_transport_vehicle_types())],
+        'transport_details.*.cost' => ['nullable', 'numeric', 'min:0'],
+        'transport_details.*.margin' => ['nullable', 'numeric'],
+        'transport_details.*.sell' => ['nullable', 'numeric', 'min:0'],
+        'transport_details.*.sar' => ['nullable', 'numeric', 'min:0'],
+    ];
+}
+
+/**
+ * @return array<string, list<\Illuminate\Contracts\Validation\ValidationRule|string>>
+ */
+function folder_visa_details_validation_rules(): array
+{
+    return [
+        'visa_details' => ['nullable', 'array'],
+        'visa_details.*.supplier' => ['nullable', 'string', 'max:100'],
+        'visa_details.*.description' => ['nullable', 'string', 'max:255'],
+        'visa_details.*.cost' => ['nullable', 'numeric', 'min:0'],
+        'visa_details.*.margin' => ['nullable', 'numeric'],
+        'visa_details.*.sell' => ['nullable', 'numeric', 'min:0'],
+    ];
+}
+
+/**
+ * @return array<string, list<\Illuminate\Contracts\Validation\ValidationRule|string>>
+ */
+function folder_other_details_validation_rules(): array
+{
+    return [
+        'other_details' => ['nullable', 'array'],
+        'other_details.*.supplier' => ['nullable', 'string', 'max:100'],
+        'other_details.*.description' => ['nullable', 'string', 'max:255'],
+        'other_details.*.cost' => ['nullable', 'numeric', 'min:0'],
+        'other_details.*.margin' => ['nullable', 'numeric'],
+        'other_details.*.sell' => ['nullable', 'numeric', 'min:0'],
+    ];
+}
+
+/**
+ * @return array<string, list<\Illuminate\Contracts\Validation\ValidationRule|string>>
+ */
+function folder_payments_validation_rules(): array
+{
+    return [
+        'payments' => ['nullable', 'array'],
+        'payments.*.id' => ['nullable', 'integer', 'exists:folder_payments,id'],
+        'payments.*.amount' => ['nullable', 'numeric', 'min:0'],
+        'payments.*.reference_no' => ['nullable', 'string', 'max:100'],
+        'payments.*.payment_date' => ['nullable', 'date'],
+        'payments.*.mode_of_payment' => ['nullable', 'string', Rule::in(folder_payment_modes())],
+        'payments.*.bank_id' => ['nullable', 'integer', 'exists:banks,id'],
+        ...folder_payment_image_validation_rules(),
+    ];
+}
+
+/**
  * Validation rules for optional payment receipt uploads on folder forms.
  *
  * @return array<string, list<string>>
@@ -772,6 +911,10 @@ function folder_sync_folder_payments(
 
     foreach ($rows as $index => $row) {
         if (! is_array($row)) {
+            continue;
+        }
+
+        if (! folder_payment_row_is_storable($row)) {
             continue;
         }
 
@@ -892,29 +1035,106 @@ function folder_filter_non_empty_itinerary_rows(?array $rows): array
 }
 
 /**
+ * @param  array<string, mixed>  $row
+ */
+function folder_hotel_detail_row_is_storable(array $row): bool
+{
+    foreach ([
+        'hotel_name',
+        'guest_name',
+        'supplier',
+        'type',
+        'meals',
+        'date_in',
+        'date_out',
+        'supplier_ref',
+        'hotel_city',
+    ] as $field) {
+        if (trim((string) ($row[$field] ?? '')) !== '') {
+            return true;
+        }
+    }
+
+    foreach (['sr_no', 'rooms', 'nights', 'cost', 'sell'] as $field) {
+        $value = $row[$field] ?? null;
+        if ($value !== null && $value !== '' && is_numeric($value)) {
+            return true;
+        }
+    }
+
+    return false;
+}
+
+/**
  * @param  array<int, mixed>|null  $rows
  * @return list<array<string, mixed>>
  */
 function folder_filter_non_empty_hotel_detail_rows(?array $rows): array
 {
-    return folder_filter_rows_by_fields($rows, [
-        'sr_no',
-        'supplier',
-        'hotel_name',
-        'guest_name',
-        'rooms',
-        'type',
-        'meals',
-        'date_in',
-        'date_out',
-        'nights',
-        'supplier_ref',
-        'status',
-        'cost',
-        'margin',
-        'sell',
-        'hotel_city',
-    ]);
+    if (! is_array($rows)) {
+        return [];
+    }
+
+    return collect($rows)
+        ->filter(fn ($row): bool => is_array($row) && folder_hotel_detail_row_is_storable($row))
+        ->values()
+        ->all();
+}
+
+/**
+ * Filter empty hotel-detail rows and normalize values for {@see FolderHotelDetail} persistence.
+ *
+ * @param  array<int, mixed>|null  $rows
+ * @return list<array<string, mixed>>
+ */
+function folder_hotel_details_for_storage(?array $rows): array
+{
+    return collect(folder_filter_non_empty_hotel_detail_rows($rows))
+        ->map(function (array $row): array {
+            $numericOrNull = static function (string $key) use ($row): mixed {
+                $value = $row[$key] ?? null;
+                if ($value === null || $value === '') {
+                    return null;
+                }
+
+                return is_numeric($value) ? $value + 0 : null;
+            };
+
+            $integerOrNull = static function (string $key) use ($row): ?int {
+                $value = $row[$key] ?? null;
+                if ($value === null || $value === '') {
+                    return null;
+                }
+
+                return is_numeric($value) ? (int) $value : null;
+            };
+
+            $stringOrNull = static function (string $key) use ($row): ?string {
+                $value = trim((string) ($row[$key] ?? ''));
+
+                return $value !== '' ? $value : null;
+            };
+
+            return [
+                'sr_no' => $integerOrNull('sr_no'),
+                'supplier' => $stringOrNull('supplier'),
+                'hotel_name' => $stringOrNull('hotel_name'),
+                'guest_name' => $stringOrNull('guest_name'),
+                'rooms' => $integerOrNull('rooms'),
+                'type' => $stringOrNull('type'),
+                'meals' => $stringOrNull('meals'),
+                'date_in' => $stringOrNull('date_in'),
+                'date_out' => $stringOrNull('date_out'),
+                'nights' => $integerOrNull('nights'),
+                'supplier_ref' => $stringOrNull('supplier_ref'),
+                'status' => $stringOrNull('status'),
+                'cost' => $numericOrNull('cost'),
+                'margin' => $numericOrNull('margin'),
+                'sell' => $numericOrNull('sell'),
+                'hotel_city' => $stringOrNull('hotel_city'),
+            ];
+        })
+        ->all();
 }
 
 /**

@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Support\AgentCnicPhotoStorage;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -49,7 +50,9 @@ class User extends Authenticatable
         'name',
         'email',
         'phone_number',
+        'direct_line',
         'agent_cnic',
+        'agent_cnic_photo',
         'home_address',
         'guardian_name',
         'guardian_phone_number',
@@ -176,5 +179,10 @@ class User extends Authenticatable
     public function roleName(): string
     {
         return $this->roles->first()?->name ?? 'agent';
+    }
+
+    public function agentCnicPhotoUrl(): ?string
+    {
+        return app(AgentCnicPhotoStorage::class)->url($this->agent_cnic_photo);
     }
 }

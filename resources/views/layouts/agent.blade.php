@@ -10,7 +10,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     @vite(['resources/css/app.css', 'resources/js/app.js', 'resources/js/agent-notifications-poller.js', 'resources/js/agent-web-push.js'])
 </head>
-<body class="concierge-sidebar-drawer min-h-screen bg-concierge-page font-sans text-slate-800 antialiased @yield('body_class')">
+<body class="@unless(request()->routeIs('agent.dashboard')) concierge-sidebar-drawer @endunless min-h-screen bg-concierge-page font-sans text-slate-800 antialiased @yield('body_class')">
     <div
         id="admin-sidebar-overlay"
         class="admin-sidebar-overlay fixed inset-0 z-[100] bg-slate-900/55 backdrop-blur-[2px] lg:hidden"

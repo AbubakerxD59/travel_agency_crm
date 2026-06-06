@@ -13,6 +13,11 @@ class AssignLeadRequest extends FormRequest
         if ($this->has('email') && $this->input('email') === '') {
             $this->merge(['email' => null]);
         }
+
+        $total = $this->input('total_passengers');
+        $this->merge([
+            'total_passengers' => $total === '' || $total === null ? null : $total,
+        ]);
     }
 
     public function authorize(): bool
@@ -46,7 +51,7 @@ class AssignLeadRequest extends FormRequest
             'email' => ['nullable', 'email', 'max:255'],
             'company_id' => ['required', 'integer', 'exists:companies,id'],
             'city' => ['required', 'string', 'max:120'],
-            'total_passengers' => ['required', 'integer', 'min:1', 'max:500'],
+            'total_passengers' => ['nullable', 'integer', 'min:1', 'max:500'],
             'source' => ['required', 'string', Rule::in(array_keys(getSources()))],
             'notes' => ['nullable', 'string'],
         ];

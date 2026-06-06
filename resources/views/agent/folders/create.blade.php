@@ -120,12 +120,18 @@
                     </div>
 
                     <div class="min-w-0">
+                        @php
+                            $selectedCompanyId = old(
+                                'company_id',
+                                $lead->company_id ?? (($leadRoutePrefix ?? 'admin') === 'agent' ? auth()->user()?->company_id : null),
+                            );
+                        @endphp
                         <label for="lead_company_id" class="block text-sm font-medium text-concierge-navy"><span
                                 class="text-rose-600">*</span> Company</label>
                         <select id="lead_company_id" name="company_id" required class="{{ $fieldClass }}">
-                            <option value="" disabled @selected(!old('company_id', $lead->company_id ?? null))>Select company</option>
+                            <option value="" disabled @selected(! $selectedCompanyId)>Select company</option>
                             @foreach ($companies as $company)
-                                <option value="{{ $company->id }}" @selected(old('company_id', $lead->company_id ?? null) == $company->id)>{{ $company->name }}
+                                <option value="{{ $company->id }}" @selected($selectedCompanyId == $company->id)>{{ $company->name }}
                                     ({{ $company->country?->name ?? '—' }})
                                 </option>
                             @endforeach
@@ -282,7 +288,7 @@
                                             </button>
                                         </td>
                                         <td class="border border-slate-200 px-2 py-2">
-                                            <input type="number" min="1"
+                                            <input type="text" inputmode="numeric" autocomplete="off" data-folder-numeric="integer"
                                                 name="itineraries[{{ $i }}][sr_no]"
                                                 value="{{ data_get($row, 'sr_no') }}"
                                                 class="w-12 rounded-lg border border-slate-200 bg-white px-2 py-1.5 text-sm">
@@ -560,31 +566,31 @@
                                                 class="w-24 rounded-lg border border-slate-200 bg-white px-2 py-1.5 text-sm">
                                         </td>
                                         <td class="border border-slate-200 px-2 py-2">
-                                            <input type="number" min="0" step="0.01"
+                                            <input type="text" inputmode="decimal" autocomplete="off" data-folder-numeric="decimal"
                                                 name="package_costs[{{ $i }}][fare]"
                                                 value="{{ data_get($row, 'fare') }}"
                                                 class="w-20 rounded-lg border border-slate-200 bg-white px-2 py-1.5 text-sm">
                                         </td>
                                         <td class="border border-slate-200 px-2 py-2">
-                                            <input type="number" min="0" step="0.01"
+                                            <input type="text" inputmode="decimal" autocomplete="off" data-folder-numeric="decimal"
                                                 name="package_costs[{{ $i }}][tax]"
                                                 value="{{ data_get($row, 'tax') }}"
                                                 class="w-20 rounded-lg border border-slate-200 bg-white px-2 py-1.5 text-sm">
                                         </td>
                                         <td class="border border-slate-200 px-2 py-2">
-                                            <input type="number" min="0" step="0.01"
+                                            <input type="text" inputmode="decimal" autocomplete="off" data-folder-numeric="decimal"
                                                 name="package_costs[{{ $i }}][total_cost]"
                                                 value="{{ data_get($row, 'total_cost') }}"
                                                 class="w-24 rounded-lg border border-slate-200 bg-white px-2 py-1.5 text-sm">
                                         </td>
                                         <td class="border border-slate-200 px-2 py-2">
-                                            <input type="number" step="0.01" readonly tabindex="-1"
+                                            <input type="text" inputmode="decimal" autocomplete="off" data-folder-numeric="decimal" readonly tabindex="-1"
                                                 name="package_costs[{{ $i }}][margin]"
                                                 value="{{ data_get($row, 'margin') }}"
                                                 class="w-20 cursor-not-allowed rounded-lg border border-slate-200 bg-slate-50/80 px-2 py-1.5 text-sm text-slate-700">
                                         </td>
                                         <td class="border border-slate-200 px-2 py-2">
-                                            <input type="number" min="0" step="0.01"
+                                            <input type="text" inputmode="decimal" autocomplete="off" data-folder-numeric="decimal"
                                                 name="package_costs[{{ $i }}][sell]"
                                                 value="{{ data_get($row, 'sell') }}"
                                                 class="w-20 rounded-lg border border-slate-200 bg-white px-2 py-1.5 text-sm">
@@ -673,7 +679,7 @@
                                             </button>
                                         </td>
                                         <td class="border border-slate-200 px-2 py-2">
-                                            <input type="number" min="1"
+                                            <input type="text" inputmode="numeric" autocomplete="off" data-folder-numeric="integer"
                                                 name="hotel_details[{{ $i }}][sr_no]"
                                                 value="{{ data_get($row, 'sr_no') }}"
                                                 class="w-12 rounded-lg border border-slate-200 bg-white px-2 py-1.5 text-sm">
@@ -694,7 +700,7 @@
                                                 class="w-32 rounded-lg border border-slate-200 bg-white px-2 py-1.5 text-sm">
                                         </td>
                                         <td class="border border-slate-200 px-2 py-2">
-                                            <input type="number" min="0"
+                                            <input type="text" inputmode="numeric" autocomplete="off" data-folder-numeric="integer"
                                                 name="hotel_details[{{ $i }}][rooms]"
                                                 value="{{ data_get($row, 'rooms') }}"
                                                 class="w-16 rounded-lg border border-slate-200 bg-white px-2 py-1.5 text-sm">
@@ -730,7 +736,7 @@
                                                 class="w-36 rounded-lg border border-slate-200 bg-white px-2 py-1.5 text-sm">
                                         </td>
                                         <td class="border border-slate-200 px-2 py-2">
-                                            <input type="number" min="0"
+                                            <input type="text" inputmode="numeric" autocomplete="off" data-folder-numeric="integer"
                                                 name="hotel_details[{{ $i }}][nights]"
                                                 value="{{ data_get($row, 'nights') }}"
                                                 class="w-16 rounded-lg border border-slate-200 bg-white px-2 py-1.5 text-sm">
@@ -751,19 +757,19 @@
                                             </select>
                                         </td>
                                         <td class="border border-slate-200 px-2 py-2">
-                                            <input type="number" min="0" step="0.01"
+                                            <input type="text" inputmode="decimal" autocomplete="off" data-folder-numeric="decimal"
                                                 name="hotel_details[{{ $i }}][cost]"
                                                 value="{{ data_get($row, 'cost') }}"
                                                 class="w-20 rounded-lg border border-slate-200 bg-white px-2 py-1.5 text-sm">
                                         </td>
                                         <td class="border border-slate-200 px-2 py-2">
-                                            <input type="number" step="0.01" readonly tabindex="-1"
+                                            <input type="text" inputmode="decimal" autocomplete="off" data-folder-numeric="decimal" readonly tabindex="-1"
                                                 name="hotel_details[{{ $i }}][margin]"
                                                 value="{{ data_get($row, 'margin') }}"
                                                 class="w-20 cursor-not-allowed rounded-lg border border-slate-200 bg-slate-50/80 px-2 py-1.5 text-sm text-slate-700">
                                         </td>
                                         <td class="border border-slate-200 px-2 py-2">
-                                            <input type="number" min="0" step="0.01"
+                                            <input type="text" inputmode="decimal" autocomplete="off" data-folder-numeric="decimal"
                                                 name="hotel_details[{{ $i }}][sell]"
                                                 value="{{ data_get($row, 'sell') }}"
                                                 class="w-20 rounded-lg border border-slate-200 bg-white px-2 py-1.5 text-sm">
@@ -920,25 +926,25 @@
                                             </select>
                                         </td>
                                         <td class="border border-slate-200 px-2 py-2">
-                                            <input type="number" min="0" step="0.01"
+                                            <input type="text" inputmode="decimal" autocomplete="off" data-folder-numeric="decimal"
                                                 name="transport_details[{{ $i }}][cost]"
                                                 value="{{ data_get($row, 'cost') }}"
                                                 class="w-20 rounded-lg border border-slate-200 bg-white px-2 py-1.5 text-sm">
                                         </td>
                                         <td class="border border-slate-200 px-2 py-2">
-                                            <input type="number" step="0.01" readonly tabindex="-1"
+                                            <input type="text" inputmode="decimal" autocomplete="off" data-folder-numeric="decimal" readonly tabindex="-1"
                                                 name="transport_details[{{ $i }}][margin]"
                                                 value="{{ data_get($row, 'margin') }}"
                                                 class="w-20 cursor-not-allowed rounded-lg border border-slate-200 bg-slate-50/80 px-2 py-1.5 text-sm text-slate-700">
                                         </td>
                                         <td class="border border-slate-200 px-2 py-2">
-                                            <input type="number" min="0" step="0.01"
+                                            <input type="text" inputmode="decimal" autocomplete="off" data-folder-numeric="decimal"
                                                 name="transport_details[{{ $i }}][sell]"
                                                 value="{{ data_get($row, 'sell') }}"
                                                 class="transport-detail-sell-input w-20 rounded-lg border border-slate-200 bg-white px-2 py-1.5 text-sm">
                                         </td>
                                         <td class="border border-slate-200 px-2 py-2">
-                                            <input type="number" min="0" step="0.01"
+                                            <input type="text" inputmode="decimal" autocomplete="off" data-folder-numeric="decimal"
                                                 name="transport_details[{{ $i }}][sar]"
                                                 value="{{ data_get($row, 'sar') }}"
                                                 class="w-20 rounded-lg border border-slate-200 bg-white px-2 py-1.5 text-sm">
@@ -957,7 +963,7 @@
                             @endforeach
                         </select>
                     </template>
-                    <p class="text-xs text-concierge-muted">Optional. SAR is required for each transport row you add.</p>
+                    <p class="text-xs text-concierge-muted">Optional. Add transport rows when needed.</p>
                 </div>
 
                 <div class="space-y-3 rounded-2xl border border-slate-200/80 bg-slate-50/40 p-4 sm:p-5">
@@ -1020,19 +1026,19 @@
                                                 class="w-full rounded-lg border border-slate-200 bg-white px-2 py-1.5 text-sm">
                                         </td>
                                         <td class="border border-slate-200 px-2 py-2">
-                                            <input type="number" min="0" step="0.01"
+                                            <input type="text" inputmode="decimal" autocomplete="off" data-folder-numeric="decimal"
                                                 name="visa_details[{{ $i }}][cost]"
                                                 value="{{ data_get($row, 'cost') }}"
                                                 class="w-full rounded-lg border border-slate-200 bg-white px-2 py-1.5 text-sm">
                                         </td>
                                         <td class="border border-slate-200 px-2 py-2">
-                                            <input type="number" step="0.01" readonly tabindex="-1"
+                                            <input type="text" inputmode="decimal" autocomplete="off" data-folder-numeric="decimal" readonly tabindex="-1"
                                                 name="visa_details[{{ $i }}][margin]"
                                                 value="{{ data_get($row, 'margin') }}"
                                                 class="w-full cursor-not-allowed rounded-lg border border-slate-200 bg-slate-50/80 px-2 py-1.5 text-sm text-slate-700">
                                         </td>
                                         <td class="border border-slate-200 px-2 py-2">
-                                            <input type="number" min="0" step="0.01"
+                                            <input type="text" inputmode="decimal" autocomplete="off" data-folder-numeric="decimal"
                                                 name="visa_details[{{ $i }}][sell]"
                                                 value="{{ data_get($row, 'sell') }}"
                                                 class="visa-detail-sell-input w-full rounded-lg border border-slate-200 bg-white px-2 py-1.5 text-sm">
@@ -1106,19 +1112,19 @@
                                                 class="w-full rounded-lg border border-slate-200 bg-white px-2 py-1.5 text-sm">
                                         </td>
                                         <td class="border border-slate-200 px-2 py-2">
-                                            <input type="number" min="0" step="0.01"
+                                            <input type="text" inputmode="decimal" autocomplete="off" data-folder-numeric="decimal"
                                                 name="other_details[{{ $i }}][cost]"
                                                 value="{{ data_get($row, 'cost') }}"
                                                 class="w-full rounded-lg border border-slate-200 bg-white px-2 py-1.5 text-sm">
                                         </td>
                                         <td class="border border-slate-200 px-2 py-2">
-                                            <input type="number" step="0.01" readonly tabindex="-1"
+                                            <input type="text" inputmode="decimal" autocomplete="off" data-folder-numeric="decimal" readonly tabindex="-1"
                                                 name="other_details[{{ $i }}][margin]"
                                                 value="{{ data_get($row, 'margin') }}"
                                                 class="w-full cursor-not-allowed rounded-lg border border-slate-200 bg-slate-50/80 px-2 py-1.5 text-sm text-slate-700">
                                         </td>
                                         <td class="border border-slate-200 px-2 py-2">
-                                            <input type="number" min="0" step="0.01"
+                                            <input type="text" inputmode="decimal" autocomplete="off" data-folder-numeric="decimal"
                                                 name="other_details[{{ $i }}][sell]"
                                                 value="{{ data_get($row, 'sell') }}"
                                                 class="other-detail-sell-input w-full rounded-lg border border-slate-200 bg-white px-2 py-1.5 text-sm">
@@ -1202,13 +1208,10 @@
                             <thead>
                                 <tr class="bg-slate-100 text-left text-concierge-muted">
                                     <th class="border border-slate-200 px-2 py-2">Action</th>
-                                    <th class="border border-slate-200 px-2 py-2"><span class="text-rose-600">*</span>
-                                        Amount</th>
+                                    <th class="border border-slate-200 px-2 py-2">Amount</th>
                                     <th class="border border-slate-200 px-2 py-2">Reference No</th>
-                                    <th class="border border-slate-200 px-2 py-2"><span class="text-rose-600">*</span>
-                                        Date of Payment</th>
-                                    <th class="border border-slate-200 px-2 py-2"><span class="text-rose-600">*</span>
-                                        Mode of Payment</th>
+                                    <th class="border border-slate-200 px-2 py-2">Date of Payment</th>
+                                    <th class="border border-slate-200 px-2 py-2">Mode of Payment</th>
                                     <th class="border border-slate-200 px-2 py-2">Bank</th>
                                     <th class="border border-slate-200 px-2 py-2">Receipt</th>
                                     @if ($showPaymentStatusColumn)
@@ -1239,7 +1242,7 @@
                                             @endif
                                         </td>
                                         <td class="border border-slate-200 px-2 py-2">
-                                            <input type="number" min="0" step="0.01"
+                                            <input type="text" inputmode="decimal" autocomplete="off" data-folder-numeric="decimal"
                                                 name="payments[{{ $i }}][amount]"
                                                 value="{{ data_get($row, 'amount') }}"
                                                 @disabled($paymentLocked) @readonly($paymentLocked)
@@ -1298,7 +1301,7 @@
                             </tbody>
                         </table>
                     </div>
-                    <p class="text-xs text-concierge-muted">Optional. Attach a receipt image per payment (JPEG, PNG, GIF, or WebP, max 2 MB). Bank is required for Bank Transfer and Card Payment.
+                    <p class="text-xs text-concierge-muted">Optional. Attach a receipt image per payment (JPEG, PNG, GIF, or WebP, max 2 MB).
                         @if ($showPaymentStatusColumn)
                             {{ __('Approved or rejected payments are locked and cannot be changed.') }}
                         @endif
@@ -1321,10 +1324,22 @@
 @endsection
 
 @push('scripts')
-    @vite(['resources/js/folder-form-unsaved-guard.js'])
+    @vite(['resources/js/folder-form-unsaved-guard.js', 'resources/js/folder-numeric-inputs.js'])
     <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.js"></script>
     <script>
+        function setFolderNumericInputType(input, type, stepValue = null) {
+            if (type === 'number') {
+                input.type = 'text';
+                input.dataset.folderNumeric = stepValue != null ? 'decimal' : 'integer';
+                input.inputMode = stepValue != null ? 'decimal' : 'numeric';
+                input.autocomplete = 'off';
+                return;
+            }
+
+            input.type = type;
+        }
+
         (() => {
             const ziaratWrapper = document.getElementById('ziarat-dropdown-wrapper');
             const ziaratToggleButton = document.getElementById('ziarat-dropdown-toggle');
@@ -1408,12 +1423,9 @@
 
             function makeInput(index, field, type, sizeClass, minValue) {
                 const input = document.createElement('input');
-                input.type = type;
+                setFolderNumericInputType(input, type);
                 input.name = `itineraries[${index}][${field}]`;
                 input.className = inputClass(sizeClass);
-                if (minValue != null) {
-                    input.min = minValue;
-                }
                 return input;
             }
 
@@ -1850,7 +1862,7 @@
 
             function makeInput(index, field, type, sizeClass, minValue, stepValue) {
                 const input = document.createElement('input');
-                input.type = type;
+                setFolderNumericInputType(input, type, stepValue);
                 input.name = `package_costs[${index}][${field}]`;
                 input.className = inputClass(sizeClass);
                 if (field === 'margin') {
@@ -1858,12 +1870,6 @@
                     input.tabIndex = -1;
                     input.className =
                         `${inputClass(sizeClass)} cursor-not-allowed bg-slate-50/80 text-slate-700`;
-                }
-                if (minValue != null && field !== 'margin') {
-                    input.min = minValue;
-                }
-                if (stepValue != null) {
-                    input.step = stepValue;
                 }
                 if (field === 'ticket_date') {
                     input.required = true;
@@ -2024,7 +2030,7 @@
 
             function makeInput(index, field, type, sizeClass, minValue, stepValue) {
                 const input = document.createElement('input');
-                input.type = type;
+                setFolderNumericInputType(input, type, stepValue);
                 input.name = `hotel_details[${index}][${field}]`;
                 input.className = inputClass(sizeClass);
                 if (field === 'margin') {
@@ -2032,12 +2038,6 @@
                     input.tabIndex = -1;
                     input.className =
                         `${inputClass(sizeClass)} cursor-not-allowed bg-slate-50/80 text-slate-700`;
-                }
-                if (minValue != null && field !== 'margin') {
-                    input.min = minValue;
-                }
-                if (stepValue != null) {
-                    input.step = stepValue;
                 }
                 return input;
             }
@@ -2177,7 +2177,7 @@
 
             function makeInput(index, field, type, sizeClass, minValue, stepValue) {
                 const input = document.createElement('input');
-                input.type = type;
+                setFolderNumericInputType(input, type, stepValue);
                 input.name = `transport_details[${index}][${field}]`;
                 if (field === 'margin') {
                     input.readOnly = true;
@@ -2188,12 +2188,6 @@
                     input.className = `${inputClass(sizeClass)} transport-detail-sell-input`;
                 } else {
                     input.className = inputClass(sizeClass);
-                }
-                if (minValue != null && field !== 'margin') {
-                    input.min = minValue;
-                }
-                if (stepValue != null) {
-                    input.step = stepValue;
                 }
                 return input;
             }
@@ -2288,7 +2282,7 @@
 
             function makeInput(index, field, type, sizeClass, minValue, stepValue) {
                 const input = document.createElement('input');
-                input.type = type;
+                setFolderNumericInputType(input, type, stepValue);
                 input.name = `visa_details[${index}][${field}]`;
                 if (field === 'margin') {
                     input.readOnly = true;
@@ -2299,12 +2293,6 @@
                     input.className = `${inputClass(sizeClass)} visa-detail-sell-input`;
                 } else {
                     input.className = inputClass(sizeClass);
-                }
-                if (minValue != null && field !== 'margin') {
-                    input.min = minValue;
-                }
-                if (stepValue != null) {
-                    input.step = stepValue;
                 }
                 return input;
             }
@@ -2393,7 +2381,7 @@
 
             function makeInput(index, field, type, sizeClass, minValue, stepValue) {
                 const input = document.createElement('input');
-                input.type = type;
+                setFolderNumericInputType(input, type, stepValue);
                 input.name = `other_details[${index}][${field}]`;
                 if (field === 'margin') {
                     input.readOnly = true;
@@ -2404,12 +2392,6 @@
                     input.className = `${inputClass(sizeClass)} other-detail-sell-input`;
                 } else {
                     input.className = inputClass(sizeClass);
-                }
-                if (minValue != null && field !== 'margin') {
-                    input.min = minValue;
-                }
-                if (stepValue != null) {
-                    input.step = stepValue;
                 }
                 return input;
             }
@@ -2556,9 +2538,7 @@
                 const amountCell = document.createElement('td');
                 amountCell.className = 'border border-slate-200 px-2 py-2';
                 const amountIn = document.createElement('input');
-                amountIn.type = 'number';
-                amountIn.min = '0';
-                amountIn.step = '0.01';
+                setFolderNumericInputType(amountIn, 'number', '0.01');
                 amountIn.name = `payments[${index}][amount]`;
                 amountIn.className = selectFieldClass();
                 amountCell.appendChild(amountIn);
@@ -2952,18 +2932,6 @@
                 alert(message);
             }
 
-            const itineraryRequiredFields = [
-                'sr_no',
-                'airline_code',
-                'airline_number',
-                'class',
-                'departure_date',
-                'departure_airport',
-                'arrival_airport',
-                'departure_time',
-                'arrival_time',
-                'arrival_date',
-            ];
             const passengerRequiredFields = [
                 'title',
                 'first_name',
@@ -2981,47 +2949,6 @@
                 'sell',
                 'supplier',
                 'pnr',
-            ];
-            const hotelRequiredFields = [
-                'sr_no',
-                'supplier',
-                'hotel_name',
-                'guest_name',
-                'rooms',
-                'type',
-                'meals',
-                'date_in',
-                'date_out',
-                'nights',
-                'supplier_ref',
-                'status',
-                'cost',
-                'margin',
-                'hotel_city',
-            ];
-            const transportRequiredFields = [
-                'supplier',
-                'description',
-                'origin',
-                'destination',
-                'service_date',
-                'pickup_time',
-                'vehicle_type',
-                'cost',
-                'margin',
-                'sar',
-            ];
-            const visaRequiredFields = [
-                'supplier',
-                'description',
-                'cost',
-                'margin',
-            ];
-            const otherRequiredFields = [
-                'supplier',
-                'description',
-                'cost',
-                'margin',
             ];
 
             function removeFieldError(field) {
@@ -3190,11 +3117,37 @@
                 }
             }
 
+            function validateHeaderDateField(inputId, label) {
+                const input = document.getElementById(inputId);
+                if (!(input instanceof HTMLInputElement)) {
+                    return true;
+                }
+
+                if (input.value.trim() !== '') {
+                    return true;
+                }
+
+                const altInput = input._flatpickr?.altInput;
+                if (altInput instanceof HTMLInputElement) {
+                    altInput.focus();
+                    altInput.reportValidity?.();
+                } else {
+                    input.focus();
+                    input.reportValidity?.();
+                }
+
+                showError(`${label} is required.`);
+                return false;
+            }
+
             form.addEventListener('submit', (event) => {
-                if (!validateOptionalSectionRows('#itinerary-rows .itinerary-row', itineraryRequiredFields,
-                        'itineraries')) {
+                if (!validateHeaderDateField('lead_travel_date', 'Travel date')) {
                     event.preventDefault();
-                    showError('Please complete all fields in each itinerary row you added.');
+                    return;
+                }
+
+                if (!validateHeaderDateField('lead_balance_due_date', 'Balance due date')) {
+                    event.preventDefault();
                     return;
                 }
 
@@ -3222,63 +3175,6 @@
                     event.preventDefault();
                     showError('Please complete required ticket/package cost fields.');
                     return;
-                }
-
-                if (!validateOptionalSectionRows('#hotel-detail-rows .hotel-detail-row', hotelRequiredFields,
-                        'hotel_details')) {
-                    event.preventDefault();
-                    showError('Please complete all fields in each hotel row you added.');
-                    return;
-                }
-
-                if (!validateOptionalSectionRows('#transport-detail-rows .transport-detail-row',
-                        transportRequiredFields, 'transport_details')) {
-                    event.preventDefault();
-                    showError('Please complete all fields in each transport row you added.');
-                    return;
-                }
-
-                if (!validateOptionalSectionRows('#visa-detail-rows .visa-detail-row',
-                        visaRequiredFields, 'visa_details')) {
-                    event.preventDefault();
-                    showError('Please complete all fields in each visa row you added.');
-                    return;
-                }
-
-                if (!validateOptionalSectionRows('#other-detail-rows .other-detail-row',
-                        otherRequiredFields, 'other_details')) {
-                    event.preventDefault();
-                    showError('Please complete all fields in each other details row you added.');
-                    return;
-                }
-
-                if (sectionHasAtLeastOneFilledRow('#payment-rows .payment-row')) {
-                    if (!validateRequiredRowFields('#payment-rows .payment-row',
-                            ['amount', 'payment_date', 'mode_of_payment'], 'payments')) {
-                        event.preventDefault();
-                        showError('Please complete required payment fields.');
-                        return;
-                    }
-                    for (const row of document.querySelectorAll('#payment-rows .payment-row')) {
-                        if (isLockedPaymentRow(row)) {
-                            continue;
-                        }
-
-                        const hasAny = [...row.querySelectorAll('input, select')].some((field) => {
-                            const v = field.value;
-                            return typeof v === 'string' && v.trim() !== '';
-                        });
-                        if (!hasAny) {
-                            continue;
-                        }
-                        const mode = row.querySelector('select[name$="[mode_of_payment]"]')?.value ?? '';
-                        const bank = row.querySelector('select[name$="[bank_id]"]')?.value ?? '';
-                        if (mode !== '' && mode !== 'Cash in office' && bank.trim() === '') {
-                            event.preventDefault();
-                            showError('Please select a bank for Bank Transfer or Card Payment rows.');
-                            return;
-                        }
-                    }
                 }
             });
 

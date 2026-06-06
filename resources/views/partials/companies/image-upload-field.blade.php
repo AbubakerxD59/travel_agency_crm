@@ -4,6 +4,7 @@
     'label' => 'Image',
     'hint' => 'JPEG, PNG, GIF, or WebP. Max 2 MB.',
     'optionalHint' => null,
+    'ariaLabel' => 'Upload image',
 ])
 
 <div class="company-image-upload" data-company-image-upload>
@@ -14,7 +15,7 @@
         data-company-image-dropzone
         tabindex="0"
         role="button"
-        aria-label="Upload company image"
+        aria-label="{{ $ariaLabel }}"
     >
         <input
             id="{{ $inputId }}"

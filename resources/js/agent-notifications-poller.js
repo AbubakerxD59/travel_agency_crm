@@ -1,4 +1,5 @@
 import { LeadAlertAudio } from './lead-alert-audio';
+import { registerAppServiceWorker } from './service-worker-register';
 
 function initAgentNotificationPoller() {
     const notificationIcon = document.getElementById('agent-notification-icon');
@@ -184,8 +185,7 @@ function initAgentNotificationPoller() {
             return Promise.resolve(false);
         }
 
-        return navigator.serviceWorker
-            .register(serviceWorkerUrl, { scope: '/' })
+        return registerAppServiceWorker(serviceWorkerUrl)
             .then((registration) => {
                 const sendConfigure = (worker) => {
                     worker?.postMessage({

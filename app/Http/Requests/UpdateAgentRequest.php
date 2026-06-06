@@ -31,7 +31,9 @@ class UpdateAgentRequest extends FormRequest
                 Rule::unique('users', 'email')->ignore($agent->id)->whereNull('deleted_at'),
             ],
             'phone_number' => ['required', 'string', 'max:32'],
+            'direct_line' => ['nullable', 'string', 'max:32'],
             'agent_cnic' => ['nullable', 'string', 'max:32'],
+            'agent_cnic_photo' => ['nullable', 'file', 'image', 'mimes:jpeg,jpg,png,gif,webp', 'max:2048'],
             'home_address' => ['nullable', 'string', 'max:1000'],
             'guardian_name' => ['nullable', 'string', 'max:255'],
             'guardian_phone_number' => ['nullable', 'string', 'max:32'],
@@ -47,7 +49,9 @@ class UpdateAgentRequest extends FormRequest
     {
         return [
             'phone_number' => 'phone number',
+            'direct_line' => 'direct line',
             'agent_cnic' => 'agent cnic',
+            'agent_cnic_photo' => 'agent cnic photo',
             'home_address' => 'home address',
             'guardian_name' => 'guardian name',
             'guardian_phone_number' => 'guardian phone number',

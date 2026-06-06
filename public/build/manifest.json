@@ -14,9 +14,17 @@
       "assets/flatpickr-CksuuEqD.css"
     ]
   },
+  "_image-dropzone-BVZypg8S.js": {
+    "file": "assets/image-dropzone-BVZypg8S.js",
+    "name": "image-dropzone"
+  },
   "_lead-alert-audio-CjHKy2_U.js": {
     "file": "assets/lead-alert-audio-CjHKy2_U.js",
     "name": "lead-alert-audio"
+  },
+  "_service-worker-register-ChPAQkE_.js": {
+    "file": "assets/service-worker-register-ChPAQkE_.js",
+    "name": "service-worker-register"
   },
   "_toastr-DxWENf-B.css": {
     "file": "assets/toastr-DxWENf-B.css",
@@ -30,7 +38,7 @@
     ]
   },
   "resources/css/app.css": {
-    "file": "assets/app-Bt1hiZNb.css",
+    "file": "assets/app-D2Us5_3U.css",
     "src": "resources/css/app.css",
     "isEntry": true,
     "name": "app",
@@ -66,31 +74,36 @@
     ]
   },
   "resources/js/agent-notifications-poller.js": {
-    "file": "assets/agent-notifications-poller-C97CON80.js",
+    "file": "assets/agent-notifications-poller-C2A66Rn4.js",
     "name": "agent-notifications-poller",
     "src": "resources/js/agent-notifications-poller.js",
     "isEntry": true,
     "imports": [
-      "_lead-alert-audio-CjHKy2_U.js"
+      "_lead-alert-audio-CjHKy2_U.js",
+      "_service-worker-register-ChPAQkE_.js"
     ]
   },
   "resources/js/agent-web-push.js": {
-    "file": "assets/agent-web-push-1BCYuJGm.js",
+    "file": "assets/agent-web-push-BgYMVzs8.js",
     "name": "agent-web-push",
     "src": "resources/js/agent-web-push.js",
-    "isEntry": true
+    "isEntry": true,
+    "imports": [
+      "_service-worker-register-ChPAQkE_.js"
+    ]
   },
   "resources/js/agents.js": {
-    "file": "assets/agents-DH5nVm8b.js",
+    "file": "assets/agents-DgT-uxrH.js",
     "name": "agents",
     "src": "resources/js/agents.js",
     "isEntry": true,
     "imports": [
-      "_toastr.min-CvKyK_W0.js"
+      "_toastr.min-CvKyK_W0.js",
+      "_image-dropzone-BVZypg8S.js"
     ]
   },
   "resources/js/app.js": {
-    "file": "assets/app-C0vRchcO.js",
+    "file": "assets/app-VW8GaMxv.js",
     "name": "app",
     "src": "resources/js/app.js",
     "isEntry": true,
@@ -123,13 +136,20 @@
     "src": "resources/js/folder-form-unsaved-guard.js",
     "isEntry": true
   },
+  "resources/js/folder-numeric-inputs.js": {
+    "file": "assets/folder-numeric-inputs-BCXSoPCb.js",
+    "name": "folder-numeric-inputs",
+    "src": "resources/js/folder-numeric-inputs.js",
+    "isEntry": true
+  },
   "resources/js/folder-payment-show.js": {
-    "file": "assets/folder-payment-show-CnNdNugA.js",
+    "file": "assets/folder-payment-show-BnOFLJo2.js",
     "name": "folder-payment-show",
     "src": "resources/js/folder-payment-show.js",
     "isEntry": true,
     "imports": [
-      "_toastr.min-CvKyK_W0.js"
+      "_toastr.min-CvKyK_W0.js",
+      "_image-dropzone-BVZypg8S.js"
     ]
   },
   "resources/js/leads-closed-chart.js": {
