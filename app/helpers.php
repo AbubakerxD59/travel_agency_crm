@@ -3,8 +3,17 @@
 declare(strict_types=1);
 
 use App\Models\Folder;
+use App\Models\FolderPayment;
 use App\Models\Lead;
+use App\Models\User;
+use App\Support\AbbreviationResolver;
+use App\Support\FolderPaymentImageStorage;
 use Carbon\Carbon;
+use Illuminate\Contracts\Validation\ValidationRule;
+use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Http\Request;
+use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
@@ -45,6 +54,54 @@ function public_storage_url(?string $path): ?string
 function agent_notification_sw_url(): string
 {
     return '/agent-notification-sw.js';
+}
+
+/**
+ * Public URL for the static transportation voucher PDF.
+ */
+function transportation_voucher_pdf_url(): string
+{
+    return asset('TRANSPORTATION VOUCHER TERMS & CONDITIONS.pdf');
+}
+
+/**
+ * Suggested download filename for the transportation voucher PDF.
+ */
+function transportation_voucher_pdf_filename(): string
+{
+    return 'TRANSPORTATION VOUCHER TERMS & CONDITIONS.pdf';
+}
+
+/**
+ * Absolute path to the invoice terms & conditions PDF in public/.
+ */
+function invoice_terms_and_conditions_pdf_path(): string
+{
+    return public_path('Terms & Conditions for Invoice.pdf');
+}
+
+/**
+ * Public URL for the invoice terms & conditions PDF.
+ */
+function invoice_terms_and_conditions_pdf_url(): string
+{
+    return asset('Terms & Conditions for Invoice.pdf');
+}
+
+/**
+ * Display an abbreviation code as its full form when configured.
+ */
+function abbreviation_display(?string $code): string
+{
+    return app(AbbreviationResolver::class)->display($code);
+}
+
+/**
+ * Expand known abbreviation codes inside free-form invoice text.
+ */
+function abbreviation_expand_text(?string $text): string
+{
+    return app(AbbreviationResolver::class)->expandText($text);
 }
 
 /**
@@ -314,7 +371,7 @@ function resolveLeadDateRangeFilter(
             } else {
                 $label = $startBound->format('Y-m-d').' - '.$endBound->format('Y-m-d');
             }
-        } catch (\Throwable) {
+        } catch (Throwable) {
             $startBound = null;
             $endBound = null;
             $dateRange = '';
@@ -537,6 +594,33 @@ function folder_booking_status_filter_options(): array
 }
 
 /**
+ * Restrict folder list queries to folders whose travel date falls within the selected range (inclusive).
+ *
+ * @param  Builder<Folder>  $query
+ */
+function apply_folder_travel_date_filter(Builder $query, string $from, string $to): void
+{
+    if ($from === '' && $to === '') {
+        return;
+    }
+
+    if ($from !== '' && $to !== '') {
+        $query->whereDate('travel_date', '>=', $from)
+            ->whereDate('travel_date', '<=', $to);
+
+        return;
+    }
+
+    if ($from !== '') {
+        $query->whereDate('travel_date', $from);
+
+        return;
+    }
+
+    $query->whereDate('travel_date', $to);
+}
+
+/**
  * Tailwind classes for a folder list table row (incomplete bookings use error styling).
  */
 function folder_list_row_class(Folder $folder): string
@@ -576,7 +660,7 @@ function lead_sync_agent_name_from_user(Lead $lead): void
         return;
     }
 
-    $lead->agent_name = \App\Models\User::withTrashed()
+    $lead->agent_name = User::withTrashed()
         ->whereKey($lead->agent_id)
         ->value('name');
 }
@@ -589,7 +673,7 @@ function folder_sync_agent_name_from_user(Folder $folder): void
         return;
     }
 
-    $folder->agent_name = \App\Models\User::withTrashed()
+    $folder->agent_name = User::withTrashed()
         ->whereKey($folder->agent_id)
         ->value('name');
 }
@@ -604,12 +688,12 @@ function team_member_user_id_validation_rules(): array
     return [
         'nullable',
         'integer',
-        function (string $attribute, mixed $value, \Closure $fail): void {
+        function (string $attribute, mixed $value, Closure $fail): void {
             if ($value === null || $value === '') {
                 return;
             }
 
-            if (! \App\Models\User::withTrashed()->whereKey((int) $value)->exists()) {
+            if (! User::withTrashed()->whereKey((int) $value)->exists()) {
                 $fail(__('The selected agent is invalid.'));
             }
         },
@@ -619,14 +703,49 @@ function team_member_user_id_validation_rules(): array
 /**
  * Locked payments on a folder, keyed by payment id.
  *
- * @return \Illuminate\Support\Collection<int, \App\Models\FolderPayment>
+ * @return Collection<int, FolderPayment>
  */
-function folder_locked_payments_for(\App\Models\Folder $folder)
+function folder_locked_payments_for(Folder $folder)
 {
     return $folder->payments()
         ->whereNotNull('locked_at')
         ->get()
         ->keyBy('id');
+}
+
+function folder_is_locked(Folder $folder): bool
+{
+    return $folder->isLocked();
+}
+
+function user_can_edit_folder(User $user, Folder $folder): bool
+{
+    if ($user->hasRole('super-admin')) {
+        return true;
+    }
+
+    if ((int) $folder->agent_id !== (int) $user->id) {
+        return false;
+    }
+
+    if (! $user->can('folders.edit')) {
+        return false;
+    }
+
+    if (folder_is_locked($folder) && ! $user->can('folders.edit_locked')) {
+        return false;
+    }
+
+    return true;
+}
+
+function user_can_create_folder(User $user): bool
+{
+    if ($user->hasRole('super-admin')) {
+        return true;
+    }
+
+    return $user->can('folders.edit');
 }
 
 /**
@@ -635,7 +754,7 @@ function folder_locked_payments_for(\App\Models\Folder $folder)
  * @param  list<array<string, mixed>>  $rows
  * @return list<array<string, mixed>>
  */
-function folder_strip_locked_payment_rows(\App\Models\Folder $folder, array $rows): array
+function folder_strip_locked_payment_rows(Folder $folder, array $rows): array
 {
     $lockedIds = folder_locked_payments_for($folder)->keys()->all();
     if ($lockedIds === []) {
@@ -700,7 +819,7 @@ function folder_payment_row_is_storable(array $row): bool
 }
 
 /**
- * @return array<string, list<\Illuminate\Contracts\Validation\ValidationRule|string>>
+ * @return array<string, list<ValidationRule|string>>
  */
 function folder_itineraries_validation_rules(): array
 {
@@ -720,7 +839,7 @@ function folder_itineraries_validation_rules(): array
 }
 
 /**
- * @return array<string, list<\Illuminate\Contracts\Validation\ValidationRule|string>>
+ * @return array<string, list<ValidationRule|string>>
  */
 function folder_hotel_details_validation_rules(): array
 {
@@ -746,7 +865,7 @@ function folder_hotel_details_validation_rules(): array
 }
 
 /**
- * @return array<string, list<\Illuminate\Contracts\Validation\ValidationRule|string>>
+ * @return array<string, list<ValidationRule|string>>
  */
 function folder_transport_details_validation_rules(): array
 {
@@ -767,7 +886,7 @@ function folder_transport_details_validation_rules(): array
 }
 
 /**
- * @return array<string, list<\Illuminate\Contracts\Validation\ValidationRule|string>>
+ * @return array<string, list<ValidationRule|string>>
  */
 function folder_visa_details_validation_rules(): array
 {
@@ -782,7 +901,7 @@ function folder_visa_details_validation_rules(): array
 }
 
 /**
- * @return array<string, list<\Illuminate\Contracts\Validation\ValidationRule|string>>
+ * @return array<string, list<ValidationRule|string>>
  */
 function folder_other_details_validation_rules(): array
 {
@@ -797,7 +916,7 @@ function folder_other_details_validation_rules(): array
 }
 
 /**
- * @return array<string, list<\Illuminate\Contracts\Validation\ValidationRule|string>>
+ * @return array<string, list<ValidationRule|string>>
  */
 function folder_payments_validation_rules(): array
 {
@@ -841,10 +960,10 @@ function folder_payment_form_index(array $row, int $fallbackIndex): int
 
 /**
  * @param  array<string, mixed>  $row
- * @return array{file: ?\Illuminate\Http\UploadedFile, remove: bool}
+ * @return array{file: ?UploadedFile, remove: bool}
  */
 function folder_payment_image_input_from_request(
-    \Illuminate\Http\Request $request,
+    Request $request,
     array $row,
     int $fallbackIndex,
 ): array {
@@ -865,11 +984,11 @@ function folder_payment_image_input_from_request(
 function folder_payment_merge_image_attributes(
     array $attrs,
     array $row,
-    \Illuminate\Http\Request $request,
+    Request $request,
     int $fallbackIndex,
-    ?\App\Models\FolderPayment $existing = null,
+    ?FolderPayment $existing = null,
 ): array {
-    $storage = app(\App\Support\FolderPaymentImageStorage::class);
+    $storage = app(FolderPaymentImageStorage::class);
     ['file' => $file, 'remove' => $remove] = folder_payment_image_input_from_request($request, $row, $fallbackIndex);
 
     if ($file !== null && $file->isValid()) {
@@ -897,12 +1016,12 @@ function folder_payment_merge_image_attributes(
  * @param  list<array<string, mixed>>  $rows
  */
 function folder_sync_folder_payments(
-    \App\Models\Folder $folder,
+    Folder $folder,
     array $rows,
     string $approvalStatusForNew,
-    ?\Illuminate\Http\Request $request = null,
+    ?Request $request = null,
 ): void {
-    $storage = app(\App\Support\FolderPaymentImageStorage::class);
+    $storage = app(FolderPaymentImageStorage::class);
     $lockedPayments = folder_locked_payments_for($folder);
     $rows = folder_strip_locked_payment_rows($folder, $rows);
     $rows = folder_filter_non_empty_payment_rows($rows);
@@ -965,7 +1084,7 @@ function folder_sync_folder_payments(
         ->whereNull('locked_at')
         ->when($keptUnlockedIds !== [], fn ($query) => $query->whereNotIn('id', $keptUnlockedIds))
         ->get()
-        ->each(fn (\App\Models\FolderPayment $payment) => $payment->delete());
+        ->each(fn (FolderPayment $payment) => $payment->delete());
 }
 
 /**
@@ -1259,7 +1378,7 @@ function format_invoice_date(mixed $date): string
         return '';
     }
 
-    return \Illuminate\Support\Carbon::parse($date)->format('jS F, Y');
+    return Illuminate\Support\Carbon::parse($date)->format('jS F, Y');
 }
 
 /**
@@ -1282,5 +1401,5 @@ function format_invoice_time(mixed $time): string
         $value = substr($value, 0, 2).':'.substr($value, 2, 2);
     }
 
-    return \Illuminate\Support\Carbon::parse($value)->format('h:i A');
+    return Illuminate\Support\Carbon::parse($value)->format('h:i A');
 }

@@ -4,11 +4,9 @@
 ])
 
 <a href="{{ route($routeName, $folder) }}"
-   target="_blank"
-   rel="noopener noreferrer"
    class="lead-row-action inline-flex cursor-pointer rounded-lg p-2 text-concierge-muted transition hover:bg-slate-100 hover:text-concierge-navy"
-   title="Invoice"
-   aria-label="Invoice">
+   title="Download invoice"
+   aria-label="Download invoice">
     <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"
          stroke-width="1.5" aria-hidden="true">
         <path stroke-linecap="round" stroke-linejoin="round"

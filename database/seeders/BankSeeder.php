@@ -11,6 +11,7 @@ class BankSeeder extends Seeder
     {
         $names = [
             'HSBC / Account 01114646 Sort 40-11-56',
+            'Monzo Card Payment',
         ];
 
         foreach ($names as $name) {

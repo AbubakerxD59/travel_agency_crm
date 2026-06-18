@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests;
 
+use App\Models\User;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
@@ -16,7 +17,7 @@ class SyncAgentPermissionsRequest extends FormRequest
     {
         return [
             'permissions' => ['present', 'array'],
-            'permissions.*' => ['string', Rule::exists('permissions', 'name')->where('guard_name', 'web')],
+            'permissions.*' => ['string', Rule::exists('permissions', 'name')->where('guard_name', 'web'), Rule::in(User::assignableAgentPermissionNames())],
         ];
     }
 }

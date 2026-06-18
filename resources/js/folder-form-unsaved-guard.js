@@ -36,23 +36,7 @@ function initFolderFormUnsavedGuard() {
         return captureSnapshot() !== initialSnapshot;
     }
 
-    async function confirmLeavePage() {
-        if (window.Swal) {
-            const result = await window.Swal.fire({
-                title: 'Leave this page?',
-                text: LEAVE_MESSAGE,
-                icon: 'warning',
-                showCancelButton: true,
-                confirmButtonText: 'Leave',
-                cancelButtonText: 'Stay on page',
-                confirmButtonColor: '#dc2626',
-                reverseButtons: true,
-                focusCancel: true,
-            });
-
-            return result.isConfirmed === true;
-        }
-
+    function confirmLeavePage() {
         return window.confirm(`${LEAVE_MESSAGE}\n\nLeave this page?`);
     }
 
@@ -115,7 +99,7 @@ function initFolderFormUnsavedGuard() {
 
     document.addEventListener(
         'click',
-        async (event) => {
+        (event) => {
             if (!hasUnsavedChanges()) {
                 return;
             }
@@ -129,8 +113,7 @@ function initFolderFormUnsavedGuard() {
             event.stopPropagation();
 
             const destination = anchor.href;
-            const confirmed = await confirmLeavePage();
-            if (!confirmed) {
+            if (!confirmLeavePage()) {
                 return;
             }
 
@@ -143,15 +126,14 @@ function initFolderFormUnsavedGuard() {
     if (window.history && typeof window.history.pushState === 'function') {
         window.history.pushState({ folderFormGuard: true }, '', window.location.href);
 
-        window.addEventListener('popstate', async () => {
+        window.addEventListener('popstate', () => {
             if (!hasUnsavedChanges()) {
                 return;
             }
 
             window.history.pushState({ folderFormGuard: true }, '', window.location.href);
 
-            const confirmed = await confirmLeavePage();
-            if (!confirmed) {
+            if (!confirmLeavePage()) {
                 return;
             }
 

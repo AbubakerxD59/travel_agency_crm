@@ -75,7 +75,7 @@
         @if ($showTravelDateFilter)
             <div>
                 <label for="folder-travel-arrival-from-filter" class="block text-sm font-medium text-concierge-navy">
-                    Date
+                    Travel Date
                 </label>
                 <div class="relative">
                     <input id="folder-travel-arrival-range-filter" data-folder-date-range-picker="true"

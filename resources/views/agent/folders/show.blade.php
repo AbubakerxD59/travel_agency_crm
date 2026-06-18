@@ -11,15 +11,18 @@
                     <p class="text-xs font-semibold uppercase tracking-[0.16em] text-concierge-muted">Folder Details</p>
                     <h1 class="mt-1 text-2xl font-bold text-concierge-navy lg:text-3xl">Folder #{{ $folder->id }}</h1>
                 </div>
-                <div>
+                <div class="flex flex-wrap items-center gap-2">
                     <a href="{{ route('agent.folders.index') }}"
                         class="inline-flex shrink-0 items-center justify-center rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-medium text-concierge-navy shadow-sm transition hover:bg-slate-50">
                         Back to folders
                     </a>
+                    @include('partials.folders.folder-lock-action', ['folder' => $folder])
+                    @if (user_can_edit_folder(auth()->user(), $folder))
                     <a href="{{ route('agent.folders.edit', $folder) }}"
                         class="inline-flex shrink-0 items-center justify-center rounded-xl bg-concierge-navy px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-concierge-navy-deep">
                         Edit folder
                     </a>
+                    @endif
                 </div>
             </div>
         </div>

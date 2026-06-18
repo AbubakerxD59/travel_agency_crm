@@ -1,8 +1,15 @@
 /* eslint-disable no-restricted-globals */
 
 const DEFAULT_ICON = '/favicon.ico';
-const POLL_INTERVAL_MS = 2000;
+const POLL_INTERVAL_MS = 1500;
+const MAX_ALERTED_IDS = 100;
+
 let pollUrl = '';
+/** @type {Set<string>} */
+let alertTypes = new Set(['lead_assigned', 'lead_reassigned']);
+/** @type {Set<string>} */
+const alertedIds = new Set();
+/** @type {ReturnType<typeof setInterval> | null} */
 let pollTimer = null;
 
 self.addEventListener('install', (event) => {
@@ -73,8 +80,15 @@ self.addEventListener('message', (event) => {
         return;
     }
 
-    if (data.type === 'CONFIGURE' && typeof data.pollUrl === 'string' && data.pollUrl !== '') {
-        pollUrl = data.pollUrl;
+    if (data.type === 'CONFIGURE') {
+        if (typeof data.pollUrl === 'string' && data.pollUrl !== '') {
+            pollUrl = data.pollUrl;
+        }
+
+        if (Array.isArray(data.alertTypes) && data.alertTypes.length > 0) {
+            alertTypes = new Set(data.alertTypes.map((type) => String(type)));
+        }
+
         startPolling();
     }
 
@@ -98,6 +112,76 @@ function stopPolling() {
     }
 }
 
+/**
+ * @param {Array<{ id?: string, type?: string }>} items
+ */
+function filterAlertable(items) {
+    return items.filter((item) => {
+        const id = item?.id != null ? String(item.id) : '';
+        const type = String(item?.type ?? '');
+
+        return id !== '' && alertTypes.has(type) && !alertedIds.has(id);
+    });
+}
+
+/**
+ * @param {Array<{ id?: string }>} items
+ */
+function markAlerted(items) {
+    items.forEach((item) => {
+        alertedIds.add(String(item.id));
+    });
+
+    while (alertedIds.size > MAX_ALERTED_IDS) {
+        const oldest = alertedIds.values().next().value;
+        alertedIds.delete(oldest);
+    }
+}
+
+/**
+ * @param {{ id?: string, title?: string, message?: string, customer_name?: string, type?: string, url?: string }} item
+ */
+function buildNotificationContent(item) {
+    const customerName = item.customer_name || 'Customer';
+    const title = item.title || 'Notification';
+    let body = item.message || '';
+
+    if (item.type === 'lead_reassigned') {
+        body = `Lead for ${customerName} has been reassigned to you.`;
+    } else if (item.type === 'lead_assigned' && !body) {
+        body = `A new lead for ${customerName} has been assigned to you.`;
+    } else if (item.type === 'folder_payment_pending' && !body) {
+        body = 'New folder payment(s) are pending your approval.';
+    }
+
+    return {
+        title,
+        body,
+        tag: `notification-${item.id ?? Date.now()}`,
+        url: item.url || '/',
+    };
+}
+
+/**
+ * @param {{ id?: string, title?: string, message?: string, customer_name?: string, type?: string, url?: string }} item
+ */
+async function showAlertNotification(item) {
+    const content = buildNotificationContent(item);
+
+    await self.registration.showNotification(content.title, {
+        body: content.body,
+        icon: DEFAULT_ICON,
+        badge: DEFAULT_ICON,
+        tag: content.tag,
+        renotify: true,
+        silent: false,
+        requireInteraction: false,
+        data: {
+            url: content.url,
+        },
+    });
+}
+
 async function pollNotifications() {
     if (!pollUrl) {
         return;
@@ -119,14 +203,28 @@ async function pollNotifications() {
         }
 
         const payload = await response.json();
+        const newItems = Array.isArray(payload.new_notifications) ? payload.new_notifications : [];
+        const pending = filterAlertable(newItems);
+
         const clients = await self.clients.matchAll({
             type: 'window',
             includeUncontrolled: true,
         });
+        const hasVisibleClient = clients.some((client) => client.visibilityState === 'visible');
+
+        if (pending.length > 0) {
+            markAlerted(pending);
+
+            if (!hasVisibleClient) {
+                for (const item of pending) {
+                    await showAlertNotification(item);
+                }
+            }
+        }
 
         clients.forEach((client) => {
             client.postMessage({
-                type: 'AGENT_NOTIFICATION_POLL',
+                type: 'NOTIFICATION_POLL',
                 payload,
             });
         });

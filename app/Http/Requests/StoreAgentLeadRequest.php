@@ -32,6 +32,7 @@ class StoreAgentLeadRequest extends FormRequest
             'total_passengers' => ['nullable', 'integer', 'min:1', 'max:500'],
             'source' => ['nullable', 'string', Rule::in(array_keys(getAgentLeadSources()))],
             'notes' => ['nullable', 'string'],
+            'confirm_duplicate' => ['sometimes', 'boolean'],
         ];
     }
 }

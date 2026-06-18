@@ -54,6 +54,7 @@ class AssignLeadRequest extends FormRequest
             'total_passengers' => ['nullable', 'integer', 'min:1', 'max:500'],
             'source' => ['required', 'string', Rule::in(array_keys(getSources()))],
             'notes' => ['nullable', 'string'],
+            'confirm_duplicate' => ['sometimes', 'boolean'],
         ];
     }
 

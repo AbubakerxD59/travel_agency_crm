@@ -31,6 +31,21 @@ class User extends Authenticatable
     /**
      * @return list<string>
      */
+    public static function assignableAgentPermissionNames(): array
+    {
+        return [
+            'dashboard.access',
+            'leads.access',
+            'leads.create',
+            'folders.access',
+            'folders.edit',
+            'folders.edit_locked',
+        ];
+    }
+
+    /**
+     * @return list<string>
+     */
     public static function defaultAgentPermissions(): array
     {
         return [
@@ -38,6 +53,7 @@ class User extends Authenticatable
             'leads.access',
             'leads.create',
             'folders.access',
+            'folders.edit',
         ];
     }
 

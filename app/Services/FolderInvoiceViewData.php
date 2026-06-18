@@ -5,9 +5,15 @@ namespace App\Services;
 use App\Models\Folder;
 use App\Models\FolderHotelDetail;
 use App\Models\FolderPayment;
+use App\Support\AbbreviationResolver;
+use Illuminate\Support\Collection;
 
 class FolderInvoiceViewData
 {
+    public function __construct(
+        private readonly AbbreviationResolver $abbreviations,
+    ) {}
+
     /**
      * @return array<string, mixed>
      */
@@ -31,9 +37,9 @@ class FolderInvoiceViewData
         $passengerCount = max($folder->passengers->count(), 1);
         $perPassengerSell = (int) round($summary['total_sale'] / $passengerCount);
         $firstCost = $folder->packageCosts->first();
-        $flightDetails = $firstCost
-            ? trim(($firstCost->airline_from ?? '').' to '.($firstCost->airline_to ?? ''))
-            : '';
+        $flightFrom = $firstCost ? $this->abbreviations->display($firstCost->airline_from) : '';
+        $flightTo = $firstCost ? $this->abbreviations->display($firstCost->airline_to) : '';
+        $flightDetails = trim($flightFrom.($flightFrom !== '' && $flightTo !== '' ? ' to ' : '').$flightTo);
 
         $amountPaid = (float) $folder->payments
             ->where('approval_status', 'approved')
@@ -59,6 +65,7 @@ class FolderInvoiceViewData
 
         return [
             'direct_line' => trim((string) ($folder->agent?->direct_line ?? '')) ?: '—',
+            'agent_email' => trim((string) ($folder->agent?->email ?? '')),
             'company' => [
                 'name' => $folder->company?->name ?? $companyConfig['name'],
                 'email' => $companyConfig['email'],
@@ -104,14 +111,15 @@ class FolderInvoiceViewData
                 'type' => $hotel->type ?? '—',
             ])->all(),
             'flight_itinerary' => $itineraries->map(fn ($leg) => [
-                'operated_by' => $leg->airline_code ?? '',
+                'operated_by' => $this->abbreviations->display($leg->airline_code ?? ''),
                 'flight_no' => $leg->airline_number ?? '',
                 'departure_date' => format_invoice_date($leg->departure_date),
                 'departure_time' => format_invoice_time($leg->departure_time),
-                'from' => $leg->departure_airport ?? '',
+                'from' => $this->abbreviations->display($leg->departure_airport ?? ''),
                 'arrival_time' => format_invoice_time($leg->arrival_time),
-                'to' => $leg->arrival_airport ?? '',
+                'to' => $this->abbreviations->display($leg->arrival_airport ?? ''),
                 'arrival_date' => format_invoice_date($leg->arrival_date),
+                'class' => $this->abbreviations->display($leg->class ?? ''),
             ])->all(),
             'hotel_itinerary' => $this->buildHotelItinerary($hotelDetails),
             'visa_details' => $folder->visaDetails
@@ -145,7 +153,7 @@ class FolderInvoiceViewData
                         : ($folder->customer_name ?? ''),
                     'pickup_date' => format_invoice_date($transport->service_date),
                     'pickup_time' => format_invoice_time($transport->pickup_time),
-                    'vehicle' => $transport->vehicle_type ?? '',
+                    'vehicle' => $this->abbreviations->display($transport->vehicle_type ?? ''),
                 ];
             })->all(),
             'ziaraats' => array_values(array_filter([
@@ -161,7 +169,7 @@ class FolderInvoiceViewData
     }
 
     /**
-     * @param  \Illuminate\Support\Collection<int, FolderHotelDetail>  $hotelDetails
+     * @param  Collection<int, FolderHotelDetail>  $hotelDetails
      * @return list<array{label: string, stays: list<array<string, string>>}>
      */
     private function buildHotelItinerary($hotelDetails): array
@@ -192,7 +200,7 @@ class FolderInvoiceViewData
     /**
      * @param  iterable<int, object>  $models
      * @param  list<string>  $fields
-     * @return \Illuminate\Support\Collection<int, object>
+     * @return Collection<int, object>
      */
     private function filterModelsWithInvoiceData(iterable $models, array $fields)
     {

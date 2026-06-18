@@ -70,21 +70,67 @@ function initAdminSidebar() {
         }
     }
 
-    toggle.addEventListener('click', () => {
-        setOpen(!html.classList.contains('admin-sidebar-open'));
-    });
+    const canHover = window.matchMedia('(hover: hover)').matches;
+    let dismissedByClose = false;
+    let closeTimer = null;
 
-    overlay.addEventListener('click', () => setOpen(false));
+    function cancelScheduledClose() {
+        if (closeTimer !== null) {
+            window.clearTimeout(closeTimer);
+            closeTimer = null;
+        }
+    }
+
+    function scheduleClose() {
+        cancelScheduledClose();
+        closeTimer = window.setTimeout(() => {
+            closeTimer = null;
+            setOpen(false);
+            dismissedByClose = false;
+        }, 150);
+    }
+
+    function dismissSidebar() {
+        dismissedByClose = true;
+        cancelScheduledClose();
+        setOpen(false);
+    }
+
+    function openFromHover() {
+        if (dismissedByClose) {
+            return;
+        }
+        cancelScheduledClose();
+        setOpen(true);
+    }
+
+    if (canHover) {
+        toggle.addEventListener('mouseenter', openFromHover);
+        toggle.addEventListener('mouseleave', scheduleClose);
+        sidebar.addEventListener('mouseenter', openFromHover);
+        sidebar.addEventListener('mouseleave', scheduleClose);
+    } else {
+        toggle.addEventListener('click', () => {
+            setOpen(!html.classList.contains('admin-sidebar-open'));
+        });
+    }
+
+    overlay.addEventListener('click', dismissSidebar);
 
     document.querySelectorAll('.admin-sidebar-close').forEach((btn) => {
-        btn.addEventListener('click', () => setOpen(false));
+        btn.addEventListener('click', dismissSidebar);
     });
 
     sidebar.querySelectorAll('a').forEach((link) => {
-        link.addEventListener('click', () => setOpen(false));
+        link.addEventListener('click', () => {
+            dismissedByClose = false;
+            setOpen(false);
+        });
     });
 
     mqDesktop.addEventListener('change', () => {
+        dismissedByClose = false;
+        cancelScheduledClose();
         if (useDrawerMode()) {
             setOpen(false);
             return;
@@ -99,7 +145,7 @@ function initAdminSidebar() {
 
     document.addEventListener('keydown', (e) => {
         if (e.key === 'Escape' && html.classList.contains('admin-sidebar-open')) {
-            setOpen(false);
+            dismissSidebar();
         }
     });
 }

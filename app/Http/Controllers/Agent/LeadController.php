@@ -2,58 +2,39 @@
 
 namespace App\Http\Controllers\Agent;
 
+use App\Http\Controllers\Concerns\ChecksLeadDuplicates;
 use App\Http\Controllers\Concerns\ResolvesClosedLeadsChart;
 use App\Http\Controllers\Controller;
+use App\Http\Requests\CheckLeadDuplicateRequest;
 use App\Http\Requests\StoreAgentLeadRequest;
 use App\Models\Company;
 use App\Models\Destination;
 use App\Models\Lead;
+use App\Services\LeadCsvExporter;
+use App\Support\LeadListingQuery;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class LeadController extends Controller
 {
+    use ChecksLeadDuplicates;
     use ResolvesClosedLeadsChart;
 
     public function __construct()
     {
-        $this->middleware('can:leads.access')->only(['index', 'show', 'updateStatus', 'closedLeadsChart']);
+        $this->middleware('can:leads.access')->only(['index', 'show', 'updateStatus', 'closedLeadsChart', 'export']);
         $this->middleware('can:leads.create')->only(['store']);
     }
 
     public function index(Request $request): View
     {
-        $search = trim((string) $request->query('search', ''));
-        $source = trim((string) $request->query('source', ''));
-        $status = trim((string) $request->query('status', ''));
-
-        $leadsQuery = Lead::query()
-            ->with(['agent', 'company', 'destination'])
-            ->where('agent_id', $request->user()->id)
-            ->latest();
-
-        if ($source !== '') {
-            $leadsQuery->where('source', $source);
-        }
-
-        if ($status !== '') {
-            $leadsQuery->where('status', $status);
-        }
-
-        if ($search !== '') {
-            $leadsQuery->where(function ($query) use ($search): void {
-                $query
-                    ->where('customer_name', 'like', '%'.$search.'%')
-                    ->orWhere('phone_number', 'like', '%'.$search.'%')
-                    ->orWhere('email', 'like', '%'.$search.'%');
-            });
-        }
-
-        $leads = $leadsQuery
+        $filters = LeadListingQuery::agentFilters($request, (int) $request->user()->id);
+        $leads = (clone $filters['query'])
             ->paginate(30)
             ->withQueryString();
 
@@ -65,7 +46,9 @@ class LeadController extends Controller
         );
 
         $agentSourceOptions = getAgentLeadSources();
-        $chartSource = $source !== '' && array_key_exists($source, $agentSourceOptions) ? $source : '';
+        $chartSource = $filters['source'] !== '' && array_key_exists($filters['source'], $agentSourceOptions)
+            ? $filters['source']
+            : '';
 
         $closedLeadsChart = buildClosedLeadsChartData(
             $chartStart,
@@ -79,9 +62,9 @@ class LeadController extends Controller
 
         return view('agent.leads.index', [
             'leads' => $leads,
-            'search' => $search,
-            'selectedSource' => $source,
-            'selectedStatus' => $status,
+            'search' => $filters['search'],
+            'selectedSource' => $filters['source'],
+            'selectedStatus' => $filters['status'],
             'statuses' => Lead::statusLabels(),
             'canCreateLeads' => $request->user()->can('leads.create'),
             'companies' => $request->user()->can('leads.create')
@@ -97,14 +80,35 @@ class LeadController extends Controller
         ]);
     }
 
+    public function export(Request $request, LeadCsvExporter $exporter): StreamedResponse
+    {
+        $filters = LeadListingQuery::agentFilters($request, (int) $request->user()->id);
+        $leads = (clone $filters['query'])->get();
+
+        return $exporter->download($leads, LeadCsvExporter::CONTEXT_AGENT);
+    }
+
     public function closedLeadsChart(Request $request): JsonResponse
     {
         return $this->closedLeadsChartResponse($request, (int) $request->user()->id);
     }
 
+    public function checkDuplicate(CheckLeadDuplicateRequest $request): JsonResponse
+    {
+        return $this->checkDuplicateLeadResponse($request, 'agent.leads.show');
+    }
+
     public function store(StoreAgentLeadRequest $request): RedirectResponse
     {
         $data = $request->validated();
+
+        if ($redirect = $this->redirectIfDuplicateLeadWithoutConfirmation(
+            $request,
+            $data['email'] ?? null,
+            $data['phone_number'],
+        )) {
+            return $redirect;
+        }
 
         $companyId = $data['company_id'] ?? Company::query()->value('id');
         if ($companyId === null) {

@@ -29,12 +29,18 @@ Route::prefix('agent')->name('agent.')->middleware('role:agent')->group(function
     Route::delete('/push/subscribe', [PushSubscriptionController::class, 'destroy'])
         ->name('push.unsubscribe');
     // Lead routes
+    Route::get('/leads/export', [AgentLeadController::class, 'export'])
+        ->middleware('can:leads.access')
+        ->name('leads.export');
     Route::get('/leads', [AgentLeadController::class, 'index'])
         ->middleware('can:leads.access')
         ->name('leads.index');
     Route::get('/leads/chart/closed', [AgentLeadController::class, 'closedLeadsChart'])
         ->middleware('can:leads.access')
         ->name('leads.chart.closed');
+    Route::post('/leads/check-duplicate', [AgentLeadController::class, 'checkDuplicate'])
+        ->middleware('can:leads.create')
+        ->name('leads.check-duplicate');
     Route::post('/leads', [AgentLeadController::class, 'store'])
         ->middleware('can:leads.create')
         ->name('leads.store');
@@ -46,7 +52,7 @@ Route::prefix('agent')->name('agent.')->middleware('role:agent')->group(function
         ->name('leads.show');
     // Folder routes
     Route::post('/folders/sections/{section}/save', [AgentFolderController::class, 'saveSectionDraft'])
-        ->middleware('can:folders.access')
+        ->middleware(['can:folders.access', 'can:folders.edit'])
         ->name('folders.sections.save');
     Route::get('/folders/upcoming', [AgentFolderController::class, 'upcoming'])
         ->middleware('can:folders.access')
@@ -54,5 +60,5 @@ Route::prefix('agent')->name('agent.')->middleware('role:agent')->group(function
     Route::get('/folders/{folder}/invoice', [FolderInvoiceController::class, 'show'])
         ->middleware('can:folders.access')
         ->name('folders.invoice');
-    Route::resource('folders', AgentFolderController::class)->middleware('can:folders.access');
+    Route::resource('folders', AgentFolderController::class)->middleware(['can:folders.access']);
 });

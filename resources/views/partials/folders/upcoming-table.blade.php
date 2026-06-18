@@ -130,6 +130,10 @@
                         <td class="px-4 py-4 text-right lg:px-6">
                             <div class="inline-flex items-center justify-end gap-1 whitespace-nowrap">
                                 @if ($isAdmin && ($canManageFolders ?? false))
+                                    @include('partials.folders.folder-lock-action', [
+                                        'folder' => $folder,
+                                        'canToggle' => true,
+                                    ])
                                     <a href="{{ route('admin.folders.edit', $folder) }}"
                                         class="lead-row-action inline-flex cursor-pointer rounded-lg p-2 text-concierge-muted transition hover:bg-slate-100 hover:text-concierge-navy"
                                         title="Edit" aria-label="Edit">
@@ -141,6 +145,9 @@
                                         </svg>
                                     </a>
                                 @elseif (! $isAdmin)
+                                    @include('partials.folders.folder-lock-action', ['folder' => $folder])
+                                @endif
+                                @if (! $isAdmin && user_can_edit_folder(auth()->user(), $folder))
                                     <a href="{{ route('agent.folders.edit', $folder) }}"
                                         class="lead-row-action inline-flex cursor-pointer rounded-lg p-2 text-concierge-muted transition hover:bg-slate-100 hover:text-concierge-navy"
                                         title="Edit" aria-label="Edit">
@@ -156,6 +163,7 @@
                                     'folder' => $folder,
                                     'routeName' => ($routePrefix ?? 'admin') . '.folders.invoice',
                                 ])
+                                @include('partials.folders.transportation-voucher-action')
                                 <a href="{{ route(($routePrefix ?? 'admin') . '.folders.show', $folder) }}"
                                     class="lead-row-action inline-flex cursor-pointer rounded-lg p-2 text-concierge-muted transition hover:bg-slate-100 hover:text-concierge-accent"
                                     title="View" aria-label="View">

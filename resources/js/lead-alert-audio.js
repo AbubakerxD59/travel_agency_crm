@@ -45,6 +45,11 @@ export class LeadAlertAudio {
 
         document.addEventListener('pointerdown', unlock, { once: true, capture: true });
         document.addEventListener('keydown', unlock, { once: true, capture: true });
+        document.addEventListener('visibilitychange', () => {
+            if (!document.hidden && this.audioContext?.state === 'suspended') {
+                void this.audioContext.resume();
+            }
+        });
     }
 
     async unlock() {
@@ -131,7 +136,10 @@ export class LeadAlertAudio {
         );
 
         await this.ensureNotificationPermission();
-        pending.forEach((item) => this.showSystemNotification(item));
+
+        if (!document.hidden) {
+            pending.forEach((item) => this.showSystemNotification(item));
+        }
 
         await this.playRing();
     }

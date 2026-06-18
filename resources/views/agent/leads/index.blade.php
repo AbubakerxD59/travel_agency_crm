@@ -69,6 +69,9 @@
                         class="inline-flex cursor-pointer items-center justify-center rounded-xl bg-concierge-navy px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-concierge-navy-deep">
                         Apply
                     </button>
+                    @include('partials.leads.export-action', [
+                        'exportUrl' => route('agent.leads.export', request()->except('page')),
+                    ])
                     @if ($search !== '' || $selectedStatus !== '')
                         <a href="{{ route('agent.leads.index') }}"
                             class="inline-flex items-center justify-center rounded-xl border border-slate-200 px-4 py-2.5 text-sm font-medium text-concierge-navy transition hover:bg-slate-50">
@@ -219,8 +222,11 @@
                     </div>
 
                     <form id="new-lead-form" method="POST" action="{{ route('agent.leads.store') }}"
+                        data-lead-duplicate-check="{{ route('agent.leads.check-duplicate') }}"
+                        data-lead-duplicate-create="1" data-lead-duplicate-submit="#new-lead-submit-btn"
                         class="space-y-4 px-6 py-5">
                         @csrf
+                        <input type="hidden" name="confirm_duplicate" value="0">
                         <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
                             <div>
                                 <label for="new_lead_customer_name"
@@ -310,7 +316,7 @@
 @endsection
 
 @push('scripts')
-    @vite(['resources/js/leads-closed-chart.js'])
+    @vite(['resources/js/leads-closed-chart.js', 'resources/js/lead-duplicate-check.js'])
     <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.js"></script>
     <script>
@@ -708,6 +714,7 @@
 
             openNewLeadModalBtn?.addEventListener('click', () => {
                 newLeadForm?.reset();
+                newLeadForm?.dispatchEvent(new CustomEvent('lead-duplicate-reset'));
                 setNewLeadButtonLoading(newLeadSubmitBtn, false);
                 openNewLeadModal();
             });
@@ -724,7 +731,7 @@
                 btn.addEventListener('click', closeNewLeadModal);
             });
 
-            @if ($errors->any())
+            @if ($errors->any() || (session('error') && old('phone_number')))
                 openNewLeadModal();
             @endif
 

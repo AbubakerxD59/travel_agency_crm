@@ -8,40 +8,72 @@
     <style>
         @page {
             size: A4;
-            margin: 12mm 14mm;
+            margin: 10mm 8mm;
         }
 
         * {
             box-sizing: border-box;
         }
 
+        :root {
+            --inv-font: "Times New Roman", Times, serif;
+            --inv-text-xs: 10pt;
+            --inv-text-sm: 11pt;
+            --inv-text-base: 12pt;
+            --inv-text-md: 13pt;
+            --inv-table-heading: 11pt;
+            --inv-leading: 1.45;
+            --inv-leading-tight: 1.35;
+            --inv-section-gap: 20px;
+            --inv-cell-padding-y: 7px;
+            --inv-cell-padding-x: 10px;
+        }
+
         .invoice-page {
-            --inv-font: "Segoe UI", Arial, Helvetica, sans-serif;
-            --inv-text-xs: 9px;
-            --inv-text-sm: 10px;
-            --inv-text-base: 11px;
-            --inv-text-md: 12px;
-            --inv-leading: 1.42;
-            --inv-leading-tight: 1.32;
             width: 210mm;
             min-height: 297mm;
             margin: 16px auto;
-            padding: 10mm 12mm 12mm;
+            padding: 8mm 6mm 10mm;
             background: #fff;
             box-shadow: 0 2px 16px rgba(0, 0, 0, 0.12);
             font-family: var(--inv-font);
             font-size: var(--inv-text-base);
+            font-weight: 400;
             line-height: var(--inv-leading);
             color: #111;
-            -webkit-font-smoothing: antialiased;
-            -moz-osx-font-smoothing: grayscale;
         }
 
         body {
             margin: 0;
-            font-family: var(--inv-font, "Segoe UI", Arial, Helvetica, sans-serif);
+            font-family: var(--inv-font);
+            font-size: var(--inv-text-base);
+            font-weight: 400;
+            line-height: var(--inv-leading);
             color: #111;
             background: #e8e8e8;
+        }
+
+        .invoice-page table,
+        .invoice-page th,
+        .invoice-page td,
+        .invoice-page p,
+        .invoice-page h2,
+        .invoice-page strong,
+        .invoice-page li {
+            font-family: inherit;
+        }
+
+        body.invoice-pdf {
+            background: #fff;
+        }
+
+        body.invoice-pdf .invoice-page {
+            margin: 0;
+            box-shadow: none;
+            width: 100%;
+            max-width: 100%;
+            min-height: auto;
+            padding: 0;
         }
 
         @media print {
@@ -61,23 +93,30 @@
             }
         }
 
+        .invoice-header {
+            margin-bottom: var(--inv-section-gap);
+        }
+
         .invoice-header__top {
-            display: flex;
-            justify-content: space-between;
-            align-items: flex-start;
-            gap: 12px;
-            margin-bottom: 10px;
+            margin-bottom: 14px;
             font-size: var(--inv-text-base);
             line-height: var(--inv-leading-tight);
         }
 
-        .invoice-header__meta--right {
+        .invoice-header__meta-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 4px 16px;
+            align-items: baseline;
+        }
+
+        .invoice-header__meta-grid .invoice-header__meta--right {
             text-align: right;
         }
 
         .invoice-header__brand {
             text-align: center;
-            margin-bottom: 12px;
+            margin-bottom: 14px;
             font-size: var(--inv-text-sm);
             line-height: var(--inv-leading-tight);
         }
@@ -104,8 +143,9 @@
 
         table {
             width: 100%;
-            border-collapse: collapse;
-            margin-bottom: 1.1rem;
+            border-collapse: separate;
+            border-spacing: 3px;
+            margin-bottom: var(--inv-section-gap);
             font-size: var(--inv-text-sm);
             line-height: var(--inv-leading-tight);
         }
@@ -113,7 +153,7 @@
         th,
         td {
             border: 1px solid #000;
-            padding: 4px 6px;
+            padding: var(--inv-cell-padding-y) var(--inv-cell-padding-x);
             vertical-align: top;
         }
 
@@ -121,35 +161,66 @@
             font-weight: 700;
             text-align: left;
             background: #fff;
+            font-size: var(--inv-table-heading);
+            white-space: nowrap;
         }
 
-        .table-summary th,
-        .table-summary td {
+        .table-invoice-summary {
+            border-collapse: collapse;
+            border-spacing: 0;
+            margin-bottom: var(--inv-section-gap);
+        }
+
+        .table-invoice-summary th,
+        .table-invoice-summary td {
             text-align: center;
+        }
+
+        .table-invoice-summary td {
             font-size: var(--inv-text-base);
         }
 
-        .table-passengers {
-            margin-top: 10px;
+        .table-invoice-primary {
+            border-collapse: collapse;
+            border-spacing: 0;
+            margin-bottom: var(--inv-section-gap);
         }
 
-        .table-passengers th {
+        .table-invoice-primary .invoice-passenger-head th {
             text-align: center;
+        }
+
+        .table-invoice-primary td {
             font-size: var(--inv-text-sm);
         }
 
-        .table-passengers td {
-            font-size: var(--inv-text-sm);
-        }
-
-        .table-passengers td.price {
+        .table-invoice-primary td.price {
             text-align: right;
             white-space: nowrap;
             font-variant-numeric: tabular-nums;
         }
 
-        .table-passengers td.valign-top {
+        .table-invoice-primary td.valign-top {
             vertical-align: top;
+        }
+
+        .table-hotels {
+            border-collapse: separate;
+            border-spacing: 3px;
+        }
+
+        .table-itinerary,
+        .table-hotel-itinerary,
+        .table-invoice-section,
+        .table-other-services,
+        .table-visa-details,
+        .table-transport {
+            border-collapse: collapse;
+            border-spacing: 0;
+        }
+
+        .itinerary-bar + table {
+            margin-top: 0;
         }
 
         .invoice-transactions-paid {
@@ -181,11 +252,11 @@
         }
 
         .disclaimer {
-            margin: 8px 0 10px;
+            margin: 10px 0 12px;
             text-align: justify;
-            font-size: var(--inv-text-xs);
-            line-height: 1.45;
-            color: #222;
+            font-size: var(--inv-text-base);
+            line-height: var(--inv-leading);
+            color: #111;
         }
 
         .payment-wrap {
@@ -211,16 +282,15 @@
         }
 
         .table-hotels {
-            margin-top: 1.1rem;
+            margin-top: var(--inv-section-gap);
         }
 
-        .table-hotels th,
         .table-hotels td {
             font-size: var(--inv-text-sm);
         }
 
         .section-title {
-            margin: 0 0 8px;
+            margin: var(--inv-section-gap) 0 12px;
             text-align: center;
             font-weight: 700;
             font-size: var(--inv-text-md);
@@ -230,8 +300,8 @@
         }
 
         .itinerary-bar {
-            margin: 0;
-            padding: 5px 8px;
+            margin: var(--inv-section-gap) 0 0;
+            padding: 6px 10px;
             text-align: center;
             font-weight: 700;
             font-size: var(--inv-text-sm);
@@ -244,8 +314,7 @@
 
         .table-itinerary th {
             text-align: center;
-            padding: 4px 3px;
-            font-size: var(--inv-text-xs);
+            padding: var(--inv-cell-padding-y) 5px;
             letter-spacing: 0.02em;
         }
 
@@ -256,8 +325,7 @@
 
         .table-hotel-itinerary .hotel-itinerary-section-head th {
             text-align: center;
-            padding: 4px 5px;
-            font-size: var(--inv-text-xs);
+            padding: var(--inv-cell-padding-y) 6px;
         }
 
         .table-hotel-itinerary .hotel-itinerary-section-head th:first-child {
@@ -266,7 +334,7 @@
 
         .table-hotel-itinerary td {
             text-align: center;
-            padding: 4px 5px;
+            padding: var(--inv-cell-padding-y) 6px;
             min-height: 20px;
             font-size: var(--inv-text-xs);
         }
@@ -276,16 +344,22 @@
         }
 
         .table-hotel-itinerary .hotel-itinerary-spacer td {
-            height: 10px;
+            height: 14px;
             padding: 0;
+            border: none;
         }
 
-        .table-invoice-section th,
         .table-invoice-section td {
-            padding: 4px 5px;
+            padding: var(--inv-cell-padding-y) 6px;
             min-height: 20px;
             text-align: left;
             font-size: var(--inv-text-xs);
+        }
+
+        .table-invoice-section th {
+            padding: var(--inv-cell-padding-y) 6px;
+            min-height: 20px;
+            text-align: left;
         }
 
         .table-other-services th,
@@ -298,18 +372,16 @@
         .invoice-section-title-row th {
             text-align: center;
             font-weight: 700;
-            font-size: var(--inv-text-sm);
             letter-spacing: 0.08em;
             text-transform: uppercase;
             background: #d9d9d9;
             border: 1px solid #000;
-            padding: 5px 8px;
+            padding: 6px 10px;
         }
 
         .table-transport th {
             text-align: center;
-            padding: 4px 5px;
-            font-size: var(--inv-text-xs);
+            padding: var(--inv-cell-padding-y) 6px;
         }
 
         .table-transport tr:not(.invoice-section-title-row) th:first-child,
@@ -328,7 +400,7 @@
         }
 
         .invoice-ziaraats {
-            margin: 12px 0;
+            margin: var(--inv-section-gap) 0;
             font-size: var(--inv-text-sm);
             line-height: var(--inv-leading-tight);
         }
@@ -342,13 +414,38 @@
         }
 
         .invoice-terms {
-            margin-top: 16px;
-            padding-top: 12px;
+            margin-top: calc(var(--inv-section-gap) + 4px);
+            padding-top: 14px;
             border-top: 1px solid #ccc;
             color: #111;
             text-align: justify;
+            font-family: var(--inv-font);
             font-size: var(--inv-text-xs);
-            line-height: 1.45;
+            font-weight: 400;
+            line-height: var(--inv-leading);
+        }
+
+        .invoice-terms-pdf {
+            margin-top: var(--inv-section-gap);
+            width: 100%;
+        }
+
+        .invoice-terms-pdf__embed {
+            display: block;
+            width: 100%;
+            min-height: 1120px;
+            border: none;
+        }
+
+        .invoice-terms-pdf__fallback {
+            margin: 0;
+            font-size: var(--inv-text-sm);
+            text-align: center;
+        }
+
+        .invoice-terms-pdf__fallback a {
+            color: #10253f;
+            font-weight: 600;
         }
 
         .invoice-terms__title {
@@ -411,9 +508,10 @@
         }
 
         .invoice-terms__signature-email {
-            font-family: "Segoe Script", "Brush Script MT", cursive;
+            font-family: var(--inv-font);
             font-size: var(--inv-text-sm);
-            color: #1a1a1a;
+            font-style: italic;
+            color: #111;
             text-align: left;
         }
 
@@ -486,19 +584,25 @@
     </style>
 </head>
 
-<body>
-    <div class="toolbar no-print">
-        <button type="button" onclick="window.print()">Print invoice</button>
-    </div>
+<body @class(['invoice-pdf' => ! empty($for_pdf)])>
+    @empty($for_pdf)
+        <div class="toolbar no-print">
+            <button type="button" onclick="window.print()">Print invoice</button>
+        </div>
+    @endempty
 
     <article class="invoice-page">
         <header class="invoice-header">
             <div class="invoice-header__top">
-                <div>
-                    <strong>Booking Date:</strong> <br> {{ $booking_date }}
-                </div>
-                <div class="invoice-header__meta--right">
+                <div class="invoice-header__meta-grid">
                     <div><strong>Direct Line:</strong> {{ $direct_line }}</div>
+                    <div class="invoice-header__meta--right"><strong>Booking Date:</strong></div>
+                    @if (! empty($agent_email))
+                        <div>{{ $agent_email }}</div>
+                    @else
+                        <div></div>
+                    @endif
+                    <div class="invoice-header__meta--right">{{ $booking_date }}</div>
                 </div>
             </div>
             <div class="invoice-header__brand">
@@ -515,11 +619,11 @@
             </div>
         </header>
 
-        <table class="table-summary">
+        <table class="table-invoice-summary">
             <thead>
                 <tr>
                     <th>Invoice Number</th>
-                    <th>Agent</th>
+                    <th>Travel Consultant</th>
                     <th>Travel Date</th>
                     <th>Destination</th>
                     <th>No. of Passengers</th>
@@ -536,9 +640,9 @@
             </tbody>
         </table>
 
-        <table class="table-passengers">
+        <table class="table-invoice-primary">
             <thead>
-                <tr>
+                <tr class="invoice-passenger-head">
                     <th>Title</th>
                     <th>First Name</th>
                     <th>Middle Name</th>
@@ -696,12 +800,10 @@
             <table class="table-itinerary table-invoice-section table-visa-details">
                 <tbody>
                     <tr>
-                        <th>Supplier</th>
                         <th>Description</th>
                     </tr>
                     @foreach ($visa_details as $visa)
                         <tr>
-                            <td>{{ $visa['supplier'] ?: '—' }}</td>
                             <td>{{ $visa['description'] ?: '—' }}</td>
                         </tr>
                     @endforeach
@@ -763,11 +865,7 @@
             </div>
         @endif
 
-        @include('invoices.partials.terms-and-conditions', [
-            'terms_legal_name' => $terms_legal_name ?? config('invoice.terms_legal_name'),
-            'company' => $company ?? config('invoice.company'),
-            'acceptance' => $acceptance ?? [],
-        ])
+        @include('invoices.partials.terms-and-conditions')
 
     </article>
 </body>

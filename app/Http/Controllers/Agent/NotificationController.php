@@ -46,6 +46,7 @@ class NotificationController extends Controller
                     'message' => (string) ($data['message'] ?? ''),
                     'type' => (string) ($data['type'] ?? ''),
                     'customer_name' => (string) ($data['customer_name'] ?? ''),
+                    'url' => route('agent.notifications.open', ['notificationId' => $notification->id]),
                 ];
             })
             ->values()

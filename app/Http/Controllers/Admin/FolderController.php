@@ -26,7 +26,14 @@ class FolderController extends Controller
     public function __construct()
     {
         $this->middleware('can:folders.access')->only(['index', 'show', 'upcoming']);
-        $this->middleware('role:super-admin')->only(['create', 'store', 'edit', 'update', 'saveSectionDraft']);
+        $this->middleware('role:super-admin')->only([
+            'create',
+            'store',
+            'edit',
+            'update',
+            'saveSectionDraft',
+            'toggleLock',
+        ]);
     }
 
     public function index(Request $request): View
@@ -225,6 +232,20 @@ class FolderController extends Controller
             'folder' => $folder,
             'canManageFolders' => request()->user()?->hasRole('super-admin') ?? false,
         ]);
+    }
+
+    public function toggleLock(Folder $folder): RedirectResponse
+    {
+        $folder->update([
+            'lock' => $folder->isLocked() ? 0 : 1,
+        ]);
+
+        return back()->with(
+            'status',
+            $folder->fresh()->isLocked()
+                ? __('Folder locked successfully.')
+                : __('Folder unlocked successfully.'),
+        );
     }
 
     public function edit(Request $request, Folder $folder): View
@@ -521,7 +542,7 @@ class FolderController extends Controller
                 $agentId = $folder === null
                     ? $request->user()?->getAuthIdentifier()
                     : ($validated['agent_id'] ?? $folder->agent_id);
-                $agentName = \App\Models\User::withTrashed()
+                $agentName = User::withTrashed()
                     ->whereKey($agentId)
                     ->value('name');
 
@@ -633,17 +654,7 @@ class FolderController extends Controller
             ->when($bookingStatus === 'incomplete', fn ($q) => $q->whereHas('hotelDetails', fn ($hq) => $hq->where('status', 'issue_later')))
             ->when($bookingStatus === 'successful', fn ($q) => $q->whereDoesntHave('hotelDetails', fn ($hq) => $hq->where('status', 'issue_later')))
             ->when($travelArrivalFrom !== '' || $travelArrivalTo !== '', function ($q) use ($travelArrivalFrom, $travelArrivalTo) {
-                $q->whereExists(function ($itineraryQuery) use ($travelArrivalFrom, $travelArrivalTo) {
-                    $itineraryQuery
-                        ->selectRaw('1')
-                        ->from('folder_itineraries as fi')
-                        ->whereColumn('fi.folder_id', 'folders.id')
-                        ->whereRaw(
-                            'fi.sr_no = (select min(fi2.sr_no) from folder_itineraries as fi2 where fi2.folder_id = folders.id)'
-                        )
-                        ->when($travelArrivalFrom !== '', fn ($sub) => $sub->whereDate('fi.departure_date', '>=', $travelArrivalFrom))
-                        ->when($travelArrivalTo !== '', fn ($sub) => $sub->whereDate('fi.arrival_date', '<=', $travelArrivalTo));
-                });
+                apply_folder_travel_date_filter($q, $travelArrivalFrom, $travelArrivalTo);
             })
             ->when($search !== '', function ($q) use ($search) {
                 $q->where(function ($searchQuery) use ($search) {

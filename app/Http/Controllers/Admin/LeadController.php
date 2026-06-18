@@ -2,9 +2,11 @@
 
 namespace App\Http\Controllers\Admin;
 
+use App\Http\Controllers\Concerns\ChecksLeadDuplicates;
 use App\Http\Controllers\Concerns\ResolvesClosedLeadsChart;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\AssignLeadRequest;
+use App\Http\Requests\CheckLeadDuplicateRequest;
 use App\Http\Requests\StoreLeadRequest;
 use App\Http\Requests\UpdateLeadRequest;
 use App\Models\Company;
@@ -13,105 +15,46 @@ use App\Models\Lead;
 use App\Models\User;
 use App\Services\AgentWebPushService;
 use App\Notifications\LeadAssignedNotification;
+use App\Services\LeadCsvExporter;
+use App\Support\LeadListingQuery;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 use Throwable;
 
 class LeadController extends Controller
 {
+    use ChecksLeadDuplicates;
     use ResolvesClosedLeadsChart;
 
     public function __construct()
     {
-        $this->middleware('can:leads.access')->only(['index', 'show']);
+        $this->middleware('can:leads.access')->only(['index', 'show', 'export']);
         $this->middleware('role:super-admin')->only(['create', 'store', 'edit', 'update', 'destroy']);
     }
 
     public function index(Request $request): View
     {
-        $search = trim((string) $request->query('search', ''));
-        $agentId = $request->integer('agent_id') ?: null;
-        $companyId = $request->integer('company_id') ?: null;
-        $source = trim((string) $request->query('source', ''));
-        $status = trim((string) $request->query('status', ''));
-        $dateFilter = resolveLeadDateRangeFilter(
-            (string) $request->query('date_range', ''),
-            (string) $request->query('start_date', ''),
-            (string) $request->query('end_date', ''),
-            'year',
-        );
-        $dateRange = $dateFilter['range'];
-        $startDate = $dateFilter['startDate'];
-        $endDate = $dateFilter['endDate'];
-        $startBound = $dateFilter['start'];
-        $endBound = $dateFilter['end'];
-        $selectedDateFilterLabel = $dateFilter['label'];
+        $filters = LeadListingQuery::adminFilters($request);
+        $leadsQuery = $filters['query'];
 
-        $leadsQuery = Lead::query()
-            ->with(['agent', 'company', 'destination'])
-            ->latest();
-
-        if ($agentId !== null) {
-            $leadsQuery->where('agent_id', $agentId);
-        }
-
-        if ($companyId !== null) {
-            $leadsQuery->where('company_id', $companyId);
-        }
-
-        if ($source !== '') {
-            $leadsQuery->where('source', $source);
-        }
-
-        if ($status !== '') {
-            $leadsQuery->where('status', $status);
-        }
-
-        if ($startBound !== null && $endBound !== null) {
-            $leadsQuery->whereBetween('created_at', [$startBound, $endBound]);
-        }
-
-        if ($search !== '') {
-            $leadsQuery->where(function ($query) use ($search): void {
-                $query
-                    ->where('customer_name', 'like', '%'.$search.'%')
-                    ->orWhere('phone_number', 'like', '%'.$search.'%')
-                    ->orWhere('email', 'like', '%'.$search.'%');
-            });
-        }
-
-        $leads = $leadsQuery
+        $leads = (clone $leadsQuery)
             ->paginate(30)
             ->withQueryString();
 
-        $statsQuery = Lead::query();
-        if ($agentId !== null) {
-            $statsQuery->where('agent_id', $agentId);
-        }
-        if ($companyId !== null) {
-            $statsQuery->where('company_id', $companyId);
-        }
-        if ($source !== '') {
-            $statsQuery->where('source', $source);
-        }
-        if ($status !== '') {
-            $statsQuery->where('status', $status);
-        }
-        if ($startBound !== null && $endBound !== null) {
-            $statsQuery->whereBetween('created_at', [$startBound, $endBound]);
-        }
-        if ($search !== '') {
-            $statsQuery->where(function ($query) use ($search): void {
-                $query
-                    ->where('customer_name', 'like', '%'.$search.'%')
-                    ->orWhere('phone_number', 'like', '%'.$search.'%')
-                    ->orWhere('email', 'like', '%'.$search.'%');
-            });
-        }
+        $statsQuery = LeadListingQuery::adminStatsQuery(
+            $filters['search'],
+            $filters['agent_id'],
+            $filters['company_id'],
+            $filters['source'],
+            $filters['status'],
+            $filters['start_bound'],
+            $filters['end_bound'],
+        );
 
         $totalLeads = (clone $statsQuery)->count();
         $totalClosed = (clone $statsQuery)->where('status', Lead::STATUS_SALE_DONE)->count();
@@ -123,31 +66,31 @@ class LeadController extends Controller
             : 0;
 
         [$chartStart, $chartEnd, $chartGroupByMonth] = performanceChartDateRange(
-            $dateRange,
-            $startBound,
-            $endBound,
+            $filters['date_range'],
+            $filters['start_bound'],
+            $filters['end_bound'],
         );
 
         $closedLeadsChart = buildClosedLeadsChartData(
             $chartStart,
             $chartEnd,
             $chartGroupByMonth,
-            $source !== '' ? $source : null,
-            $agentId,
-            $companyId,
+            $filters['source'] !== '' ? $filters['source'] : null,
+            $filters['agent_id'],
+            $filters['company_id'],
         );
 
         return view('admin.leads.index', [
             'leads' => $leads,
-            'search' => $search,
-            'selectedAgentId' => $agentId,
-            'selectedCompanyId' => $companyId,
-            'selectedSource' => $source,
-            'selectedStatus' => $status,
-            'selectedDateRange' => $dateRange,
-            'selectedStartDate' => $startDate,
-            'selectedEndDate' => $endDate,
-            'selectedDateFilterLabel' => $selectedDateFilterLabel,
+            'search' => $filters['search'],
+            'selectedAgentId' => $filters['agent_id'],
+            'selectedCompanyId' => $filters['company_id'],
+            'selectedSource' => $filters['source'],
+            'selectedStatus' => $filters['status'],
+            'selectedDateRange' => $filters['date_range'],
+            'selectedStartDate' => $filters['start_date'],
+            'selectedEndDate' => $filters['end_date'],
+            'selectedDateFilterLabel' => $filters['date_label'],
             'companies' => Company::query()->orderBy('name')->get(['id', 'name']),
             'statuses' => Lead::statusLabels(),
             'agents' => User::role(User::ROLE_AGENT)->orderBy('name')->get(['id', 'name', 'company_id']),
@@ -158,12 +101,20 @@ class LeadController extends Controller
             'totalFailed' => $totalFailed,
             'leadsSuccessRatePercent' => $leadsSuccessRatePercent,
             'closedLeadsChart' => $closedLeadsChart,
-            'chartDateLabel' => $selectedDateFilterLabel,
-            'chartDateRange' => $dateRange,
-            'chartStartDate' => $startDate,
-            'chartEndDate' => $endDate,
-            'chartSource' => $source,
+            'chartDateLabel' => $filters['date_label'],
+            'chartDateRange' => $filters['date_range'],
+            'chartStartDate' => $filters['start_date'],
+            'chartEndDate' => $filters['end_date'],
+            'chartSource' => $filters['source'],
         ]);
+    }
+
+    public function export(Request $request, LeadCsvExporter $exporter): StreamedResponse
+    {
+        $filters = LeadListingQuery::adminFilters($request);
+        $leads = (clone $filters['query'])->get();
+
+        return $exporter->download($leads, LeadCsvExporter::CONTEXT_ADMIN);
     }
 
     public function closedLeadsChart(Request $request): JsonResponse
@@ -171,9 +122,22 @@ class LeadController extends Controller
         return $this->closedLeadsChartResponse($request);
     }
 
+    public function checkDuplicate(CheckLeadDuplicateRequest $request): JsonResponse
+    {
+        return $this->checkDuplicateLeadResponse($request, 'admin.leads.show');
+    }
+
     public function assign(AssignLeadRequest $request): RedirectResponse
     {
         $data = $request->validated();
+
+        if ($redirect = $this->redirectIfDuplicateLeadWithoutConfirmation(
+            $request,
+            $data['email'] ?? null,
+            $data['phone_number'],
+        )) {
+            return $redirect;
+        }
 
         $destinationId = Destination::query()->value('id');
         if ($destinationId === null) {

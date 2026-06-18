@@ -172,7 +172,7 @@ class AgentController extends Controller
         try {
             $customStart = $request->filled('start_date') ? Carbon::parse((string) $request->input('start_date')) : null;
             $customEnd = $request->filled('end_date') ? Carbon::parse((string) $request->input('end_date')) : null;
-        } catch (\Throwable) {
+        } catch (Throwable) {
             $customStart = null;
             $customEnd = null;
         }
@@ -263,7 +263,7 @@ class AgentController extends Controller
 
         $assignable = Permission::query()
             ->where('guard_name', 'web')
-            ->where('name', '!=', 'agents.manage')
+            ->whereIn('name', User::assignableAgentPermissionNames())
             ->orderBy('name')
             ->get()
             ->map(fn (Permission $p) => [
@@ -289,7 +289,7 @@ class AgentController extends Controller
 
         try {
             $permissions = collect($request->input('permissions', []))
-                ->reject(fn (string $name) => $name === 'agents.manage')
+                ->intersect(User::assignableAgentPermissionNames())
                 ->values()
                 ->all();
 
@@ -347,7 +347,15 @@ class AgentController extends Controller
 
     private function permissionLabel(string $name): string
     {
-        return (string) str($name)->replace(['.', '-'], ' ')->headline();
+        return match ($name) {
+            'dashboard.access' => 'Dashboard Access',
+            'leads.access' => 'Leads Access',
+            'leads.create' => 'Leads Create',
+            'folders.access' => 'Folders Access',
+            'folders.edit' => 'Folder Edit',
+            'folders.edit_locked' => 'Edit Locked Folders',
+            default => (string) str($name)->replace(['.', '-'], ' ')->headline(),
+        };
     }
 
     /**

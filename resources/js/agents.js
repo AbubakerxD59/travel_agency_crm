@@ -166,12 +166,22 @@ function ensureEmptyStateRowVisible() {
     tb.appendChild(tr);
 }
 
-function agentActionButtonsInnerHtml(agentId) {
+function agentIdCardActionHtml(photoUrl) {
+    if (!photoUrl) {
+        return '';
+    }
+    return `<a href="${escapeHtml(photoUrl)}" class="agent-row-action inline-flex cursor-pointer rounded-lg p-2 text-concierge-muted transition hover:bg-slate-100 hover:text-concierge-navy" title="View ID card" aria-label="View ID card">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="m2.25 15.75 5.159-5.159a2.25 2.25 0 0 1 3.182 0l5.159 5.159m-1.5-1.5 1.409-1.409a2.25 2.25 0 0 1 3.182 0l2.909 2.909m-18 3.75h16.5a1.5 1.5 0 0 0 1.5-1.5V6a1.5 1.5 0 0 0-1.5-1.5H3.75A1.5 1.5 0 0 0 2.25 6v12a1.5 1.5 0 0 0 1.5 1.5Zm10.5-11.25h.008v.008h-.008V8.25Zm.375 0a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Z" /></svg>
+        </a>`;
+}
+
+function agentActionButtonsInnerHtml(agentId, photoUrl = null) {
     const id = String(agentId);
     const isSelf = id === String(currentUserId());
     const delDisabled = isSelf ? ' disabled' : '';
     const delTitle = isSelf ? 'You cannot delete your own account' : 'Delete';
     return `<div class="inline-flex flex-wrap items-center justify-end gap-1">
+        ${agentIdCardActionHtml(photoUrl)}
         <button type="button" class="agent-row-action cursor-pointer rounded-lg p-2 text-concierge-muted transition hover:bg-slate-100 hover:text-concierge-navy" data-edit-agent="${id}" title="Edit">
             <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931zm0 0L19.5 7.125" /></svg>
         </button>
@@ -245,7 +255,7 @@ function buildAgentRow(agent) {
     if (canManageAgents()) {
         const tdAct = document.createElement('td');
         tdAct.className = 'px-6 py-4 text-right';
-        tdAct.innerHTML = agentActionButtonsInnerHtml(agent.id);
+        tdAct.innerHTML = agentActionButtonsInnerHtml(agent.id, agent.agent_cnic_photo_url ?? null);
         tr.appendChild(tdAct);
     }
 
@@ -300,6 +310,9 @@ function updateAgentRowFromPayload(agent) {
         pill.textContent = formatRoleLabel(agent.role);
     }
     cells[6].textContent = agent.created_at ?? '';
+    if (canManageAgents() && cells[7]) {
+        cells[7].innerHTML = agentActionButtonsInnerHtml(agent.id, agent.agent_cnic_photo_url ?? null);
+    }
 }
 
 function appendAgentRowFromPayload(agent) {

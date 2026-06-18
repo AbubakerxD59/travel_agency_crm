@@ -49,10 +49,13 @@ function initFolderDateRangePicker() {
                 if (selectedDates.length >= 2) {
                     toInput.value = instance.formatDate(selectedDates[1], 'Y-m-d');
                     rangeInput.value = `${instance.formatDate(selectedDates[0], 'd M Y')} to ${instance.formatDate(selectedDates[1], 'd M Y')}`;
+
                     return;
                 }
 
-                toInput.value = '';
+                const singleDate = instance.formatDate(selectedDates[0], 'Y-m-d');
+                fromInput.value = singleDate;
+                toInput.value = singleDate;
                 rangeInput.value = instance.formatDate(selectedDates[0], 'd M Y');
             },
         });

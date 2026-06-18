@@ -15,6 +15,7 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Arr;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\Rule;
@@ -24,6 +25,18 @@ use Throwable;
 
 class FolderController extends Controller
 {
+    public function __construct()
+    {
+        $this->middleware('can:folders.edit')->only([
+            'create',
+            'store',
+            'edit',
+            'update',
+            'destroy',
+            'saveSectionDraft',
+        ]);
+    }
+
     public function index(Request $request): View
     {
         $params = $this->agentFolderFilterParams($request);
@@ -57,6 +70,7 @@ class FolderController extends Controller
             'selectedTravelArrivalTo' => $params['travelArrivalTo'],
             'selectedBookingStatus' => $params['bookingStatus'],
             'destinations' => Destination::query()->orderBy('name')->get(['id', 'name']),
+            'canEditFolders' => $request->user()->can('folders.edit'),
         ]);
     }
 
@@ -93,6 +107,7 @@ class FolderController extends Controller
             'selectedOrderType' => $params['orderType'],
             'selectedBookingStatus' => $params['bookingStatus'],
             'destinations' => Destination::query()->orderBy('name')->get(['id', 'name']),
+            'canEditFolders' => $request->user()->can('folders.edit'),
         ]);
     }
 
@@ -145,13 +160,18 @@ class FolderController extends Controller
             abort(404);
         }
 
+        $folder = null;
+        if ($request->filled('folder_id')) {
+            $folder = Folder::query()->find($request->integer('folder_id'));
+            if ($folder !== null) {
+                $this->authorizeAgentFolderEdit($request, $folder);
+            }
+        }
+
         if ($section === 'payments') {
             $payments = folder_filter_non_empty_payment_rows($request->input('payments'));
-            if ($request->filled('folder_id')) {
-                $folder = Folder::query()->find($request->integer('folder_id'));
-                if ($folder !== null && (int) $folder->agent_id === (int) $request->user()->id) {
-                    $payments = folder_strip_locked_payment_rows($folder, $payments);
-                }
+            if ($folder !== null) {
+                $payments = folder_strip_locked_payment_rows($folder, $payments);
             }
             $request->merge(['payments' => $payments]);
         }
@@ -229,9 +249,7 @@ class FolderController extends Controller
 
     public function edit(Folder $folder): View
     {
-        if ((int) $folder->agent_id !== (int) request()->user()->id) {
-            abort(404);
-        }
+        $this->authorizeAgentFolderEdit(request(), $folder);
 
         $folder->load(['itineraries', 'passengers', 'packageCosts', 'hotelDetails', 'transportDetails', 'visaDetails', 'otherDetails', 'payments']);
         $drafts = $this->draftSections(request());
@@ -354,9 +372,7 @@ class FolderController extends Controller
 
     public function update(Request $request, Folder $folder): RedirectResponse
     {
-        if ((int) $folder->agent_id !== (int) $request->user()->id) {
-            abort(404);
-        }
+        $this->authorizeAgentFolderEdit($request, $folder);
 
         $validated = $this->validateFolder($this->mergeWithDraftSections($request), $request, $folder);
         [$flashType, $flashMessage, $savedFolder] = $this->persistFolder($validated, $folder);
@@ -378,9 +394,7 @@ class FolderController extends Controller
 
     public function destroy(Request $request, Folder $folder): RedirectResponse
     {
-        if ((int) $folder->agent_id !== (int) $request->user()->id) {
-            abort(404);
-        }
+        $this->authorizeAgentFolderEdit($request, $folder);
 
         try {
             $folder->delete();
@@ -565,7 +579,7 @@ class FolderController extends Controller
                 $agentId = $folder === null
                     ? request()->user()?->getAuthIdentifier()
                     : ($validated['agent_id'] ?? $folder->agent_id);
-                $agentName = \App\Models\User::withTrashed()
+                $agentName = User::withTrashed()
                     ->whereKey($agentId)
                     ->value('name');
 
@@ -683,17 +697,7 @@ class FolderController extends Controller
             ->when($bookingStatus === 'incomplete', fn ($q) => $q->whereHas('hotelDetails', fn ($hq) => $hq->where('status', 'issue_later')))
             ->when($bookingStatus === 'successful', fn ($q) => $q->whereDoesntHave('hotelDetails', fn ($hq) => $hq->where('status', 'issue_later')))
             ->when($travelArrivalFrom !== '' || $travelArrivalTo !== '', function ($q) use ($travelArrivalFrom, $travelArrivalTo) {
-                $q->whereExists(function ($itineraryQuery) use ($travelArrivalFrom, $travelArrivalTo) {
-                    $itineraryQuery
-                        ->selectRaw('1')
-                        ->from('folder_itineraries as fi')
-                        ->whereColumn('fi.folder_id', 'folders.id')
-                        ->whereRaw(
-                            'fi.sr_no = (select min(fi2.sr_no) from folder_itineraries as fi2 where fi2.folder_id = folders.id)'
-                        )
-                        ->when($travelArrivalFrom !== '', fn ($sub) => $sub->whereDate('fi.departure_date', '>=', $travelArrivalFrom))
-                        ->when($travelArrivalTo !== '', fn ($sub) => $sub->whereDate('fi.arrival_date', '<=', $travelArrivalTo));
-                });
+                apply_folder_travel_date_filter($q, $travelArrivalFrom, $travelArrivalTo);
             })
             ->when($search !== '', function ($q) use ($search) {
                 $q->where(function ($searchQuery) use ($search) {
@@ -706,7 +710,7 @@ class FolderController extends Controller
     }
 
     /**
-     * @return \Illuminate\Support\Collection<int, Company>
+     * @return Collection<int, Company>
      */
     private function companiesForAgentFolderForm(?User $agent)
     {
@@ -720,5 +724,18 @@ class FolderController extends Controller
             ->whereKey($companyId)
             ->orderBy('name')
             ->get();
+    }
+
+    private function authorizeAgentFolderEdit(Request $request, Folder $folder): void
+    {
+        if ((int) $folder->agent_id !== (int) $request->user()->id) {
+            abort(404);
+        }
+
+        if (! user_can_edit_folder($request->user(), $folder)) {
+            abort(403, folder_is_locked($folder)
+                ? __('This folder is locked. You do not have permission to edit locked folders.')
+                : __('You do not have permission to edit folders.'));
+        }
     }
 }

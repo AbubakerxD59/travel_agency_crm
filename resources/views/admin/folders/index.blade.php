@@ -147,6 +147,10 @@
                                 <td class="px-4 py-4 text-right lg:px-6">
                                     <div class="inline-flex items-center justify-end gap-1 whitespace-nowrap">
                                         @if ($canManageFolders ?? false)
+                                            @include('partials.folders.folder-lock-action', [
+                                                'folder' => $folder,
+                                                'canToggle' => true,
+                                            ])
                                             <a href="{{ route('admin.folders.edit', $folder) }}"
                                                 class="lead-row-action inline-flex cursor-pointer rounded-lg p-2 text-concierge-muted transition hover:bg-slate-100 hover:text-concierge-navy"
                                                 title="Edit" aria-label="Edit">
@@ -162,6 +166,7 @@
                                             'folder' => $folder,
                                             'routeName' => 'admin.folders.invoice',
                                         ])
+                                        @include('partials.folders.transportation-voucher-action')
                                         <a href="{{ route('admin.folders.show', $folder) }}"
                                             class="lead-row-action inline-flex cursor-pointer rounded-lg p-2 text-concierge-muted transition hover:bg-slate-100 hover:text-concierge-accent"
                                             title="View" aria-label="View">

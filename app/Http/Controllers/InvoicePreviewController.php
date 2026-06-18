@@ -30,6 +30,7 @@ class InvoicePreviewController extends Controller
 
         return [
             'direct_line' => config('invoice.company.phone'),
+            'agent_email' => config('invoice.company.email'),
             'company' => config('invoice.company'),
             'booking_date' => format_invoice_date(Carbon::parse('2026-02-08')),
             'invoice_number' => '4109',

@@ -151,6 +151,9 @@
                         class="inline-flex cursor-pointer items-center justify-center rounded-xl bg-concierge-navy px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-concierge-navy-deep">
                         Apply
                     </button>
+                    @include('partials.leads.export-action', [
+                        'exportUrl' => route('admin.leads.export', request()->except('page')),
+                    ])
                     @if (
                         $search !== '' ||
                             $selectedAgentId ||
@@ -317,9 +320,12 @@
                 </div>
 
                 <form id="assign-lead-form" method="POST" action="{{ route('admin.leads.assign') }}"
+                    data-lead-duplicate-check="{{ route('admin.leads.check-duplicate') }}"
+                    data-lead-duplicate-create="1" data-lead-duplicate-submit="#assign-lead-submit-btn"
                     class="space-y-4 px-6 py-5">
                     @csrf
                     <input type="hidden" name="_method" id="assign_lead_form_method" value="">
+                    <input type="hidden" name="confirm_duplicate" value="0">
                     <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
                         <div>
                             <label for="assign_company_id" class="block text-sm font-medium text-concierge-navy">Company
@@ -430,7 +436,7 @@
 @endsection
 
 @push('scripts')
-    @vite(['resources/js/admin-leads-filters.js', 'resources/js/leads-closed-chart.js'])
+    @vite(['resources/js/admin-leads-filters.js', 'resources/js/leads-closed-chart.js', 'resources/js/lead-duplicate-check.js'])
     <script>
         const assignLeadModal = document.getElementById('assign-lead-modal');
         const openAssignLeadModalBtn = document.getElementById('open-assign-lead-modal');
@@ -510,6 +516,7 @@
                 setButtonLoading(assignLeadSubmitBtn, false);
             }
             assignLeadForm.reset();
+            assignLeadForm.dispatchEvent(new CustomEvent('lead-duplicate-reset'));
             filterAssignLeadAgents(false);
         }
 
@@ -584,7 +591,7 @@
 
         assignCompanySelect?.addEventListener('change', () => filterAssignLeadAgents(false));
 
-        @if ($errors->any())
+        @if ($errors->any() || (session('error') && old('phone_number')))
             openAssignLeadModal();
             filterAssignLeadAgents();
         @endif

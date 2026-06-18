@@ -2,8 +2,8 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
@@ -95,6 +95,7 @@ class Folder extends Model
         'balance_due_date',
         'makkah_ziarat',
         'madinah_ziarat',
+        'lock',
     ];
 
     protected $appends = [
@@ -109,7 +110,13 @@ class Folder extends Model
             'balance_due_date' => 'date',
             'makkah_ziarat' => 'boolean',
             'madinah_ziarat' => 'boolean',
+            'lock' => 'boolean',
         ];
+    }
+
+    public function isLocked(): bool
+    {
+        return (bool) $this->lock;
     }
 
     /**
@@ -209,12 +216,12 @@ class Folder extends Model
      */
     public function costSummary(): array
     {
-        $totalSale = (float) $this->packageCosts->sum(fn($c) => (float) ($c->sell ?? 0));
-        $flightCost = (float) $this->packageCosts->sum(fn($c) => (float) ($c->total_cost ?? 0));
-        $hotelCost = (float) $this->hotelDetails->sum(fn($h) => (float) ($h->cost ?? 0));
-        $transportCost = (float) $this->transportDetails->sum(fn($t) => (float) ($t->cost ?? 0));
-        $visaCost = (float) $this->visaDetails->sum(fn($v) => (float) ($v->cost ?? 0));
-        $othersCost = (float) $this->otherDetails->sum(fn($o) => (float) ($o->cost ?? 0));
+        $totalSale = (float) $this->packageCosts->sum(fn ($c) => (float) ($c->sell ?? 0));
+        $flightCost = (float) $this->packageCosts->sum(fn ($c) => (float) ($c->total_cost ?? 0));
+        $hotelCost = (float) $this->hotelDetails->sum(fn ($h) => (float) ($h->cost ?? 0));
+        $transportCost = (float) $this->transportDetails->sum(fn ($t) => (float) ($t->cost ?? 0));
+        $visaCost = (float) $this->visaDetails->sum(fn ($v) => (float) ($v->cost ?? 0));
+        $othersCost = (float) $this->otherDetails->sum(fn ($o) => (float) ($o->cost ?? 0));
         $margin = $totalSale - $flightCost - $hotelCost - $transportCost - $visaCost - $othersCost;
 
         return [
@@ -230,6 +237,6 @@ class Folder extends Model
 
     public function getStatusAttribute(): string
     {
-        return $this->hotelDetails->some(fn($h) => $h->status === 'issue_later') ? 'Incomplete' : 'Successful';
+        return $this->hotelDetails->some(fn ($h) => $h->status === 'issue_later') ? 'Incomplete' : 'Successful';
     }
 }

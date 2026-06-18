@@ -23,12 +23,14 @@
 
         @if ($filterFolderId)
             <p class="mt-4 text-sm text-concierge-muted">Filtered to folder #{{ $filterFolderId }}.
-                <a href="{{ route('admin.folder-payments.index') }}" class="font-medium text-concierge-navy underline">Show
-                    all payments</a>
+                <a href="{{ route('admin.folder-payments.index', request()->except('folder_id')) }}"
+                    class="font-medium text-concierge-navy underline">Show all payments</a>
             </p>
         @endif
 
-        <div class="mt-8 overflow-x-auto rounded-2xl border border-slate-200/80 bg-white shadow-sm">
+        @include('partials.folders.admin-folder-payment-list-filters')
+
+        <div class="mt-6 overflow-x-auto rounded-2xl border border-slate-200/80 bg-white shadow-sm">
             <table class="min-w-[960px] w-full border-collapse text-xs sm:text-sm">
                 <thead>
                     <tr class="bg-slate-100 text-left text-concierge-muted">
@@ -118,7 +120,12 @@
                     @empty
                         <tr>
                             <td class="border border-slate-200 px-4 py-8 text-center text-concierge-muted" colspan="11">
-                                No payments recorded.</td>
+                                @if (($search ?? '') !== '' || ($selectedAgentId ?? null) || ($selectedPaymentDate ?? '') !== '' || ($selectedStatus ?? '') !== '' || ($filterFolderId ?? null))
+                                    No payments match your filters.
+                                @else
+                                    No payments recorded.
+                                @endif
+                            </td>
                         </tr>
                     @endforelse
                 </tbody>
@@ -130,3 +137,7 @@
         @endif
     </div>
 @endsection
+
+@push('scripts')
+    @vite(['resources/js/admin-folder-payments-filters.js'])
+@endpush

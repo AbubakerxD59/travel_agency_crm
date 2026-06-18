@@ -97,6 +97,7 @@ function initAgentNotificationPoller() {
 
     notificationIcon.addEventListener('click', () => {
         void leadAlertAudio.unlock();
+        void leadAlertAudio.ensureNotificationPermission();
 
         if (notificationDropdown.classList.contains('hidden')) {
             openDropdown();
@@ -191,6 +192,7 @@ function initAgentNotificationPoller() {
                     worker?.postMessage({
                         type: 'CONFIGURE',
                         pollUrl,
+                        alertTypes: ['lead_assigned', 'lead_reassigned'],
                     });
                 };
 
@@ -217,7 +219,7 @@ function initAgentNotificationPoller() {
 
     if ('serviceWorker' in navigator) {
         navigator.serviceWorker.addEventListener('message', (event) => {
-            if (event.data?.type !== 'AGENT_NOTIFICATION_POLL') {
+            if (event.data?.type !== 'NOTIFICATION_POLL') {
                 return;
             }
 

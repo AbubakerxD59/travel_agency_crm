@@ -3,21 +3,21 @@
 namespace App\Http\Controllers;
 
 use App\Models\Folder;
-use App\Services\FolderInvoiceViewData;
+use App\Services\FolderInvoicePdf;
 use Illuminate\Http\Request;
-use Illuminate\View\View;
+use Illuminate\Http\Response;
 
 class FolderInvoiceController extends Controller
 {
     public function __construct(
-        private readonly FolderInvoiceViewData $invoiceViewData,
+        private readonly FolderInvoicePdf $invoicePdf,
     ) {}
 
-    public function show(Request $request, Folder $folder): View
+    public function show(Request $request, Folder $folder): Response
     {
         $this->authorizeFolderInvoice($request, $folder);
 
-        return view('invoices.travel', $this->invoiceViewData->build($folder));
+        return $this->invoicePdf->download($folder);
     }
 
     private function authorizeFolderInvoice(Request $request, Folder $folder): void

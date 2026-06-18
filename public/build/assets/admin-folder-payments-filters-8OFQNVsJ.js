@@ -1,0 +1,1 @@
+import{f as n}from"./flatpickr.min-Cc3t1Oke.js";function e(){const t=document.getElementById("payment-date-filter");t instanceof HTMLInputElement&&n(t,{dateFormat:"Y-m-d",altInput:!0,altFormat:"d M Y",allowInput:!1,defaultDate:t.value||null,position:"auto left"})}document.readyState==="loading"?document.addEventListener("DOMContentLoaded",e):e();

@@ -8,10 +8,12 @@
             <div>
                 <h1 class="text-2xl font-bold text-concierge-navy lg:text-3xl">Folder Management</h1>
             </div>
+            @if ($canEditFolders ?? auth()->user()?->can('folders.edit'))
             <a href="{{ route('agent.folders.create') }}"
                 class="inline-flex shrink-0 cursor-pointer items-center justify-center rounded-xl bg-concierge-navy px-5 py-2.5 text-sm font-semibold text-white shadow-md shadow-concierge-navy/25 transition hover:bg-concierge-navy-deep">
                 New Folder
             </a>
+            @endif
         </div>
 
         @if (session('status'))
@@ -130,6 +132,8 @@
                                 </td>
                                 <td class="px-4 py-4 text-right lg:px-6">
                                     <div class="inline-flex items-center justify-end gap-1 whitespace-nowrap">
+                                        @include('partials.folders.folder-lock-action', ['folder' => $folder])
+                                        @if (user_can_edit_folder(auth()->user(), $folder))
                                         <a href="{{ route('agent.folders.edit', $folder) }}"
                                             class="lead-row-action inline-flex cursor-pointer rounded-lg p-2 text-concierge-muted transition hover:bg-slate-100 hover:text-concierge-navy"
                                             title="Edit" aria-label="Edit">
@@ -140,10 +144,12 @@
                                                     d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931z" />
                                             </svg>
                                         </a>
+                                        @endif
                                         @include('partials.folders.invoice-action', [
                                             'folder' => $folder,
                                             'routeName' => 'agent.folders.invoice',
                                         ])
+                                        @include('partials.folders.transportation-voucher-action')
                                         <a href="{{ route('agent.folders.show', $folder) }}"
                                             class="lead-row-action inline-flex cursor-pointer rounded-lg p-2 text-concierge-muted transition hover:bg-slate-100 hover:text-concierge-accent"
                                             title="View" aria-label="View">

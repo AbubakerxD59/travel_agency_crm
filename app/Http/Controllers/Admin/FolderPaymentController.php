@@ -5,7 +5,9 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\UpdateFolderPaymentImageRequest;
 use App\Models\FolderPayment;
+use App\Models\User;
 use App\Support\FolderPaymentImageStorage;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
@@ -19,11 +21,12 @@ class FolderPaymentController extends Controller
 
     public function index(Request $request): View
     {
-        $folderId = $request->integer('folder_id') ?: null;
+        $params = $this->paymentFilterParams($request);
 
         $payments = FolderPayment::query()
-            ->with(['folder.agent', 'bank'])
-            ->when($folderId !== null, fn ($q) => $q->where('folder_id', $folderId))
+            ->with(['folder.agent', 'bank']);
+        $this->applyPaymentListFilters($payments, $params);
+        $payments = $payments
             ->orderByDesc('payment_date')
             ->orderByDesc('id')
             ->paginate(20)
@@ -31,7 +34,17 @@ class FolderPaymentController extends Controller
 
         return view('admin.folder-payments.index', [
             'payments' => $payments,
-            'filterFolderId' => $folderId,
+            'filterFolderId' => $params['folderId'],
+            'search' => $params['search'],
+            'selectedAgentId' => $params['agentId'],
+            'selectedPaymentDate' => $params['paymentDate'],
+            'selectedStatus' => $params['status'],
+            'agents' => User::role('agent')->orderBy('name')->get(['id', 'name']),
+            'statuses' => [
+                FolderPayment::STATUS_PENDING => 'Pending',
+                FolderPayment::STATUS_APPROVED => 'Approved',
+                FolderPayment::STATUS_REJECTED => 'Rejected',
+            ],
         ]);
     }
 
@@ -140,5 +153,76 @@ class FolderPaymentController extends Controller
         return redirect()
             ->back()
             ->with('status', __('Payment rejected and locked.'));
+    }
+
+    /**
+     * @return array{
+     *     folderId: ?int,
+     *     search: string,
+     *     agentId: ?int,
+     *     paymentDate: string,
+     *     status: string
+     * }
+     */
+    private function paymentFilterParams(Request $request): array
+    {
+        $folderId = $request->integer('folder_id') ?: null;
+        $search = trim((string) $request->string('search')->value());
+        $agentId = $request->integer('agent_id') ?: null;
+        $paymentDate = trim((string) $request->query('payment_date', ''));
+        $status = trim((string) $request->query('status', ''));
+
+        if (! preg_match('/^\d{4}-\d{2}-\d{2}$/', $paymentDate)) {
+            $paymentDate = '';
+        }
+
+        $validStatuses = [
+            FolderPayment::STATUS_PENDING,
+            FolderPayment::STATUS_APPROVED,
+            FolderPayment::STATUS_REJECTED,
+        ];
+
+        if ($status !== '' && ! in_array($status, $validStatuses, true)) {
+            $status = '';
+        }
+
+        return [
+            'folderId' => $folderId,
+            'search' => $search,
+            'agentId' => $agentId,
+            'paymentDate' => $paymentDate,
+            'status' => $status,
+        ];
+    }
+
+    /**
+     * @param  array{
+     *     folderId: ?int,
+     *     search: string,
+     *     agentId: ?int,
+     *     paymentDate: string,
+     *     status: string
+     * }  $params
+     */
+    private function applyPaymentListFilters(Builder $query, array $params): void
+    {
+        $query
+            ->when($params['folderId'] !== null, fn ($q) => $q->where('folder_id', $params['folderId']))
+            ->when($params['agentId'] !== null, fn ($q) => $q->whereHas(
+                'folder',
+                fn ($folderQuery) => $folderQuery->where('agent_id', $params['agentId']),
+            ))
+            ->when($params['paymentDate'] !== '', fn ($q) => $q->whereDate('payment_date', $params['paymentDate']))
+            ->when($params['status'] !== '', fn ($q) => $q->where('approval_status', $params['status']))
+            ->when($params['search'] !== '', function ($q) use ($params) {
+                $q->where(function ($searchQuery) use ($params) {
+                    $searchQuery
+                        ->where('reference_no', 'like', '%'.$params['search'].'%')
+                        ->orWhereHas(
+                            'folder',
+                            fn ($folderQuery) => $folderQuery->where('customer_name', 'like', '%'.$params['search'].'%'),
+                        );
+                });
+            });
     }
 }

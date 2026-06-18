@@ -120,6 +120,11 @@
                                 @if ($canManageAgents)
                                     <td class="px-6 py-4 text-right">
                                         <div class="inline-flex flex-wrap items-center justify-end gap-1">
+                                            @if ($agent->agentCnicPhotoUrl())
+                                                @include('partials.agents.id-card-action', [
+                                                    'url' => $agent->agentCnicPhotoUrl(),
+                                                ])
+                                            @endif
                                             <button type="button"
                                                 class="agent-row-action cursor-pointer rounded-lg p-2 text-concierge-muted transition hover:bg-slate-100 hover:text-concierge-navy"
                                                 data-edit-agent="{{ $agent->id }}" title="Edit">

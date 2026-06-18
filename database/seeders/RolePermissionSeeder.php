@@ -28,8 +28,12 @@ class RolePermissionSeeder extends Seeder
             'leads.access',
             'leads.create',
             'folders.access',
+            'folders.edit',
+            'folders.edit_locked',
             'companies.create',
             'companies.manage',
+            'abbreviations.create',
+            'abbreviations.manage',
         ];
 
         foreach ($permissions as $name) {
@@ -40,5 +44,19 @@ class RolePermissionSeeder extends Seeder
         Role::firstOrCreate(['name' => 'agent', 'guard_name' => 'web']);
         Role::firstOrCreate(['name' => 'manager', 'guard_name' => 'web']);
         $superAdmin->syncPermissions(Permission::all());
+
+        $removedFromAgents = [
+            'agents.create',
+            'companies.create',
+            'companies.manage',
+        ];
+
+        foreach (User::role('agent')->get() as $agent) {
+            $agent->revokePermissionTo($removedFromAgents);
+
+            if ($agent->can('folders.access') && ! $agent->hasPermissionTo('folders.edit')) {
+                $agent->givePermissionTo('folders.edit');
+            }
+        }
     }
 }
