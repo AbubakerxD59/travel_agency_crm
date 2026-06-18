@@ -70,7 +70,13 @@ function initAdminSidebar() {
         }
     }
 
-    const canHover = window.matchMedia('(hover: hover)').matches;
+    function useHoverDrawer() {
+        return (
+            useDrawerMode() &&
+            window.matchMedia('(hover: hover) and (min-width: 1024px)').matches
+        );
+    }
+
     let dismissedByClose = false;
     let closeTimer = null;
 
@@ -104,16 +110,24 @@ function initAdminSidebar() {
         setOpen(true);
     }
 
-    if (canHover) {
+    function toggleSidebarFromClick() {
+        if (!useDrawerMode() || useHoverDrawer()) {
+            return;
+        }
+
+        dismissedByClose = false;
+        cancelScheduledClose();
+        setOpen(!html.classList.contains('admin-sidebar-open'));
+    }
+
+    if (useHoverDrawer()) {
         toggle.addEventListener('mouseenter', openFromHover);
         toggle.addEventListener('mouseleave', scheduleClose);
         sidebar.addEventListener('mouseenter', openFromHover);
         sidebar.addEventListener('mouseleave', scheduleClose);
-    } else {
-        toggle.addEventListener('click', () => {
-            setOpen(!html.classList.contains('admin-sidebar-open'));
-        });
     }
+
+    toggle.addEventListener('click', toggleSidebarFromClick);
 
     overlay.addEventListener('click', dismissSidebar);
 
