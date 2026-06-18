@@ -22,7 +22,7 @@ function initAgentNotificationPoller() {
         return;
     }
 
-    const leadAlertAudio = new LeadAlertAudio(alertSoundUrl);
+    const paymentAlertAudio = new LeadAlertAudio(alertSoundUrl);
     let isPolling = false;
 
     function setUnreadUI(unreadCount) {
@@ -96,9 +96,6 @@ function initAgentNotificationPoller() {
     }
 
     notificationIcon.addEventListener('click', () => {
-        void leadAlertAudio.unlock();
-        void leadAlertAudio.ensureNotificationPermission();
-
         if (notificationDropdown.classList.contains('hidden')) {
             openDropdown();
             return;
@@ -126,7 +123,7 @@ function initAgentNotificationPoller() {
 
         const newItems = Array.isArray(payload.new_notifications) ? payload.new_notifications : [];
         if (newItems.length > 0) {
-            await leadAlertAudio.alertForNewLeadNotifications(newItems);
+            await paymentAlertAudio.alertForNewPaymentNotifications(newItems);
         }
     }
 
@@ -192,7 +189,7 @@ function initAgentNotificationPoller() {
                     worker?.postMessage({
                         type: 'CONFIGURE',
                         pollUrl,
-                        alertTypes: ['lead_assigned', 'lead_reassigned'],
+                        alertTypes: ['folder_payment_pending'],
                     });
                 };
 

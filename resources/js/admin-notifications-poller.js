@@ -83,7 +83,6 @@ function initAdminNotificationPoller() {
     }
 
     notificationIcon.addEventListener('click', () => {
-        void paymentAlertAudio.unlock();
         void paymentAlertAudio.ensureNotificationPermission();
 
         if (notificationDropdown.classList.contains('hidden')) {

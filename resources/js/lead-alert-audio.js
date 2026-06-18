@@ -81,15 +81,24 @@ export class LeadAlertAudio {
             this.htmlAudioPool.map(
                 (audio) =>
                     new Promise((resolve) => {
+                        const previousVolume = audio.volume;
+                        audio.volume = 0;
                         const playAttempt = audio.play();
                         if (playAttempt && typeof playAttempt.then === 'function') {
-                            playAttempt.then(() => {
-                                audio.pause();
-                                audio.currentTime = 0;
-                                resolve();
-                            }).catch(resolve);
+                            playAttempt
+                                .then(() => {
+                                    audio.pause();
+                                    audio.currentTime = 0;
+                                    audio.volume = previousVolume;
+                                    resolve();
+                                })
+                                .catch(() => {
+                                    audio.volume = previousVolume;
+                                    resolve();
+                                });
                             return;
                         }
+                        audio.volume = previousVolume;
                         resolve();
                     }),
             ),
@@ -234,7 +243,7 @@ export class LeadAlertAudio {
             const notification = new Notification(title, {
                 body,
                 tag: `lead-assigned-${item.id ?? Date.now()}`,
-                silent: false,
+                silent: true,
                 requireInteraction: false,
             });
 

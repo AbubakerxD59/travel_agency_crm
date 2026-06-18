@@ -6,7 +6,7 @@ const MAX_ALERTED_IDS = 100;
 
 let pollUrl = '';
 /** @type {Set<string>} */
-let alertTypes = new Set(['lead_assigned', 'lead_reassigned']);
+let alertTypes = new Set(['folder_payment_pending']);
 /** @type {Set<string>} */
 const alertedIds = new Set();
 /** @type {ReturnType<typeof setInterval> | null} */
@@ -42,7 +42,7 @@ self.addEventListener('push', (event) => {
         badge: DEFAULT_ICON,
         tag: payload.tag || 'lead-assigned',
         renotify: true,
-        silent: false,
+        silent: true,
         requireInteraction: false,
         data: {
             url: payload.url || '/',
@@ -174,7 +174,7 @@ async function showAlertNotification(item) {
         badge: DEFAULT_ICON,
         tag: content.tag,
         renotify: true,
-        silent: false,
+        silent: item.type !== 'folder_payment_pending',
         requireInteraction: false,
         data: {
             url: content.url,
