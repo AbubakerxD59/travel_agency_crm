@@ -166,6 +166,14 @@ function initAdminNotificationPoller() {
         pagePollIntervalId = null;
     }
 
+    function configureServiceWorker(worker) {
+        worker?.postMessage({
+            type: 'CONFIGURE',
+            pollUrl,
+            alertTypes: ['folder_payment_pending'],
+        });
+    }
+
     function registerServiceWorker() {
         if (!('serviceWorker' in navigator)) {
             return Promise.resolve(false);
@@ -173,29 +181,21 @@ function initAdminNotificationPoller() {
 
         return registerAppServiceWorker(serviceWorkerUrl)
             .then((registration) => {
-                const sendConfigure = (worker) => {
-                    worker?.postMessage({
-                        type: 'CONFIGURE',
-                        pollUrl,
-                        alertTypes: ['folder_payment_pending'],
-                    });
-                };
-
                 if (registration.active) {
-                    sendConfigure(registration.active);
+                    configureServiceWorker(registration.active);
                 }
 
                 registration.addEventListener('updatefound', () => {
                     const installing = registration.installing;
                     installing?.addEventListener('statechange', () => {
                         if (installing.state === 'activated') {
-                            sendConfigure(registration.active);
+                            configureServiceWorker(registration.active);
                         }
                     });
                 });
 
                 return navigator.serviceWorker.ready.then(() => {
-                    sendConfigure(registration.active);
+                    configureServiceWorker(registration.active);
                     return true;
                 });
             })
@@ -213,27 +213,20 @@ function initAdminNotificationPoller() {
     }
 
     void pollFromPage();
+    startPagePolling();
 
-    void registerServiceWorker().then((registered) => {
-        if (registered) {
-            stopPagePolling();
-            return;
-        }
-
-        startPagePolling();
-    });
+    void registerServiceWorker();
 
     document.addEventListener('visibilitychange', () => {
-        if (pagePollIntervalId === null) {
-            return;
+        if (!document.hidden && 'serviceWorker' in navigator) {
+            void navigator.serviceWorker.ready.then((registration) => {
+                configureServiceWorker(registration.active);
+            });
+            void pollFromPage();
         }
 
         stopPagePolling();
         startPagePolling();
-
-        if (!document.hidden) {
-            void pollFromPage();
-        }
     });
 }
 

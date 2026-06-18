@@ -6,7 +6,7 @@ const MAX_ALERTED_IDS = 100;
 
 let pollUrl = '';
 /** @type {Set<string>} */
-let alertTypes = new Set(['lead_assigned', 'lead_reassigned']);
+let alertTypes = new Set(['lead_assigned', 'lead_reassigned', 'folder_payment_pending']);
 /** @type {Set<string>} */
 const alertedIds = new Set();
 /** @type {ReturnType<typeof setInterval> | null} */
