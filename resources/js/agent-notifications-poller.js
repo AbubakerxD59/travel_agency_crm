@@ -22,7 +22,7 @@ function initAgentNotificationPoller() {
         return;
     }
 
-    const paymentAlertAudio = new LeadAlertAudio(alertSoundUrl);
+    const leadAlertAudio = new LeadAlertAudio(alertSoundUrl);
     let isPolling = false;
 
     function setUnreadUI(unreadCount) {
@@ -123,7 +123,7 @@ function initAgentNotificationPoller() {
 
         const newItems = Array.isArray(payload.new_notifications) ? payload.new_notifications : [];
         if (newItems.length > 0) {
-            await paymentAlertAudio.alertForNewPaymentNotifications(newItems);
+            await leadAlertAudio.alertForNewLeadNotifications(newItems);
         }
     }
 
@@ -189,7 +189,7 @@ function initAgentNotificationPoller() {
                     worker?.postMessage({
                         type: 'CONFIGURE',
                         pollUrl,
-                        alertTypes: ['folder_payment_pending'],
+                        alertTypes: ['lead_assigned', 'lead_reassigned'],
                     });
                 };
 
