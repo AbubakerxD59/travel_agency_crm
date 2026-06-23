@@ -4,6 +4,7 @@
 ])
 
 <a href="{{ route($routeName, $folder) }}"
+   data-invoice-download
    class="lead-row-action inline-flex cursor-pointer rounded-lg p-2 text-concierge-muted transition hover:bg-slate-100 hover:text-concierge-navy"
    title="Download invoice"
    aria-label="Download invoice">
