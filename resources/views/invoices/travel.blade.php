@@ -423,6 +423,8 @@
             font-size: var(--inv-text-base);
             font-weight: 400;
             line-height: var(--inv-leading);
+            page-break-before: always;
+            break-before: page;
         }
 
         .invoice-terms-pdf {
@@ -548,12 +550,6 @@
         .invoice-terms p:last-child,
         .invoice-terms ul:last-child {
             margin-bottom: 0;
-        }
-
-        @media print {
-            .invoice-terms {
-                page-break-before: auto;
-            }
         }
 
         .invoice-footer {
