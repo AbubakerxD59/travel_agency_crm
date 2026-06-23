@@ -841,6 +841,48 @@ function folder_itineraries_validation_rules(): array
 /**
  * @return array<string, list<ValidationRule|string>>
  */
+function folder_package_costs_validation_rules(): array
+{
+    return [
+        'package_costs' => ['nullable', 'array'],
+        'package_costs.*.ticket_no' => ['nullable', 'string', 'max:50'],
+        'package_costs.*.ticket_date' => ['nullable', 'date'],
+        'package_costs.*.airline_from' => ['nullable', 'string', 'max:30'],
+        'package_costs.*.airline_to' => ['nullable', 'string', 'max:30'],
+        'package_costs.*.fare' => ['nullable', 'numeric', 'min:0'],
+        'package_costs.*.tax' => ['nullable', 'numeric', 'min:0'],
+        'package_costs.*.total_cost' => ['nullable', 'numeric', 'min:0'],
+        'package_costs.*.margin' => ['nullable', 'numeric', 'min:0'],
+        'package_costs.*.sell' => ['nullable', 'numeric', 'min:0'],
+        'package_costs.*.supplier' => ['nullable', 'string', 'max:100'],
+        'package_costs.*.pnr' => ['nullable', 'string', 'max:50'],
+    ];
+}
+
+/**
+ * @param  array<int, mixed>|null  $rows
+ * @return list<array<string, mixed>>
+ */
+function folder_filter_non_empty_package_cost_rows(?array $rows): array
+{
+    return folder_filter_rows_by_fields($rows, [
+        'ticket_no',
+        'ticket_date',
+        'airline_from',
+        'airline_to',
+        'fare',
+        'tax',
+        'total_cost',
+        'margin',
+        'sell',
+        'supplier',
+        'pnr',
+    ]);
+}
+
+/**
+ * @return array<string, list<ValidationRule|string>>
+ */
 function folder_hotel_details_validation_rules(): array
 {
     return [

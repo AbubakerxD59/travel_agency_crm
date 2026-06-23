@@ -206,6 +206,12 @@ class FolderController extends Controller
             ]);
         }
 
+        if ($section === 'package_costs') {
+            $request->merge([
+                'package_costs' => folder_filter_non_empty_package_cost_rows($request->input('package_costs')),
+            ]);
+        }
+
         $validator = Validator::make($request->all(), $rulesBySection[$section]);
         if ($validator->fails()) {
             return response()->json([
@@ -423,6 +429,7 @@ class FolderController extends Controller
         $payload['hotel_details'] = folder_filter_non_empty_hotel_detail_rows($payload['hotel_details'] ?? null);
         $payload['transport_details'] = folder_filter_non_empty_transport_detail_rows($payload['transport_details'] ?? null);
         $payload['visa_details'] = folder_filter_non_empty_visa_detail_rows($payload['visa_details'] ?? null);
+        $payload['package_costs'] = folder_filter_non_empty_package_cost_rows($payload['package_costs'] ?? null);
 
         $agentCompanyId = (int) ($request->user()?->company_id ?? 0);
         if ($agentCompanyId > 0) {
@@ -454,18 +461,7 @@ class FolderController extends Controller
             'passengers.*.phone' => ['required', 'string', 'max:30'],
             'passengers.*.date_of_birth' => ['nullable', 'date'],
             'passengers.*.passport_details' => ['nullable', 'string', 'max:255'],
-            'package_costs' => ['required', 'array', 'min:1'],
-            'package_costs.*.ticket_no' => ['nullable', 'string', 'max:50'],
-            'package_costs.*.ticket_date' => ['required', 'date'],
-            'package_costs.*.airline_from' => ['required', 'string', 'max:30'],
-            'package_costs.*.airline_to' => ['required', 'string', 'max:30'],
-            'package_costs.*.fare' => ['required', 'numeric', 'min:0'],
-            'package_costs.*.tax' => ['nullable', 'numeric', 'min:0'],
-            'package_costs.*.total_cost' => ['required', 'numeric', 'min:0'],
-            'package_costs.*.margin' => ['required', 'numeric', 'min:0'],
-            'package_costs.*.sell' => ['required', 'numeric', 'min:0'],
-            'package_costs.*.supplier' => ['required', 'string', 'max:100'],
-            'package_costs.*.pnr' => ['required', 'string', 'max:50'],
+            ...folder_package_costs_validation_rules(),
             ...folder_hotel_details_validation_rules(),
             ...folder_transport_details_validation_rules(),
             ...folder_visa_details_validation_rules(),
@@ -547,20 +543,7 @@ class FolderController extends Controller
                 'passengers.*.date_of_birth' => ['nullable', 'date'],
                 'passengers.*.passport_details' => ['nullable', 'string', 'max:255'],
             ],
-            'package_costs' => [
-                'package_costs' => ['required', 'array', 'min:1'],
-                'package_costs.*.ticket_no' => ['nullable', 'string', 'max:50'],
-                'package_costs.*.ticket_date' => ['required', 'date'],
-                'package_costs.*.airline_from' => ['required', 'string', 'max:30'],
-                'package_costs.*.airline_to' => ['required', 'string', 'max:30'],
-                'package_costs.*.fare' => ['required', 'numeric', 'min:0'],
-                'package_costs.*.tax' => ['nullable', 'numeric', 'min:0'],
-                'package_costs.*.total_cost' => ['required', 'numeric', 'min:0'],
-                'package_costs.*.margin' => ['required', 'numeric', 'min:0'],
-                'package_costs.*.sell' => ['required', 'numeric', 'min:0'],
-                'package_costs.*.supplier' => ['required', 'string', 'max:100'],
-                'package_costs.*.pnr' => ['required', 'string', 'max:50'],
-            ],
+            'package_costs' => folder_package_costs_validation_rules(),
             'hotel_details' => folder_hotel_details_validation_rules(),
             'transport_details' => folder_transport_details_validation_rules(),
             'visa_details' => folder_visa_details_validation_rules(),

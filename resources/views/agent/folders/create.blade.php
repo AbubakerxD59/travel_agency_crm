@@ -483,8 +483,7 @@
                 <div class="space-y-3 rounded-2xl border border-slate-200/80 bg-slate-50/40 p-4 sm:p-5">
                     <div class="flex flex-wrap items-center justify-between gap-3">
                         <div class="inline-flex items-center gap-2">
-                            <h2 class="text-base font-semibold text-concierge-navy"><span class="text-rose-600">*</span>
-                                Ticket/Package Cost</h2>
+                            <h2 class="text-base font-semibold text-concierge-navy">Ticket/Package Cost</h2>
                             <button type="button" id="save-package-costs-section"
                                 class="inline-flex cursor-pointer items-center justify-center rounded-xl bg-emerald-600 px-3 py-2 text-xs font-semibold text-white hover:bg-emerald-700"
                                 title="Save Ticket/Package Cost">
@@ -515,25 +514,16 @@
                                 <tr class="bg-slate-100 text-left text-concierge-muted">
                                     <th class="border border-slate-200 px-2 py-2">Action</th>
                                     <th class="border border-slate-200 px-2 py-2">Ticket no</th>
-                                    <th class="border border-slate-200 px-2 py-2"><span class="text-rose-600">*</span>
-                                        Ticket date</th>
-                                    <th class="border border-slate-200 px-2 py-2"><span class="text-rose-600">*</span>
-                                        Airline from</th>
-                                    <th class="border border-slate-200 px-2 py-2"><span class="text-rose-600">*</span>
-                                        Airline to</th>
-                                    <th class="border border-slate-200 px-2 py-2"><span class="text-rose-600">*</span>
-                                        Fare</th>
+                                    <th class="border border-slate-200 px-2 py-2">Ticket date</th>
+                                    <th class="border border-slate-200 px-2 py-2">Airline from</th>
+                                    <th class="border border-slate-200 px-2 py-2">Airline to</th>
+                                    <th class="border border-slate-200 px-2 py-2">Fare</th>
                                     <th class="border border-slate-200 px-2 py-2">Tax</th>
-                                    <th class="border border-slate-200 px-2 py-2"><span class="text-rose-600">*</span>
-                                        Total cost</th>
-                                    <th class="border border-slate-200 px-2 py-2"><span class="text-rose-600">*</span>
-                                        Margin</th>
-                                    <th class="border border-slate-200 px-2 py-2"><span class="text-rose-600">*</span>
-                                        Sell</th>
-                                    <th class="border border-slate-200 px-2 py-2"><span class="text-rose-600">*</span>
-                                        Supplier</th>
-                                    <th class="border border-slate-200 px-2 py-2"><span class="text-rose-600">*</span>
-                                        PNR</th>
+                                    <th class="border border-slate-200 px-2 py-2">Total cost</th>
+                                    <th class="border border-slate-200 px-2 py-2">Margin</th>
+                                    <th class="border border-slate-200 px-2 py-2">Sell</th>
+                                    <th class="border border-slate-200 px-2 py-2">Supplier</th>
+                                    <th class="border border-slate-200 px-2 py-2">PNR</th>
                                 </tr>
                             </thead>
                             <tbody id="package-cost-rows">
@@ -552,7 +542,7 @@
                                         </td>
                                         <td class="border border-slate-200 px-2 py-2">
                                             <input type="date" name="package_costs[{{ $i }}][ticket_date]"
-                                                value="{{ data_get($row, 'ticket_date') }}" required
+                                                value="{{ data_get($row, 'ticket_date') }}"
                                                 class="w-36 rounded-lg border border-slate-200 bg-white px-2 py-1.5 text-sm">
                                         </td>
                                         <td class="border border-slate-200 px-2 py-2">
@@ -610,7 +600,6 @@
                             </tbody>
                         </table>
                     </div>
-                    <p class="text-xs text-concierge-muted">At least one ticket/package cost row is required.</p>
                 </div>
 
                 <div class="space-y-3 rounded-2xl border border-slate-200/80 bg-slate-50/40 p-4 sm:p-5">
@@ -1871,9 +1860,6 @@
                     input.className =
                         `${inputClass(sizeClass)} cursor-not-allowed bg-slate-50/80 text-slate-700`;
                 }
-                if (field === 'ticket_date') {
-                    input.required = true;
-                }
                 return input;
             }
 
@@ -2940,16 +2926,6 @@
                 'email',
                 'phone',
             ];
-            const packageRequiredFields = [
-                'airline_from',
-                'airline_to',
-                'fare',
-                'total_cost',
-                'margin',
-                'sell',
-                'supplier',
-                'pnr',
-            ];
 
             function removeFieldError(field) {
                 field.classList.remove('border-rose-500', 'ring-1', 'ring-rose-200');
@@ -3161,19 +3137,6 @@
                         'passengers')) {
                     event.preventDefault();
                     showError('Please complete required passenger fields.');
-                    return;
-                }
-
-                if (!sectionHasAtLeastOneFilledRow('#package-cost-rows .package-cost-row')) {
-                    event.preventDefault();
-                    showError('Please fill at least one ticket/package cost row.');
-                    return;
-                }
-
-                if (!validateRequiredRowFields('#package-cost-rows .package-cost-row', packageRequiredFields,
-                        'package_costs')) {
-                    event.preventDefault();
-                    showError('Please complete required ticket/package cost fields.');
                     return;
                 }
             });

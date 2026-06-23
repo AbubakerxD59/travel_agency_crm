@@ -13,6 +13,5 @@ return [
     /*
     | Legal entity name used in invoice terms & conditions.
     */
-    'terms_legal_name' => env('INVOICE_TERMS_LEGAL_NAME', 'Travigence Ltd'),
-
+    'terms_legal_name' => env('INVOICE_TERMS_LEGAL_NAME', 'Bukhari Travel Ltd T/A Haram Travel'),
 ];

@@ -414,13 +414,13 @@
         }
 
         .invoice-terms {
-            margin-top: calc(var(--inv-section-gap) + 4px);
+            margin: calc(var(--inv-section-gap) + 4px) 20px 0;
             padding-top: 14px;
             border-top: 1px solid #ccc;
             color: #111;
-            text-align: justify;
+            text-align: left;
             font-family: var(--inv-font);
-            font-size: var(--inv-text-xs);
+            font-size: var(--inv-text-base);
             font-weight: 400;
             line-height: var(--inv-leading);
         }
@@ -449,35 +449,46 @@
         }
 
         .invoice-terms__title {
-            margin: 0 0 8px;
+            margin: 0 0 10px;
             font-weight: 700;
-            font-size: var(--inv-text-sm);
-        }
-
-        .invoice-terms__heading {
-            margin: 10px 0 4px;
-            font-weight: 700;
-            font-size: var(--inv-text-xs);
-            letter-spacing: 0.04em;
+            font-size: var(--inv-text-md);
+            letter-spacing: 0.02em;
             text-transform: uppercase;
         }
 
-        .invoice-terms__subheading {
-            margin: 8px 0 4px;
+        .invoice-terms__heading {
+            margin: 14px 0 6px;
+            padding-top: 12px;
+            border-top: 1px solid #bbb;
             font-weight: 700;
-            font-size: var(--inv-text-xs);
+            font-size: calc(var(--inv-text-base) + 2px);
+            letter-spacing: 0.02em;
+            text-transform: uppercase;
+        }
+
+        .invoice-terms__heading:first-of-type {
+            margin-top: 8px;
+            padding-top: 0;
+            border-top: none;
+        }
+
+        .invoice-terms__subheading {
+            margin: 10px 0 4px;
+            font-weight: 700;
+            font-size: var(--inv-text-base);
+            text-transform: none;
         }
 
         .invoice-terms__disclaimer-title {
             margin: 10px 0 6px;
             font-weight: 700;
-            font-size: var(--inv-text-xs);
+            font-size: var(--inv-text-base);
         }
 
         .invoice-terms__acknowledgment {
             margin-top: 12px;
             font-style: italic;
-            font-size: var(--inv-text-xs);
+            font-size: var(--inv-text-base);
         }
 
         .invoice-terms__signature {
@@ -516,7 +527,7 @@
         }
 
         .invoice-terms__signature-date {
-            font-size: var(--inv-text-xs);
+            font-size: var(--inv-text-sm);
             color: #333;
             text-align: left;
         }
