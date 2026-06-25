@@ -83,19 +83,6 @@
             padding: 0;
         }
 
-        body.tv-pdf .tv-brand {
-            page-break-after: avoid;
-            break-after: avoid;
-            margin-bottom: 14px;
-        }
-
-        body.tv-pdf .tv-details {
-            page-break-before: avoid;
-            break-before: avoid;
-            page-break-inside: avoid;
-            break-inside: avoid;
-        }
-
         body.tv-pdf .tv-details__title {
             page-break-before: avoid;
             break-before: avoid;
