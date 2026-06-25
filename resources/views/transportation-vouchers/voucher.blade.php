@@ -318,6 +318,13 @@
             font-size: var(--inv-text-xs);
         }
 
+        .itinerary-bar + table.table-itinerary th:nth-child(4),
+        .itinerary-bar + table.table-itinerary td:nth-child(4),
+        .itinerary-bar + table.table-itinerary th:nth-child(6),
+        .itinerary-bar + table.table-itinerary td:nth-child(6) {
+            white-space: nowrap;
+        }
+
         .invoice-section-title-row th {
             text-align: center;
             font-weight: 700;
