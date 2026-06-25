@@ -318,15 +318,9 @@
             font-size: var(--inv-text-xs);
         }
 
-        .itinerary-bar + table.table-itinerary th:nth-child(3),
-        .itinerary-bar + table.table-itinerary td:nth-child(3),
-        .itinerary-bar + table.table-itinerary th:nth-child(4),
-        .itinerary-bar + table.table-itinerary td:nth-child(4),
-        .itinerary-bar + table.table-itinerary th:nth-child(6),
-        .itinerary-bar + table.table-itinerary td:nth-child(6),
-        .itinerary-bar + table.table-itinerary th:nth-child(8),
-        .itinerary-bar + table.table-itinerary td:nth-child(8) {
-            white-space: nowrap;
+        .tv-itinerary-nowrap,
+        body.tv-pdf .tv-itinerary-nowrap {
+            white-space: nowrap !important;
         }
 
         .invoice-section-title-row th {
@@ -559,12 +553,12 @@
                     <tr>
                         <th>Operated by</th>
                         <th>Flight No</th>
-                        <th>Departure Date</th>
-                        <th>Departure Time</th>
+                        <th class="tv-itinerary-nowrap">Departure Date</th>
+                        <th class="tv-itinerary-nowrap">Departure Time</th>
                         <th>From</th>
-                        <th>Arrival Time</th>
+                        <th class="tv-itinerary-nowrap">Arrival Time</th>
                         <th>To</th>
-                        <th>Arrival Date</th>
+                        <th class="tv-itinerary-nowrap">Arrival Date</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -572,12 +566,12 @@
                         <tr>
                             <td>{{ $leg['operated_by'] ?: '—' }}</td>
                             <td>{{ $leg['flight_no'] ?: '—' }}</td>
-                            <td>{{ $leg['departure_date'] ?: '—' }}</td>
-                            <td>{{ $leg['departure_time'] ?: '—' }}</td>
+                            <td class="tv-itinerary-nowrap">{{ $leg['departure_date'] ?: '—' }}</td>
+                            <td class="tv-itinerary-nowrap">{{ $leg['departure_time'] ?: '—' }}</td>
                             <td>{{ $leg['from'] ?: '—' }}</td>
-                            <td>{{ $leg['arrival_time'] ?: '—' }}</td>
+                            <td class="tv-itinerary-nowrap">{{ $leg['arrival_time'] ?: '—' }}</td>
                             <td>{{ $leg['to'] ?: '—' }}</td>
-                            <td>{{ $leg['arrival_date'] ?: '—' }}</td>
+                            <td class="tv-itinerary-nowrap">{{ $leg['arrival_date'] ?: '—' }}</td>
                         </tr>
                     @endforeach
                 </tbody>
