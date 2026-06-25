@@ -83,11 +83,15 @@
             padding: 0;
         }
 
-        body.tv-pdf .tv-details__title {
+        body.tv-pdf .tv-details__title,
+        body.tv-pdf .tv-logo-frame,
+        body.tv-pdf .tv-logo-inner {
             page-break-before: avoid;
             break-before: avoid;
             page-break-after: avoid;
             break-after: avoid;
+            page-break-inside: avoid;
+            break-inside: avoid;
         }
 
         @media print {
