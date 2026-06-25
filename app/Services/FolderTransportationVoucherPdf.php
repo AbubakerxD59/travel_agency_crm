@@ -14,7 +14,7 @@ class FolderTransportationVoucherPdf
 
     public function download(Folder $folder): Response
     {
-        $data = $this->voucherViewData->build($folder);
+        $data = $this->voucherViewData->build($folder, forPdf: true);
         $data['for_pdf'] = true;
 
         $pdf = Pdf::loadView('transportation-vouchers.voucher', $data)

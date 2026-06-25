@@ -16,7 +16,7 @@ class FolderTransportationVoucherViewData
     /**
      * @return array<string, mixed>
      */
-    public function build(Folder $folder): array
+    public function build(Folder $folder, bool $forPdf = false): array
     {
         $folder->load([
             'agent',
@@ -61,12 +61,12 @@ class FolderTransportationVoucherViewData
             'flight_itinerary' => $itineraries->map(fn ($leg) => [
                 'operated_by' => $this->abbreviations->display($leg->airline_code ?? ''),
                 'flight_no' => trim((string) ($leg->airline_number ?? '')),
-                'departure_date' => $this->formatFlightDate($leg->departure_date),
+                'departure_date' => $this->formatFlightDate($leg->departure_date, $forPdf),
                 'departure_time' => format_invoice_time($leg->departure_time),
                 'from' => $this->abbreviations->display($leg->departure_airport ?? ''),
                 'arrival_time' => format_invoice_time($leg->arrival_time),
                 'to' => $this->abbreviations->display($leg->arrival_airport ?? ''),
-                'arrival_date' => $this->formatFlightDate($leg->arrival_date),
+                'arrival_date' => $this->formatFlightDate($leg->arrival_date, $forPdf),
             ])->all(),
         ];
     }
@@ -89,13 +89,13 @@ class FolderTransportationVoucherViewData
         return Carbon::parse($date)->format('d-M-y');
     }
 
-    private function formatFlightDate(mixed $date): string
+    private function formatFlightDate(mixed $date, bool $compact = false): string
     {
         if ($date === null || $date === '') {
             return '';
         }
 
-        return Carbon::parse($date)->format('j F, Y');
+        return Carbon::parse($date)->format($compact ? 'd-M-y' : 'j F, Y');
     }
 
     private function leadGuestName(Folder $folder, mixed $leadPassenger): string

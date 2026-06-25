@@ -94,6 +94,11 @@
             break-inside: avoid;
         }
 
+        body.tv-pdf .tv-logo-frame {
+            border: 3px solid #f39c12;
+            background: #fff;
+        }
+
         @media print {
             body {
                 background: #fff;
@@ -323,6 +328,32 @@
             white-space: nowrap !important;
         }
 
+        .table-flight-itinerary {
+            table-layout: fixed;
+            width: 100%;
+        }
+
+        .table-flight-itinerary th {
+            white-space: normal;
+            padding: var(--inv-cell-padding-y) 3px;
+            font-size: 9pt;
+            letter-spacing: 0;
+        }
+
+        .table-flight-itinerary td {
+            padding: var(--inv-cell-padding-y) 3px;
+            text-align: center;
+        }
+
+        body.tv-pdf .table-flight-itinerary {
+            font-size: 8.5pt;
+        }
+
+        body.tv-pdf .table-flight-itinerary th,
+        body.tv-pdf .table-flight-itinerary td {
+            padding: 4px 2px;
+        }
+
         .invoice-section-title-row th {
             text-align: center;
             font-weight: 700;
@@ -548,7 +579,17 @@
 
         @if (!empty($flight_itinerary))
             <p class="itinerary-bar">Flight Itinerary</p>
-            <table class="table-itinerary">
+            <table class="table-itinerary table-flight-itinerary">
+                <colgroup>
+                    <col style="width: 15%">
+                    <col style="width: 8%">
+                    <col style="width: 13%">
+                    <col style="width: 12%">
+                    <col style="width: 10%">
+                    <col style="width: 12%">
+                    <col style="width: 10%">
+                    <col style="width: 20%">
+                </colgroup>
                 <thead>
                     <tr>
                         <th>Operated by</th>
