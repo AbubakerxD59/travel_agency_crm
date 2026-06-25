@@ -97,6 +97,24 @@
         body.tv-pdf .tv-logo-frame {
             border: 3px solid #f39c12;
             background: #fff;
+            display: inline-block;
+            height: auto;
+            line-height: 0;
+        }
+
+        body.tv-pdf .tv-logo-inner {
+            width: auto;
+            height: auto;
+            display: inline-block;
+            line-height: 0;
+        }
+
+        body.tv-pdf .tv-logo-inner img {
+            display: block;
+            width: auto;
+            height: auto;
+            max-width: 88px;
+            max-height: 88px;
         }
 
         @media print {
@@ -189,8 +207,8 @@
         }
 
         .tv-logo-inner {
-            width: 100%;
-            height: 100%;
+            display: inline-block;
+            line-height: 0;
         }
 
         .tv-logo-inner img {
