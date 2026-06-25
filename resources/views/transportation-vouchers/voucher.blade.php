@@ -41,6 +41,12 @@
 
         body.tv-pdf {
             background: #fff;
+            font-family: sans-serif;
+        }
+
+        body.tv-pdf .tv-page,
+        body.tv-pdf .invoice-terms {
+            font-family: sans-serif;
         }
 
         .tv-page {
@@ -75,6 +81,26 @@
             max-width: 100%;
             min-height: auto;
             padding: 0;
+        }
+
+        body.tv-pdf .tv-brand {
+            page-break-after: avoid;
+            break-after: avoid;
+            margin-bottom: 14px;
+        }
+
+        body.tv-pdf .tv-details {
+            page-break-before: avoid;
+            break-before: avoid;
+            page-break-inside: avoid;
+            break-inside: avoid;
+        }
+
+        body.tv-pdf .tv-details__title {
+            page-break-before: avoid;
+            break-before: avoid;
+            page-break-after: avoid;
+            break-after: avoid;
         }
 
         @media print {
@@ -201,18 +227,37 @@
 
         .tv-details__title {
             margin: 0 0 12px;
-            font-size: var(--inv-text-md);
+            font-size: 15px;
             font-weight: 700;
             letter-spacing: 0.06em;
             text-transform: uppercase;
         }
 
-        .tv-details__grid {
-            display: grid;
-            grid-template-columns: 170px 1fr;
-            gap: 8px 18px;
+        .tv-details__table {
+            width: 100%;
+            max-width: 520px;
+            border-collapse: collapse;
+            border-spacing: 0;
+            margin: 0 0 var(--inv-section-gap);
             font-size: var(--inv-text-base);
             line-height: var(--inv-leading);
+        }
+
+        .tv-details__table th,
+        .tv-details__table td {
+            border: none !important;
+            padding: 4px 0;
+            vertical-align: top;
+            text-align: left;
+            background: transparent;
+            font-weight: 400;
+            white-space: normal;
+        }
+
+        .tv-details__table th {
+            width: 170px;
+            padding-right: 18px;
+            font-weight: 700;
         }
 
         .tv-details__label {
@@ -453,22 +498,30 @@
         <section class="tv-details">
             <h2 class="tv-details__title">Transportation Voucher</h2>
 
-            <div class="tv-details__grid">
-                <div class="tv-details__label">Internal Ref No</div>
-                <div class="tv-details__value">{{ $internal_ref_no ?? '—' }}</div>
-
-                <div class="tv-details__label">Voucher Number</div>
-                <div class="tv-details__value">{{ $voucher_number ?? '—' }}</div>
-
-                <div class="tv-details__label">Lead Guest Name</div>
-                <div class="tv-details__value">{{ $lead_guest_name ?? '—' }}</div>
-
-                <div class="tv-details__label">Pax Mobile No</div>
-                <div class="tv-details__value">{{ $pax_mobile ?? '—' }}</div>
-
-                <div class="tv-details__label">No. Of Pax</div>
-                <div class="tv-details__value">{{ $pax_summary ?? '—' }}</div>
-            </div>
+            <table class="tv-details__table">
+                <tbody>
+                    <tr>
+                        <th class="tv-details__label">Internal Ref No</th>
+                        <td class="tv-details__value">{{ $internal_ref_no ?? '—' }}</td>
+                    </tr>
+                    <tr>
+                        <th class="tv-details__label">Voucher Number</th>
+                        <td class="tv-details__value">{{ $voucher_number ?? '—' }}</td>
+                    </tr>
+                    <tr>
+                        <th class="tv-details__label">Lead Guest Name</th>
+                        <td class="tv-details__value">{{ $lead_guest_name ?? '—' }}</td>
+                    </tr>
+                    <tr>
+                        <th class="tv-details__label">Pax Mobile No</th>
+                        <td class="tv-details__value">{{ $pax_mobile ?? '—' }}</td>
+                    </tr>
+                    <tr>
+                        <th class="tv-details__label">No. Of Pax</th>
+                        <td class="tv-details__value">{{ $pax_summary ?? '—' }}</td>
+                    </tr>
+                </tbody>
+            </table>
         </section>
 
         @if (!empty($transport))

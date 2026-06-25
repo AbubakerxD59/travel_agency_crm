@@ -20,7 +20,7 @@ class FolderTransportationVoucherPdf
         $pdf = Pdf::loadView('transportation-vouchers.voucher', $data)
             ->setPaper('a4')
             ->setOption('isRemoteEnabled', true)
-            ->setOption('defaultFont', 'times')
+            ->setOption('defaultFont', 'sans-serif')
             ->output();
 
         return response($pdf, 200, [
