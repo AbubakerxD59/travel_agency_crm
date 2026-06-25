@@ -6,6 +6,7 @@ use App\Http\Controllers\Agent\LeadController as AgentLeadController;
 use App\Http\Controllers\Agent\NotificationController as AgentNotificationController;
 use App\Http\Controllers\Agent\PushSubscriptionController;
 use App\Http\Controllers\FolderInvoiceController;
+use App\Http\Controllers\FolderTransportationVoucherController;
 use Illuminate\Support\Facades\Route;
 
 Route::prefix('agent')->name('agent.')->middleware('role:agent')->group(function () {
@@ -60,5 +61,11 @@ Route::prefix('agent')->name('agent.')->middleware('role:agent')->group(function
     Route::get('/folders/{folder}/invoice', [FolderInvoiceController::class, 'show'])
         ->middleware('can:folders.access')
         ->name('folders.invoice');
+    Route::get('/folders/{folder}/transportation-voucher', [FolderTransportationVoucherController::class, 'show'])
+        ->middleware('can:folders.access')
+        ->name('folders.transportation-voucher');
+    Route::get('/folders/{folder}/transportation-voucher/download', [FolderTransportationVoucherController::class, 'download'])
+        ->middleware('can:folders.access')
+        ->name('folders.transportation-voucher.download');
     Route::resource('folders', AgentFolderController::class)->middleware(['can:folders.access']);
 });

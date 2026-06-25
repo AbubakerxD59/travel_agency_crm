@@ -9,6 +9,7 @@ use App\Http\Controllers\Admin\FolderPaymentController;
 use App\Http\Controllers\Admin\LeadController;
 use App\Http\Controllers\Admin\NotificationController;
 use App\Http\Controllers\FolderInvoiceController;
+use App\Http\Controllers\FolderTransportationVoucherController;
 use Illuminate\Support\Facades\Route;
 
 Route::prefix('admin')->name('admin.')->middleware('role:super-admin')->group(function () {
@@ -76,6 +77,10 @@ Route::prefix('admin')->name('admin.')->middleware('role:super-admin')->group(fu
     Route::post('/folders/sections/{section}/save', [FolderController::class, 'saveSectionDraft'])
         ->name('folders.sections.save');
     Route::get('/folders/{folder}/invoice', [FolderInvoiceController::class, 'show'])->name('folders.invoice');
+    Route::get('/folders/{folder}/transportation-voucher', [FolderTransportationVoucherController::class, 'show'])
+        ->name('folders.transportation-voucher');
+    Route::get('/folders/{folder}/transportation-voucher/download', [FolderTransportationVoucherController::class, 'download'])
+        ->name('folders.transportation-voucher.download');
     Route::get('/folders/{folder}', [FolderController::class, 'show'])->name('folders.show');
 
     Route::resource('companies', CompanyController::class)->only([

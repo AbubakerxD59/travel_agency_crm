@@ -163,7 +163,10 @@
                                     'folder' => $folder,
                                     'routeName' => ($routePrefix ?? 'admin') . '.folders.invoice',
                                 ])
-                                @include('partials.folders.transportation-voucher-action')
+                                @include('partials.folders.transportation-voucher-action', [
+                                    'folder' => $folder,
+                                    'routeName' => ($routePrefix ?? 'admin') . '.folders.transportation-voucher',
+                                ])
                                 <a href="{{ route(($routePrefix ?? 'admin') . '.folders.show', $folder) }}"
                                     class="lead-row-action inline-flex cursor-pointer rounded-lg p-2 text-concierge-muted transition hover:bg-slate-100 hover:text-concierge-accent"
                                     title="View" aria-label="View">
