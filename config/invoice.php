@@ -20,7 +20,7 @@ return [
     | Keys must match the company name on the folder (case-insensitive).
     */
     'company_payment_sections' => [
-        'Al Kabir Travel' => [
+        'Haram Travels' => [
             'intro' => [
                 'For your security, please ensure all payments are made only to the company bank account listed Below.',
                 'Bukhari Travel T/A Haram Travel will not accept responsibility for payments made to any personal bank account or third party unless officially confirmed in writing by the company.',
