@@ -148,7 +148,7 @@ class Folder extends Model
      */
     public function itineraries(): HasMany
     {
-        return $this->hasMany(FolderItinerary::class);
+        return $this->hasMany(FolderItinerary::class)->orderBy('id');
     }
 
     /**
@@ -156,7 +156,7 @@ class Folder extends Model
      */
     public function passengers(): HasMany
     {
-        return $this->hasMany(FolderPassenger::class);
+        return $this->hasMany(FolderPassenger::class)->orderBy('id');
     }
 
     /**
@@ -164,7 +164,7 @@ class Folder extends Model
      */
     public function packageCosts(): HasMany
     {
-        return $this->hasMany(FolderPackageCost::class);
+        return $this->hasMany(FolderPackageCost::class)->orderBy('id');
     }
 
     /**
@@ -172,7 +172,7 @@ class Folder extends Model
      */
     public function hotelDetails(): HasMany
     {
-        return $this->hasMany(FolderHotelDetail::class);
+        return $this->hasMany(FolderHotelDetail::class)->orderBy('id');
     }
 
     /**
@@ -180,7 +180,7 @@ class Folder extends Model
      */
     public function transportDetails(): HasMany
     {
-        return $this->hasMany(FolderTransportDetail::class);
+        return $this->hasMany(FolderTransportDetail::class)->orderBy('id');
     }
 
     /**
@@ -188,7 +188,7 @@ class Folder extends Model
      */
     public function visaDetails(): HasMany
     {
-        return $this->hasMany(FolderVisaDetail::class);
+        return $this->hasMany(FolderVisaDetail::class)->orderBy('id');
     }
 
     /**
@@ -196,7 +196,7 @@ class Folder extends Model
      */
     public function otherDetails(): HasMany
     {
-        return $this->hasMany(FolderOtherDetail::class);
+        return $this->hasMany(FolderOtherDetail::class)->orderBy('id');
     }
 
     /**
@@ -204,9 +204,7 @@ class Folder extends Model
      */
     public function payments(): HasMany
     {
-        return $this->hasMany(FolderPayment::class)
-            ->orderByDesc('payment_date')
-            ->orderByDesc('id');
+        return $this->hasMany(FolderPayment::class)->orderBy('id');
     }
 
     /**

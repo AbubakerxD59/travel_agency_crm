@@ -17,16 +17,16 @@
 
         :root {
             --inv-font: "Times New Roman", Times, serif;
-            --inv-text-xs: 10pt;
-            --inv-text-sm: 11pt;
-            --inv-text-base: 12pt;
-            --inv-text-md: 13pt;
-            --inv-table-heading: 11pt;
+            --inv-text-xs: 11pt;
+            --inv-text-sm: 12pt;
+            --inv-text-base: 13pt;
+            --inv-text-md: 14pt;
+            --inv-table-heading: 12pt;
             --inv-leading: 1.45;
             --inv-leading-tight: 1.35;
-            --inv-section-gap: 20px;
-            --inv-cell-padding-y: 7px;
-            --inv-cell-padding-x: 10px;
+            --inv-section-gap: 22px;
+            --inv-cell-padding-y: 8px;
+            --inv-cell-padding-x: 11px;
         }
 
         body {
@@ -113,8 +113,8 @@
             display: block;
             width: auto;
             height: auto;
-            max-width: 88px;
-            max-height: 88px;
+            max-width: 120px;
+            max-height: 120px
         }
 
         @media print {
@@ -140,11 +140,14 @@
         }
 
         .tv-header {
+            margin-bottom: var(--inv-section-gap);
+        }
+
+        .tv-header__top {
             display: grid;
-            grid-template-columns: 1fr auto 1fr;
+            grid-template-columns: 1fr 1fr;
             align-items: start;
             gap: 12px;
-            margin-bottom: var(--inv-section-gap);
         }
 
         .tv-header__left {
@@ -166,8 +169,7 @@
         }
 
         .tv-header__title {
-            margin: 0;
-            padding-top: 2px;
+            margin: 14px 0 0;
             font-size: var(--inv-text-md);
             font-weight: 700;
             letter-spacing: 0.06em;
@@ -213,8 +215,7 @@
 
         .tv-logo-inner img {
             display: block;
-            max-width: 88px;
-            max-height: 88px;
+            max-width: 200px;
             object-fit: contain;
         }
 
@@ -241,7 +242,7 @@
 
         .tv-details__title {
             margin: 0 0 12px;
-            font-size: 15px;
+            font-size: 17px;
             font-weight: 700;
             letter-spacing: 0.06em;
             text-transform: uppercase;
@@ -326,7 +327,7 @@
             border-bottom: none;
         }
 
-        .itinerary-bar + table {
+        .itinerary-bar+table {
             margin-top: 0;
         }
 
@@ -354,7 +355,7 @@
         .table-flight-itinerary th {
             white-space: normal;
             padding: var(--inv-cell-padding-y) 3px;
-            font-size: 9pt;
+            font-size: 10pt;
             letter-spacing: 0;
         }
 
@@ -364,7 +365,7 @@
         }
 
         body.tv-pdf .table-flight-itinerary {
-            font-size: 8.5pt;
+            font-size: 9.5pt;
         }
 
         body.tv-pdf .table-flight-itinerary th,
@@ -505,24 +506,22 @@
 
     <article class="tv-page">
         <header class="tv-header">
-            <div class="tv-header__left">
-                @empty($for_pdf)
-                    <p class="tv-header__timestamp">{{ $printed_at ?? now()->format('n/j/y, g:i A') }}</p>
-                @endempty
-                <p class="tv-header__booking-label tv-green">Booking Date:</p>
-                <p class="tv-header__booking-value">{{ $booking_date ?? '' }}</p>
+            <div class="tv-header__top">
+                <div class="tv-header__left">
+                    @if (!empty($agent_email))
+                        <span class="tv-green">Email:</span> {{ $agent_email }}
+                    @endif
+                </div>
+
+                <div class="tv-header__right">
+                    <p><span class="tv-green">Booking Date:</span> {{ $booking_date }}</p>
+                    @if (!empty($direct_line) && $direct_line !== '—')
+                        <p><span class="tv-green">Direct Line:</span> {{ $direct_line ?? '—' }}</p>
+                    @endif
+                </div>
             </div>
 
             <h1 class="tv-header__title">Transportation Voucher</h1>
-
-            <div class="tv-header__right">
-                @if (!empty($agent_email))
-                    <p><span class="tv-green">Email:</span> {{ $agent_email }}</p>
-                @endif
-                @if (!empty($direct_line) && $direct_line !== '—')
-                    <p><span class="tv-green">Direct Line:</span> {{ $direct_line ?? '—' }}</p>
-                @endif
-            </div>
         </header>
 
         <section class="tv-brand">
@@ -560,6 +559,10 @@
                     <tr>
                         <th class="tv-details__label">Pax Mobile No</th>
                         <td class="tv-details__value">{{ $pax_mobile ?? '—' }}</td>
+                    </tr>
+                    <tr>
+                        <th class="tv-details__label">Transport Company Mobile No</th>
+                        <td class="tv-details__value">{{ $transport_company_mobile ?? '+966000000000' }}</td>
                     </tr>
                     <tr>
                         <th class="tv-details__label">No. Of Pax</th>

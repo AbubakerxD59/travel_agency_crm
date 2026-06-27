@@ -122,7 +122,7 @@ class FolderController extends Controller
 
     public function create(Request $request): View
     {
-        $drafts = $this->draftSections($request);
+        $drafts = folder_draft_sections_from_session($request);
 
         return view('agent.folders.create', [
             'companies' => Company::query()->with('country')->orderBy('name')->get(),
@@ -144,7 +144,7 @@ class FolderController extends Controller
 
     public function store(Request $request): RedirectResponse
     {
-        $validated = $this->validateFolder($this->mergeWithDraftSections($request));
+        $validated = $this->validateFolder($request->all());
         [$flashType, $flashMessage, $_folder] = $this->persistFolder($validated, null, $request);
 
         if ($flashType === 'error') {
@@ -221,9 +221,8 @@ class FolderController extends Controller
         }
 
         $validated = $validator->validated();
-        $drafts = $this->draftSections($request);
-        $drafts[$section] = $validated[$section] ?? [];
-        $request->session()->put($this->draftSessionKey($request), $drafts);
+        $draftFolderId = $request->filled('folder_id') ? $request->integer('folder_id') : null;
+        folder_put_draft_section($request, $draftFolderId, $section, $validated[$section] ?? []);
 
         return response()->json([
             'message' => __('Section saved successfully.'),
@@ -257,7 +256,7 @@ class FolderController extends Controller
     public function edit(Request $request, Folder $folder): View
     {
         $folder->load(['itineraries', 'passengers', 'packageCosts', 'hotelDetails', 'transportDetails', 'visaDetails', 'otherDetails', 'payments']);
-        $drafts = $this->draftSections($request);
+        $drafts = folder_draft_sections_from_session($request, $folder->id);
 
         return view('agent.folders.create', [
             'lead' => $folder,
@@ -377,7 +376,7 @@ class FolderController extends Controller
 
     public function update(Request $request, Folder $folder): RedirectResponse
     {
-        $validated = $this->validateFolder($this->mergeWithDraftSections($request), $folder);
+        $validated = $this->validateFolder($request->all(), $folder);
         [$flashType, $flashMessage, $_folder] = $this->persistFolder($validated, $folder, $request);
 
         if ($flashType === 'error') {
@@ -436,12 +435,9 @@ class FolderController extends Controller
             ...folder_payments_validation_rules(),
         ])->validate();
 
-        $itineraries = collect($validated['itineraries'] ?? [])
-            ->sortBy(fn ($itinerary) => (int) ($itinerary['sr_no'] ?? PHP_INT_MAX))
-            ->values();
-        $firstItinerary = $itineraries->first();
+        $firstItinerary = folder_first_itinerary_row($validated['itineraries'] ?? []);
 
-        if (is_array($firstItinerary) && isset($firstItinerary['departure_date'])) {
+        if ($firstItinerary !== null && isset($firstItinerary['departure_date'])) {
             $travelDate = (string) ($validated['travel_date'] ?? '');
             $firstDepartureDate = (string) $firstItinerary['departure_date'];
 
@@ -454,37 +450,6 @@ class FolderController extends Controller
         }
 
         return $validated;
-    }
-
-    private function mergeWithDraftSections(Request $request): array
-    {
-        $payload = $request->all();
-        $drafts = $this->draftSections($request);
-
-        foreach (['itineraries', 'passengers', 'package_costs', 'hotel_details', 'transport_details', 'visa_details', 'other_details'] as $section) {
-            if (! empty($drafts[$section])) {
-                $payload[$section] = $drafts[$section];
-            }
-        }
-
-        if (array_key_exists('payments', $drafts) && is_array($drafts['payments'])) {
-            $payload['payments'] = $drafts['payments'];
-        }
-
-        return $payload;
-    }
-
-    /**
-     * @return array<string, mixed>
-     */
-    private function draftSections(Request $request): array
-    {
-        return (array) $request->session()->get($this->draftSessionKey($request), []);
-    }
-
-    private function draftSessionKey(Request $request): string
-    {
-        return 'folder_section_drafts.user.'.(string) $request->user()?->getAuthIdentifier();
     }
 
     /**
@@ -520,6 +485,8 @@ class FolderController extends Controller
      */
     private function persistFolder(array $validated, ?Folder $folder, Request $request): array
     {
+        $draftFolderId = $folder?->id;
+
         try {
             DB::transaction(function () use ($validated, &$folder, $request): void {
                 $agentId = $folder === null
@@ -572,7 +539,7 @@ class FolderController extends Controller
             return ['error', __('Could not save folder. Please try again.'), null];
         }
 
-        $request->session()->forget($this->draftSessionKey($request));
+        folder_forget_draft_sections($request, $draftFolderId);
 
         return ['status', __('Folder saved successfully.'), $folder];
     }

@@ -748,6 +748,59 @@ function user_can_create_folder(User $user): bool
     return $user->can('folders.edit');
 }
 
+function folder_draft_session_key(?int $userId, ?int $folderId = null): string
+{
+    $base = 'folder_section_drafts.user.'.(string) ($userId ?? 0);
+
+    return $folderId !== null ? "{$base}.folder.{$folderId}" : "{$base}.new";
+}
+
+/**
+ * @return array<string, mixed>
+ */
+function folder_draft_sections_from_session(Request $request, ?int $folderId = null): array
+{
+    return (array) $request->session()->get(
+        folder_draft_session_key($request->user()?->getAuthIdentifier(), $folderId),
+        []
+    );
+}
+
+function folder_forget_draft_sections(Request $request, ?int $folderId = null): void
+{
+    $request->session()->forget(
+        folder_draft_session_key($request->user()?->getAuthIdentifier(), $folderId)
+    );
+}
+
+/**
+ * @param  mixed  $data
+ */
+function folder_put_draft_section(Request $request, ?int $folderId, string $section, $data): void
+{
+    $key = folder_draft_session_key($request->user()?->getAuthIdentifier(), $folderId);
+    $drafts = (array) $request->session()->get($key, []);
+    $drafts[$section] = $data;
+    $request->session()->put($key, $drafts);
+}
+
+/**
+ * First itinerary row in form submission order (not sorted by sr_no).
+ *
+ * @param  list<array<string, mixed>>  $itineraries
+ * @return array<string, mixed>|null
+ */
+function folder_first_itinerary_row(array $itineraries): ?array
+{
+    foreach ($itineraries as $itinerary) {
+        if (is_array($itinerary)) {
+            return $itinerary;
+        }
+    }
+
+    return null;
+}
+
 /**
  * Drop submitted payment rows that belong to locked payments (not validated or synced).
  *

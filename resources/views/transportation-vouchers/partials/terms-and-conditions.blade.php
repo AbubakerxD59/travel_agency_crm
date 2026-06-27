@@ -10,7 +10,7 @@
 
     <ul>
         <li>
-            Please make contact with Transport Company in Saudi via WhatsApp one or two days before departing from UK.
+            Please make contact with Transport Company in Saudi via WhatsApp one or two days before departing.
             Send a message about your arrival time &amp; date in Saudi to reconfirm your details.
         </li>
         <li>
@@ -31,7 +31,7 @@
             pickups and drops off will be charged for.
         </li>
         <li>
-            Waiting time is 15 minutes. Customer will be charged for any waiting time more than 15 minutes. Customer is
+            Waiting time is 30 minutes. Customer will be charged for any waiting time more than 30 minutes. Customer is
             responsible to be on time.
         </li>
         <li>
@@ -56,15 +56,11 @@
             claims will be acceptable.
         </li>
         <li>
-            Please take two copies of Arrival and Transport Vouchers, and handover one set to the driver (collect his
-            mob no. for future reference).
-        </li>
-        <li>
             The Customer is strictly advised not to handover their passports to anyone under any circumstances in Saudi
             Arabia. They would be responsible themselves if they do so.
         </li>
         <li>The customer is strictly advised not to make any payment to drivers.</li>
-        <li>All transfers models are between 2020/24.</li>
+        <li>All transfers models are between 2020/26.</li>
         <li>
             If at the time of pickup, you wish to switch/change a car (e.g. larger car) required a space for extra
             luggage or due to any unforeseen reasons, additional charges will be applied which may be at a higher rate
@@ -72,18 +68,12 @@
             their luggage and capacity needs, as mentioned below:
             <ul>
                 <li>CAR: 03 Bags &ndash; Capacity: 02 to 03 pax</li>
-                <li>GMC: 06 Bags &ndash; Capacity: 04 to 05 pax</li>
+                <li>GMC: 05 Bags &ndash; Capacity: 04 to 05 pax</li>
                 <li>H1: 07 Bags &ndash; Capacity: 04 to 07 pax</li>
                 <li>HI ROOF: 10 Bags &ndash; Capacity: 07 to 11 pax</li>
                 <li>COASTER BUS: 50 Bags &ndash; Capacity: 11 to 50 pax</li>
             </ul>
         </li>
-    </ul>
-
-    <ul>
-        <li>CAR: 03 Bags &ndash; Capacity: 02 to 03 pax</li>
-        <li>HI ROOF: 10 bags &ndash; Capacity: 04 to 05 pax</li>
-        <li>COASTER: 20 Bags &ndash; Capacity: 12 to 14 pax</li>
     </ul>
 
     <p>
@@ -96,11 +86,10 @@
 
     <ul>
         <li>
-            Ziarats service can be provided against payment (if possible), in case it is not included in the package.
-            Sometimes, due to heavy rush, the passenger should be prepared for sharing basis.
+            Ziarats service can be provided against payment, in case it is not included in the package.
         </li>
         <li>
-            Please be noted, Ziarats time for both cities (Makkah &amp; Madinah) is only maximum 02 hours.
+            Please be noted, Ziarats time for both cities (Makkah &amp; Madinah) is only maximum 02 hours each.
         </li>
     </ul>
 
@@ -114,19 +103,6 @@
         <li>
             In such cases, you have to upgrade your transport to bigger vehicle and customer will be liable to pay the
             difference accordingly.
-        </li>
-    </ul>
-
-    <h3 class="invoice-terms__heading">Wheelchairs and Bookings for Disabled Passengers:</h3>
-
-    <ul>
-        <li>
-            Transfer Services for disabled passengers must be requested by contacting our Customer Service Centre. We will
-            try our best to meet your requirements, although we are not specialists in transfers for disabled
-            passengers. Disabled passengers using our services must be able to board the vehicle independently or with
-            the assistance of those in their party. We only take foldable wheelchairs if pre-booked or informed at the
-            time of booking. We regret that we cannot currently guarantee the type of vehicle that will be used for
-            your transfer.
         </li>
     </ul>
 
