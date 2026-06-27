@@ -103,15 +103,47 @@
             line-height: var(--inv-leading-tight);
         }
 
-        .invoice-header__meta-grid {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 4px 16px;
-            align-items: baseline;
+        .invoice-header__meta {
+            width: 100%;
+            border-collapse: collapse;
+            border-spacing: 0;
+            margin: 0;
         }
 
-        .invoice-header__meta-grid .invoice-header__meta--right {
+        .invoice-header__meta td {
+            border: none !important;
+            padding: 0 !important;
+            vertical-align: top;
+            background: transparent;
+            font-weight: 400;
+            font-size: var(--inv-text-base);
+            line-height: var(--inv-leading-tight);
+        }
+
+        .invoice-header__meta tr:first-child td {
+            vertical-align: middle;
+        }
+
+        .invoice-header__meta-cell--left {
+            width: 50%;
+            text-align: left;
+        }
+
+        .invoice-header__meta-cell--right {
+            width: 50%;
             text-align: right;
+        }
+
+        .invoice-header__meta-line {
+            display: block;
+            margin: 0;
+            padding: 0;
+        }
+
+        body.invoice-pdf .invoice-header__meta,
+        body.invoice-pdf .invoice-header__meta td {
+            border: none !important;
+            padding: 0 !important;
         }
 
         .invoice-header__brand {
@@ -608,16 +640,29 @@
     <article class="invoice-page">
         <header class="invoice-header">
             <div class="invoice-header__top">
-                <div class="invoice-header__meta-grid">
-                    <div><strong>Direct Line:</strong> {{ $direct_line }}</div>
-                    <div class="invoice-header__meta--right"><strong>Booking Date:</strong></div>
-                    @if (! empty($agent_email))
-                        <div>{{ $agent_email }}</div>
-                    @else
-                        <div></div>
-                    @endif
-                    <div class="invoice-header__meta--right">{{ $booking_date }}</div>
-                </div>
+                <table class="invoice-header__meta">
+                    <tbody>
+                        <tr>
+                            <td class="invoice-header__meta-cell invoice-header__meta-cell--left">
+                                <span class="invoice-header__meta-line"><strong>Direct Line:</strong>
+                                    {{ $direct_line }}</span>
+                            </td>
+                            <td class="invoice-header__meta-cell invoice-header__meta-cell--right">
+                                <span class="invoice-header__meta-line"><strong>Booking Date:</strong></span>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td class="invoice-header__meta-cell invoice-header__meta-cell--left">
+                                @if (! empty($agent_email))
+                                    <span class="invoice-header__meta-line">{{ $agent_email }}</span>
+                                @endif
+                            </td>
+                            <td class="invoice-header__meta-cell invoice-header__meta-cell--right">
+                                <span class="invoice-header__meta-line">{{ $booking_date }}</span>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
             </div>
             <div class="invoice-header__brand">
                 @if (!empty($company['logo_url']))
