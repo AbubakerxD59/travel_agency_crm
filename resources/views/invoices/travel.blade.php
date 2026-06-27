@@ -654,7 +654,8 @@
                         <tr>
                             <td class="invoice-header__meta-cell invoice-header__meta-cell--left">
                                 @if (! empty($agent_email))
-                                    <span class="invoice-header__meta-line">{{ $agent_email }}</span>
+                                    <span class="invoice-header__meta-line"><strong>Email:</strong>
+                                        {{ $agent_email }}</span>
                                 @endif
                             </td>
                             <td class="invoice-header__meta-cell invoice-header__meta-cell--right">
