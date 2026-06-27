@@ -446,7 +446,7 @@
         }
 
         .invoice-terms {
-            margin: calc(var(--inv-section-gap) + 4px) 20px 0;
+            margin: 10px 20px 0;
             padding-top: 14px;
             border-top: 1px solid #ccc;
             color: #111;
@@ -455,8 +455,11 @@
             font-size: var(--inv-text-base);
             font-weight: 400;
             line-height: var(--inv-leading);
-            page-break-before: always;
-            break-before: page;
+        }
+
+        body.invoice-pdf .invoice-terms {
+            page-break-before: avoid;
+            break-before: avoid;
         }
 
         .invoice-terms-pdf {
