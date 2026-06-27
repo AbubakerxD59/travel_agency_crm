@@ -173,6 +173,11 @@
             color: #333;
         }
 
+        .invoice-brand-email a {
+            color: inherit;
+            text-decoration: none;
+        }
+
         table {
             width: 100%;
             border-collapse: separate;
@@ -447,8 +452,7 @@
 
         .invoice-terms {
             margin: 10px 20px 0;
-            padding-top: 14px;
-            border-top: 1px solid #ccc;
+            padding-top: 35px;
             color: #111;
             text-align: left;
             font-family: var(--inv-font);
@@ -675,10 +679,15 @@
                 @else
                     <div class="invoice-logo">{{ $company['name'] }}</div>
                 @endif
-                @if (!empty($company['email']))
-                    <div class="invoice-brand-email">{{ $company['email'] }}</div>
+                @if (!empty($company['website']))
+                    <div class="invoice-brand-email">
+                        @if (empty($for_pdf))
+                            <a href="{{ $company['website'] }}" target="_blank" rel="noopener noreferrer">{{ $company['website'] }}</a>
+                        @else
+                            {{ $company['website'] }}
+                        @endif
+                    </div>
                 @endif
-                {{-- <div class="invoice-website">{{ $company['website'] }}</div> --}}
             </div>
         </header>
 
