@@ -143,11 +143,51 @@
             margin-bottom: var(--inv-section-gap);
         }
 
-        .tv-header__top {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            align-items: start;
-            gap: 12px;
+        .tv-header__meta {
+            width: 100%;
+            border-collapse: collapse;
+            border-spacing: 0;
+            margin: 0;
+        }
+
+        .tv-header__meta td {
+            border: none !important;
+            padding: 0 !important;
+            vertical-align: top;
+            background: transparent;
+            font-weight: 400;
+            font-size: var(--inv-text-base);
+            line-height: var(--inv-leading-tight);
+        }
+
+        .tv-header__meta tr:first-child td {
+            vertical-align: middle;
+        }
+
+        .tv-header__meta-cell--left {
+            width: 50%;
+            text-align: left;
+        }
+
+        .tv-header__meta-cell--right {
+            width: 50%;
+            text-align: right;
+        }
+
+        .tv-header__meta-line {
+            display: block;
+            margin: 0;
+            padding: 0;
+        }
+
+        .tv-header__meta-line + .tv-header__meta-line {
+            margin-top: 6px;
+        }
+
+        body.tv-pdf .tv-header__meta,
+        body.tv-pdf .tv-header__meta td {
+            border: none !important;
+            padding: 0 !important;
         }
 
         .tv-header__left {
@@ -165,7 +205,7 @@
         }
 
         .tv-header__booking-value {
-            margin: 2px 0 0;
+            margin: 0;
         }
 
         .tv-header__title {
@@ -506,20 +546,31 @@
 
     <article class="tv-page">
         <header class="tv-header">
-            <div class="tv-header__top">
-                <div class="tv-header__left">
-                    @if (!empty($agent_email))
-                        <span class="tv-green">Email:</span> {{ $agent_email }}
-                    @endif
-                </div>
-
-                <div class="tv-header__right">
-                    <p><span class="tv-green">Booking Date:</span> {{ $booking_date }}</p>
+            <table class="tv-header__meta">
+                <tbody>
+                    <tr>
+                        <td class="tv-header__meta-cell tv-header__meta-cell--left">
+                            @if (!empty($agent_email))
+                                <span class="tv-header__meta-line"><span class="tv-green">Email:</span>
+                                    {{ $agent_email }}</span>
+                            @endif
+                        </td>
+                        <td class="tv-header__meta-cell tv-header__meta-cell--right">
+                            <span class="tv-header__meta-line"><span class="tv-green">Booking Date:</span>
+                                {{ $booking_date ?? '' }}</span>
+                        </td>
+                    </tr>
                     @if (!empty($direct_line) && $direct_line !== '—')
-                        <p><span class="tv-green">Direct Line:</span> {{ $direct_line ?? '—' }}</p>
+                        <tr>
+                            <td class="tv-header__meta-cell tv-header__meta-cell--left"></td>
+                            <td class="tv-header__meta-cell tv-header__meta-cell--right">
+                                <span class="tv-header__meta-line"><span class="tv-green">Direct Line:</span>
+                                    {{ $direct_line }}</span>
+                            </td>
+                        </tr>
                     @endif
-                </div>
-            </div>
+                </tbody>
+            </table>
 
             <h1 class="tv-header__title">Transportation Voucher</h1>
         </header>
