@@ -61,6 +61,9 @@ Route::prefix('agent')->name('agent.')->middleware('role:agent')->group(function
     Route::get('/folders/{folder}/invoice', [FolderInvoiceController::class, 'show'])
         ->middleware('can:folders.access')
         ->name('folders.invoice');
+    Route::get('/folders/{folder}/invoice/download', [FolderInvoiceController::class, 'download'])
+        ->middleware('can:folders.access')
+        ->name('folders.invoice.download');
     Route::get('/folders/{folder}/transportation-voucher', [FolderTransportationVoucherController::class, 'show'])
         ->middleware('can:folders.access')
         ->name('folders.transportation-voucher');

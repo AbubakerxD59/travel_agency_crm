@@ -588,13 +588,20 @@
         .toolbar button:hover {
             background: #0b192c;
         }
+
+        .toolbar button:disabled {
+            opacity: 0.6;
+            cursor: wait;
+        }
     </style>
 </head>
 
 <body @class(['invoice-pdf' => ! empty($for_pdf)])>
     @empty($for_pdf)
         <div class="toolbar no-print">
-            <button type="button" onclick="window.print()">Print invoice</button>
+            @if (!empty($pdf_download_url))
+                <button type="button" id="invoice-download-pdf">Download Invoice</button>
+            @endif
         </div>
     @endempty
 
@@ -875,6 +882,87 @@
         @include('invoices.partials.terms-and-conditions')
 
     </article>
+
+    @if (empty($for_pdf) && !empty($pdf_download_url))
+        <script>
+            (function() {
+                const pdfUrl = @json($pdf_download_url);
+                const downloadButton = document.getElementById('invoice-download-pdf');
+
+                if (!downloadButton) {
+                    return;
+                }
+
+                function parseFilename(contentDisposition, fallback) {
+                    if (!contentDisposition) {
+                        return fallback;
+                    }
+
+                    const utf8Match = contentDisposition.match(/filename\*=UTF-8''([^;]+)/i);
+                    if (utf8Match?.[1]) {
+                        try {
+                            return decodeURIComponent(utf8Match[1]);
+                        } catch {
+                            return utf8Match[1];
+                        }
+                    }
+
+                    const quotedMatch = contentDisposition.match(/filename="([^"]+)"/i);
+                    if (quotedMatch?.[1]) {
+                        return quotedMatch[1];
+                    }
+
+                    const plainMatch = contentDisposition.match(/filename=([^;]+)/i);
+                    if (plainMatch?.[1]) {
+                        return plainMatch[1].trim();
+                    }
+
+                    return fallback;
+                }
+
+                downloadButton.addEventListener('click', async function() {
+                    downloadButton.disabled = true;
+
+                    try {
+                        const response = await fetch(pdfUrl, {
+                            credentials: 'same-origin',
+                            headers: {
+                                Accept: 'application/pdf',
+                            },
+                        });
+
+                        if (!response.ok) {
+                            throw new Error('Could not download invoice. Please try again.');
+                        }
+
+                        const blob = await response.blob();
+                        const filename = parseFilename(
+                            response.headers.get('Content-Disposition'),
+                            'Invoice.pdf',
+                        );
+                        const objectUrl = URL.createObjectURL(blob);
+                        const downloadLink = document.createElement('a');
+
+                        downloadLink.href = objectUrl;
+                        downloadLink.download = filename;
+                        downloadLink.style.display = 'none';
+                        document.body.appendChild(downloadLink);
+                        downloadLink.click();
+                        downloadLink.remove();
+                        URL.revokeObjectURL(objectUrl);
+                    } catch (error) {
+                        const message = error instanceof Error ?
+                            error.message :
+                            'Could not download invoice.';
+
+                        window.alert(message);
+                    } finally {
+                        downloadButton.disabled = false;
+                    }
+                });
+            })();
+        </script>
+    @endif
 </body>
 
 </html>

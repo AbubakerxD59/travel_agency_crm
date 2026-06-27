@@ -77,6 +77,8 @@ Route::prefix('admin')->name('admin.')->middleware('role:super-admin')->group(fu
     Route::post('/folders/sections/{section}/save', [FolderController::class, 'saveSectionDraft'])
         ->name('folders.sections.save');
     Route::get('/folders/{folder}/invoice', [FolderInvoiceController::class, 'show'])->name('folders.invoice');
+    Route::get('/folders/{folder}/invoice/download', [FolderInvoiceController::class, 'download'])
+        ->name('folders.invoice.download');
     Route::get('/folders/{folder}/transportation-voucher', [FolderTransportationVoucherController::class, 'show'])
         ->name('folders.transportation-voucher');
     Route::get('/folders/{folder}/transportation-voucher/download', [FolderTransportationVoucherController::class, 'download'])

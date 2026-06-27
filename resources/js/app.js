@@ -2,7 +2,6 @@ import './bootstrap';
 import Swal from 'sweetalert2';
 import './folder-date-range-picker';
 import './folder-form-date-pickers';
-import './folder-invoice-download';
 
 /** Do not dismiss confirmation dialogs when clicking the backdrop. */
 window.Swal = Swal.mixin({
