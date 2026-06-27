@@ -113,8 +113,13 @@
             display: block;
             width: auto;
             height: auto;
-            max-width: 120px;
-            max-height: 120px
+            max-width: 200px;
+            max-height: 200px;
+        }
+
+        body.tv-pdf .tv-logo-fallback {
+            font-size: calc(var(--inv-text-md) + 2pt);
+            padding: 10px 22px 8px;
         }
 
         @media print {
