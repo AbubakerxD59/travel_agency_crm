@@ -22,6 +22,7 @@ export default defineConfig({
                 'resources/js/dashboard.js',
                 'resources/js/folder-form-unsaved-guard.js',
                 'resources/js/folder-numeric-inputs.js',
+                'resources/js/folder-form-payment-images.js',
                 'resources/js/folder-payment-show.js',
             ],
             refresh: true,

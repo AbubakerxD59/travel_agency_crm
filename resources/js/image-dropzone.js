@@ -4,6 +4,27 @@ const IMAGE_TYPES = new Set(['image/jpeg', 'image/png', 'image/gif', 'image/webp
 /** @type {WeakMap<Element, { objectUrl: string | null, existingUrl: string | null, hasNewFile: boolean }>} */
 const imageUploadState = new WeakMap();
 
+/** @type {WeakMap<Element, { removeExistingInput?: HTMLInputElement | null, onNewFile?: () => void }>} */
+const imageDropzoneOptions = new WeakMap();
+
+/**
+ * @param {DataTransfer | ClipboardEvent['clipboardData']} clipboardData
+ * @returns {File | null}
+ */
+export function getImageFileFromClipboard(clipboardData) {
+    if (!clipboardData) {
+        return null;
+    }
+
+    for (const item of clipboardData.items) {
+        if (item.type.startsWith('image/')) {
+            return item.getAsFile();
+        }
+    }
+
+    return null;
+}
+
 /** @param {Element | null | undefined} root */
 function imageUploadParts(root) {
     if (!(root instanceof Element)) {
@@ -126,6 +147,9 @@ function applyFileToImageUpload(parts, file, onError) {
         src: objectUrl,
         alt: file.name,
     });
+
+    const opts = imageDropzoneOptions.get(parts.root);
+    opts?.onNewFile?.();
 }
 
 /**
@@ -158,17 +182,52 @@ function clearImageUpload(parts, { keepExisting = false, existingAlt = 'Image pr
 
 /**
  * @param {Element} root
- * @param {{ existingUrl?: string | null, existingAlt?: string, onError?: (message: string) => void }} opts
+ * @param {File} file
+ * @param {(message: string) => void} onError
  */
-export function initImageDropzone(root, { existingUrl = null, existingAlt = 'Image preview', onError = () => {} } = {}) {
+export function applyImageFileToDropzone(root, file, onError = () => {}) {
+    const parts = imageUploadParts(root);
+    if (!parts) {
+        return;
+    }
+
+    applyFileToImageUpload(parts, file, onError);
+}
+
+/**
+ * @param {Element} root
+ * @param {{ existingUrl?: string | null, existingAlt?: string, onError?: (message: string) => void, removeExistingInput?: HTMLInputElement | null, onNewFile?: () => void }} opts
+ */
+export function initImageDropzone(root, {
+    existingUrl = null,
+    existingAlt = 'Image preview',
+    onError = () => {},
+    removeExistingInput = null,
+    onNewFile = () => {},
+} = {}) {
     const parts = imageUploadParts(root);
     if (!parts?.dropzone || !parts.input) {
         return;
     }
 
+    if (root.dataset.imageDropzoneInitialized === '1') {
+        resetImageDropzone(root, { existingUrl, existingAlt });
+        imageDropzoneOptions.set(parts.root, { removeExistingInput, onNewFile });
+        return;
+    }
+
+    root.dataset.imageDropzoneInitialized = '1';
+    imageDropzoneOptions.set(parts.root, { removeExistingInput, onNewFile });
+
     resetImageDropzone(root, { existingUrl, existingAlt });
 
     let dragDepth = 0;
+
+    const handlePastedFile = (file) => {
+        if (file) {
+            applyFileToImageUpload(parts, file, onError);
+        }
+    };
 
     parts.dropzone.addEventListener('click', (e) => {
         if (e.target instanceof Element && e.target.closest('[data-company-image-remove]')) {
@@ -195,10 +254,31 @@ export function initImageDropzone(root, { existingUrl = null, existingAlt = 'Ima
         e.preventDefault();
         e.stopPropagation();
         const state = imageUploadState.get(parts.root);
+        const opts = imageDropzoneOptions.get(parts.root);
+
+        if (state?.existingUrl && !state.hasNewFile) {
+            if (opts?.removeExistingInput instanceof HTMLInputElement) {
+                opts.removeExistingInput.checked = true;
+            }
+            state.existingUrl = null;
+            imageUploadState.set(parts.root, state);
+            clearImageUpload(parts, { keepExisting: false });
+            return;
+        }
+
         clearImageUpload(parts, {
             keepExisting: Boolean(state?.existingUrl && state.hasNewFile),
             existingAlt,
         });
+    });
+
+    parts.root.addEventListener('paste', (e) => {
+        const file = getImageFileFromClipboard(e.clipboardData);
+        if (!file) {
+            return;
+        }
+        e.preventDefault();
+        handlePastedFile(file);
     });
 
     parts.dropzone.addEventListener('dragenter', (e) => {

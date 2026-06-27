@@ -169,6 +169,34 @@
         @apply cursor-pointer rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-medium text-concierge-navy transition hover:bg-slate-50;
     }
 
+    .payment-receipt-dropzone {
+        @apply min-h-[6.5rem] px-2 py-3;
+    }
+
+    .payment-receipt-dropzone__icon {
+        @apply h-7 w-7;
+    }
+
+    .payment-receipt-dropzone__title {
+        @apply mt-1 text-xs;
+    }
+
+    .payment-receipt-dropzone__subtitle {
+        @apply mt-0.5 text-[10px] leading-snug;
+    }
+
+    .payment-receipt-dropzone__img {
+        @apply h-16 w-16;
+    }
+
+    .payment-receipt-dropzone__remove {
+        @apply px-2 py-1 text-[10px];
+    }
+
+    .payment-receipt-dropzone.company-image-dropzone--has-preview {
+        @apply py-2;
+    }
+
     /* Mobile admin drawer: overlay + open state (toggled via `admin-sidebar-open` on <html>) */
     .admin-sidebar-overlay {
         @apply opacity-0 transition-opacity duration-200 ease-out;

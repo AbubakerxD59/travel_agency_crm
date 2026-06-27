@@ -14,8 +14,8 @@
       "assets/flatpickr-CksuuEqD.css"
     ]
   },
-  "_image-dropzone-BVZypg8S.js": {
-    "file": "assets/image-dropzone-BVZypg8S.js",
+  "_image-dropzone-l1bnVF6s.js": {
+    "file": "assets/image-dropzone-l1bnVF6s.js",
     "name": "image-dropzone"
   },
   "_lead-alert-audio-B099_eqE.js": {
@@ -38,7 +38,7 @@
     ]
   },
   "resources/css/app.css": {
-    "file": "assets/app-BrDgCn6S.css",
+    "file": "assets/app-yRNV_T8W.css",
     "src": "resources/css/app.css",
     "isEntry": true,
     "name": "app",
@@ -112,13 +112,13 @@
     ]
   },
   "resources/js/agents.js": {
-    "file": "assets/agents-sk4Qig9H.js",
+    "file": "assets/agents-B_1svb2v.js",
     "name": "agents",
     "src": "resources/js/agents.js",
     "isEntry": true,
     "imports": [
       "_toastr.min-CvKyK_W0.js",
-      "_image-dropzone-BVZypg8S.js"
+      "_image-dropzone-l1bnVF6s.js"
     ]
   },
   "resources/js/app.js": {
@@ -149,6 +149,15 @@
       "_flatpickr.min-Cc3t1Oke.js"
     ]
   },
+  "resources/js/folder-form-payment-images.js": {
+    "file": "assets/folder-form-payment-images-C7zYdMgR.js",
+    "name": "folder-form-payment-images",
+    "src": "resources/js/folder-form-payment-images.js",
+    "isEntry": true,
+    "imports": [
+      "_image-dropzone-l1bnVF6s.js"
+    ]
+  },
   "resources/js/folder-form-unsaved-guard.js": {
     "file": "assets/folder-form-unsaved-guard-B1cqZ414.js",
     "name": "folder-form-unsaved-guard",
@@ -162,13 +171,13 @@
     "isEntry": true
   },
   "resources/js/folder-payment-show.js": {
-    "file": "assets/folder-payment-show-BnOFLJo2.js",
+    "file": "assets/folder-payment-show-DWaoEuSd.js",
     "name": "folder-payment-show",
     "src": "resources/js/folder-payment-show.js",
     "isEntry": true,
     "imports": [
       "_toastr.min-CvKyK_W0.js",
-      "_image-dropzone-BVZypg8S.js"
+      "_image-dropzone-l1bnVF6s.js"
     ]
   },
   "resources/js/lead-duplicate-check.js": {

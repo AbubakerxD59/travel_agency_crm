@@ -1313,7 +1313,7 @@
 @endsection
 
 @push('scripts')
-    @vite(['resources/js/folder-form-unsaved-guard.js', 'resources/js/folder-numeric-inputs.js'])
+    @vite(['resources/js/folder-form-unsaved-guard.js', 'resources/js/folder-numeric-inputs.js', 'resources/js/folder-form-payment-images.js'])
     <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.js"></script>
     <script>
@@ -2562,10 +2562,26 @@
                 const imageCell = document.createElement('td');
                 imageCell.className = 'border border-slate-200 px-2 py-2 align-top';
                 imageCell.innerHTML = `
-                    <div class="payment-image-field min-w-[8.5rem] space-y-1.5">
+                    <div class="payment-image-field min-w-[9rem]">
                         <input type="hidden" name="payments[${index}][form_index]" value="${index}" data-payment-form-index>
-                        <input type="file" name="payments[${index}][image]" accept="image/jpeg,image/png,image/gif,image/webp"
-                            class="block w-full max-w-[10rem] cursor-pointer text-xs text-concierge-muted file:mr-2 file:cursor-pointer file:rounded-lg file:border-0 file:bg-concierge-navy file:px-2 file:py-1 file:text-xs file:font-medium file:text-white hover:file:bg-concierge-navy-deep">
+                        <div class="payment-receipt-upload" data-payment-receipt-upload data-existing-image-url="">
+                            <div class="company-image-upload" data-company-image-upload>
+                                <div class="payment-receipt-dropzone company-image-dropzone" data-company-image-dropzone tabindex="0" role="button" aria-label="Upload payment receipt">
+                                    <input type="file" name="payments[${index}][image]" accept="image/jpeg,image/png,image/gif,image/webp" class="sr-only" data-company-image-input>
+                                    <div class="company-image-dropzone__empty payment-receipt-dropzone__empty" data-company-image-empty>
+                                        <svg xmlns="http://www.w3.org/2000/svg" class="company-image-dropzone__icon payment-receipt-dropzone__icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5" aria-hidden="true">
+                                            <path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5m-13.5-9L12 3m0 0l4.5 4.5M12 3v13.5" />
+                                        </svg>
+                                        <p class="company-image-dropzone__title payment-receipt-dropzone__title">Drop receipt here</p>
+                                        <p class="company-image-dropzone__subtitle payment-receipt-dropzone__subtitle">Paste, or <span class="font-medium text-concierge-accent">browse</span></p>
+                                    </div>
+                                    <div class="company-image-dropzone__preview payment-receipt-dropzone__preview hidden" data-company-image-preview>
+                                        <img src="" alt="" class="company-image-dropzone__img payment-receipt-dropzone__img" data-company-image-preview-img>
+                                        <button type="button" class="company-image-dropzone__remove payment-receipt-dropzone__remove" data-company-image-remove aria-label="Remove receipt image">Remove</button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 `;
                 row.appendChild(imageCell);
