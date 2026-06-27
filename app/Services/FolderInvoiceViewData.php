@@ -160,6 +160,9 @@ class FolderInvoiceViewData
                 $folder->makkah_ziarat ? ['label' => 'Ziaraats Makkah', 'status' => 'Included'] : null,
                 $folder->madinah_ziarat ? ['label' => 'Ziaraats Madinah', 'status' => 'Included'] : null,
             ])),
+            'company_payment_section' => invoice_company_payment_section(
+                $folder->company?->name ?? $companyConfig['name'],
+            ),
             'terms_legal_name' => config('invoice.terms_legal_name'),
             'acceptance' => [],
             'document_ref' => 'FOLDER-'.$folder->id,

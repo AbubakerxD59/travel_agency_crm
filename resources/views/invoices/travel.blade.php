@@ -450,6 +450,26 @@
             margin-bottom: 0;
         }
 
+        .invoice-company-payment {
+            margin: var(--inv-section-gap) 0;
+            padding: 12px 14px;
+            border: 1px solid #000;
+            font-size: var(--inv-text-sm);
+            line-height: var(--inv-leading);
+        }
+
+        .invoice-company-payment p {
+            margin: 0 0 8px;
+        }
+
+        .invoice-company-payment p:last-child {
+            margin-bottom: 0;
+        }
+
+        .invoice-company-payment__bank-details {
+            margin-top: 10px;
+        }
+
         .invoice-terms {
             margin: 10px 20px 0;
             padding-top: 35px;
@@ -936,6 +956,8 @@
                 @endforeach
             </div>
         @endif
+
+        @include('invoices.partials.company-payment-section')
 
         @include('invoices.partials.terms-and-conditions')
 

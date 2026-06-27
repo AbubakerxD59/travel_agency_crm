@@ -1498,3 +1498,48 @@ function format_invoice_time(mixed $time): string
 
     return Illuminate\Support\Carbon::parse($value)->format('h:i A');
 }
+
+/**
+ * Payment instructions block for an invoice, keyed by company name in config.
+ *
+ * @return array{intro: list<string>, bank_details: list<array{label: string, value: string}>}|null
+ */
+function invoice_company_payment_section(?string $companyName): ?array
+{
+    if ($companyName === null || trim($companyName) === '') {
+        return null;
+    }
+
+    $sections = config('invoice.company_payment_sections', []);
+    foreach ($sections as $name => $section) {
+        if (strcasecmp(trim((string) $name), trim($companyName)) !== 0) {
+            continue;
+        }
+
+        if (! is_array($section)) {
+            return null;
+        }
+
+        $intro = array_values(array_filter(
+            $section['intro'] ?? [],
+            static fn ($line): bool => is_string($line) && trim($line) !== '',
+        ));
+        $bankDetails = array_values(array_filter(
+            $section['bank_details'] ?? [],
+            static fn ($row): bool => is_array($row)
+                && trim((string) ($row['label'] ?? '')) !== ''
+                && trim((string) ($row['value'] ?? '')) !== '',
+        ));
+
+        if ($intro === [] && $bankDetails === []) {
+            return null;
+        }
+
+        return [
+            'intro' => $intro,
+            'bank_details' => $bankDetails,
+        ];
+    }
+
+    return null;
+}
