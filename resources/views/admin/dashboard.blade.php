@@ -59,12 +59,12 @@
                 @php
                     $cardAccent = match ($statusStat['key']) {
                         'sale_done' => 'dash-stat-card--accent-success',
-                        'not_converted' => 'dash-stat-card--accent-fail',
+                        'not_converted', 'no_initial_response' => 'dash-stat-card--accent-fail',
                         default => 'dash-stat-card--accent-leads',
                     };
                     $valueAccent = match ($statusStat['key']) {
                         'sale_done' => 'dash-stat-card__value--success',
-                        'not_converted' => 'dash-stat-card__value--fail',
+                        'not_converted', 'no_initial_response' => 'dash-stat-card__value--fail',
                         default => '',
                     };
                 @endphp

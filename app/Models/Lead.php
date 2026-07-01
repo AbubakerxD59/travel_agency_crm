@@ -17,6 +17,8 @@ class Lead extends Model
 
     public const STATUS_NOT_CONVERTED = 'not_converted';
 
+    public const STATUS_NO_INITIAL_RESPONSE = 'no_initial_response';
+
     protected $fillable = [
         'agent_id',
         'agent_name',
@@ -56,6 +58,7 @@ class Lead extends Model
             self::STATUS_NEW => 'New',
             self::STATUS_CONTACTED => 'Contacted',
             self::STATUS_FOLLOW_UP => 'Follow-up',
+            self::STATUS_NO_INITIAL_RESPONSE => 'No Initial Response',
             self::STATUS_SALE_DONE => 'Sale done',
             self::STATUS_NOT_CONVERTED => 'Not converted',
         ];
@@ -80,6 +83,7 @@ class Lead extends Model
             self::STATUS_NEW => 'new',
             self::STATUS_CONTACTED => 'contacted',
             self::STATUS_FOLLOW_UP => 'follow-up',
+            self::STATUS_NO_INITIAL_RESPONSE => 'no-initial-response',
             self::STATUS_SALE_DONE => 'sale-done',
             self::STATUS_NOT_CONVERTED => 'not-converted',
             default => 'meta',

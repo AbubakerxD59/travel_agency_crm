@@ -123,6 +123,10 @@
         @apply bg-rose-100 text-rose-800;
     }
 
+    .concierge-pill-no-initial-response {
+        @apply bg-orange-100 text-orange-800;
+    }
+
     .agent-row-action svg,
     .company-row-action svg,
     .lead-row-action svg {
