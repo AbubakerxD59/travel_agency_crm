@@ -3,7 +3,7 @@
 
     <p>
         We have a 24/7 Customer support center for our Saudi transport service. Dear Customer you need to call
-        +966 00 000 0000 when you reach Saudi.
+        +966 54 770 4475 when you reach Saudi.
     </p>
 
     <h3 class="invoice-terms__heading">Arrival Procedures:</h3>
