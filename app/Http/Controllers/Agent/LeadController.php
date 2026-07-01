@@ -27,7 +27,8 @@ class LeadController extends Controller
 
     public function __construct()
     {
-        $this->middleware('can:leads.access')->only(['index', 'show', 'updateStatus', 'closedLeadsChart', 'export']);
+        $this->middleware('can:leads.access')->only(['index', 'show', 'updateStatus', 'closedLeadsChart']);
+        $this->middleware('can:leads.export')->only(['export']);
         $this->middleware('can:leads.create')->only(['store']);
     }
 
@@ -67,6 +68,7 @@ class LeadController extends Controller
             'selectedStatus' => $filters['status'],
             'statuses' => Lead::statusLabels(),
             'canCreateLeads' => $request->user()->can('leads.create'),
+            'canExportLeads' => $request->user()->can('leads.export'),
             'companies' => $request->user()->can('leads.create')
                 ? Company::query()->orderBy('name')->get(['id', 'name'])
                 : collect(),

@@ -151,9 +151,11 @@
                         class="inline-flex cursor-pointer items-center justify-center rounded-xl bg-concierge-navy px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-concierge-navy-deep">
                         Apply
                     </button>
-                    @include('partials.leads.export-action', [
-                        'exportUrl' => route('admin.leads.export', request()->except('page')),
-                    ])
+                    @if ($canExportLeads)
+                        @include('partials.leads.export-action', [
+                            'exportUrl' => route('admin.leads.export', request()->except('page')),
+                        ])
+                    @endif
                     @if (
                         $search !== '' ||
                             $selectedAgentId ||

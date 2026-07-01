@@ -31,7 +31,7 @@ Route::prefix('agent')->name('agent.')->middleware('role:agent')->group(function
         ->name('push.unsubscribe');
     // Lead routes
     Route::get('/leads/export', [AgentLeadController::class, 'export'])
-        ->middleware('can:leads.access')
+        ->middleware('can:leads.export')
         ->name('leads.export');
     Route::get('/leads', [AgentLeadController::class, 'index'])
         ->middleware('can:leads.access')

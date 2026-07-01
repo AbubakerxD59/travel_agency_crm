@@ -37,6 +37,7 @@ class User extends Authenticatable
             'dashboard.access',
             'leads.access',
             'leads.create',
+            'leads.export',
             'folders.access',
             'folders.edit',
             'folders.edit_locked',

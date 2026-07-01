@@ -33,7 +33,8 @@ class LeadController extends Controller
 
     public function __construct()
     {
-        $this->middleware('can:leads.access')->only(['index', 'show', 'export']);
+        $this->middleware('can:leads.access')->only(['index', 'show']);
+        $this->middleware('can:leads.export')->only(['export']);
         $this->middleware('role:super-admin')->only(['create', 'store', 'edit', 'update', 'destroy']);
     }
 
@@ -95,6 +96,7 @@ class LeadController extends Controller
             'statuses' => Lead::statusLabels(),
             'agents' => User::role(User::ROLE_AGENT)->orderBy('name')->get(['id', 'name', 'company_id']),
             'canCreateLeads' => $request->user()->hasRole('super-admin'),
+            'canExportLeads' => $request->user()->can('leads.export'),
             'totalLeads' => $totalLeads,
             'totalClosed' => $totalClosed,
             'totalPending' => $totalPending,

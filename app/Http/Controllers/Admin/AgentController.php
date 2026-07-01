@@ -351,6 +351,7 @@ class AgentController extends Controller
             'dashboard.access' => 'Dashboard Access',
             'leads.access' => 'Leads Access',
             'leads.create' => 'Leads Create',
+            'leads.export' => 'Leads Export',
             'folders.access' => 'Folders Access',
             'folders.edit' => 'Folder Edit',
             'folders.edit_locked' => 'Edit Locked Folders',

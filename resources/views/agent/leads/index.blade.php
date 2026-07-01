@@ -69,9 +69,11 @@
                         class="inline-flex cursor-pointer items-center justify-center rounded-xl bg-concierge-navy px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-concierge-navy-deep">
                         Apply
                     </button>
-                    @include('partials.leads.export-action', [
-                        'exportUrl' => route('agent.leads.export', request()->except('page')),
-                    ])
+                    @if ($canExportLeads)
+                        @include('partials.leads.export-action', [
+                            'exportUrl' => route('agent.leads.export', request()->except('page')),
+                        ])
+                    @endif
                     @if ($search !== '' || $selectedStatus !== '')
                         <a href="{{ route('agent.leads.index') }}"
                             class="inline-flex items-center justify-center rounded-xl border border-slate-200 px-4 py-2.5 text-sm font-medium text-concierge-navy transition hover:bg-slate-50">

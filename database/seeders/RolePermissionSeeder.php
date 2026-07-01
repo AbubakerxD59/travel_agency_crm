@@ -27,6 +27,7 @@ class RolePermissionSeeder extends Seeder
             'agents.manage',
             'leads.access',
             'leads.create',
+            'leads.export',
             'folders.access',
             'folders.edit',
             'folders.edit_locked',
