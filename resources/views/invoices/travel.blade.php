@@ -466,6 +466,18 @@
             margin-bottom: 0;
         }
 
+        .invoice-company-payment__notice-title {
+            margin: 0 0 10px;
+            font-weight: 700;
+            text-align: center;
+            text-transform: uppercase;
+            letter-spacing: 0.06em;
+        }
+
+        .invoice-company-payment__intro {
+            font-size: var(--inv-text-base);
+        }
+
         .invoice-company-payment__bank-details {
             margin-top: 10px;
         }
