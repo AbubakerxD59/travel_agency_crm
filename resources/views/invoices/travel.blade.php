@@ -180,6 +180,8 @@
 
         table {
             width: 100%;
+            max-width: 100%;
+            table-layout: auto;
             border-collapse: separate;
             border-spacing: 3px;
             margin-bottom: var(--inv-section-gap);
@@ -192,6 +194,10 @@
             border: 1px solid #000;
             padding: var(--inv-cell-padding-y) var(--inv-cell-padding-x);
             vertical-align: top;
+            white-space: normal;
+            overflow-wrap: break-word;
+            word-wrap: break-word;
+            word-break: break-word;
         }
 
         th {
@@ -199,7 +205,6 @@
             text-align: left;
             background: #fff;
             font-size: var(--inv-table-heading);
-            white-space: nowrap;
         }
 
         .table-invoice-summary {
@@ -360,6 +365,26 @@
             font-size: var(--inv-text-xs);
         }
 
+        .table-flight-itinerary th {
+            padding: var(--inv-cell-padding-y) 3px;
+            font-size: 10pt;
+            letter-spacing: 0;
+        }
+
+        .table-flight-itinerary td {
+            padding: var(--inv-cell-padding-y) 3px;
+            text-align: center;
+        }
+
+        body.invoice-pdf .table-flight-itinerary {
+            font-size: 9.5pt;
+        }
+
+        body.invoice-pdf .table-flight-itinerary th,
+        body.invoice-pdf .table-flight-itinerary td {
+            padding: 4px 2px;
+        }
+
         .table-hotel-itinerary .hotel-itinerary-section-head th {
             text-align: center;
             padding: var(--inv-cell-padding-y) 6px;
@@ -424,7 +449,6 @@
         .table-transport tr:not(.invoice-section-title-row) th:first-child,
         .table-transport tr:not(.invoice-section-title-row) td:first-child {
             text-align: left;
-            width: 38%;
         }
 
         .table-transport .invoice-section-title-row th {
@@ -836,7 +860,7 @@
 
         @if (!empty($flight_itinerary))
             <p class="itinerary-bar">FLIGHT ITINERARY</p>
-            <table class="table-itinerary">
+            <table class="table-itinerary table-flight-itinerary">
                 <thead>
                     <tr>
                         <th>Operated by</th>
