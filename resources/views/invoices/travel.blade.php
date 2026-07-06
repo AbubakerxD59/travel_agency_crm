@@ -116,7 +116,7 @@
             vertical-align: top;
             background: transparent;
             font-weight: 400;
-            font-size: var(--inv-text-base);
+            font-size: var(--inv-text-sm);
             line-height: var(--inv-leading-tight);
         }
 
@@ -207,6 +207,10 @@
             font-size: var(--inv-table-heading);
         }
 
+        td {
+            font-size: var(--inv-text-sm);
+        }
+
         .table-invoice-summary {
             border-collapse: collapse;
             border-spacing: 0;
@@ -218,10 +222,6 @@
             text-align: center;
         }
 
-        .table-invoice-summary td {
-            font-size: var(--inv-text-base);
-        }
-
         .table-invoice-primary {
             border-collapse: collapse;
             border-spacing: 0;
@@ -230,10 +230,6 @@
 
         .table-invoice-primary .invoice-passenger-head th {
             text-align: center;
-        }
-
-        .table-invoice-primary td {
-            font-size: var(--inv-text-sm);
         }
 
         .table-invoice-primary td.price {
@@ -327,10 +323,6 @@
             margin-top: var(--inv-section-gap);
         }
 
-        .table-hotels td {
-            font-size: var(--inv-text-sm);
-        }
-
         .section-title {
             margin: var(--inv-section-gap) 0 12px;
             text-align: center;
@@ -362,22 +354,16 @@
 
         .table-itinerary td {
             min-height: 20px;
-            font-size: var(--inv-text-xs);
         }
 
         .table-flight-itinerary th {
             padding: var(--inv-cell-padding-y) 3px;
-            font-size: 10pt;
             letter-spacing: 0;
         }
 
         .table-flight-itinerary td {
             padding: var(--inv-cell-padding-y) 3px;
             text-align: center;
-        }
-
-        body.invoice-pdf .table-flight-itinerary {
-            font-size: 9.5pt;
         }
 
         body.invoice-pdf .table-flight-itinerary th,
@@ -398,7 +384,6 @@
             text-align: center;
             padding: var(--inv-cell-padding-y) 6px;
             min-height: 20px;
-            font-size: var(--inv-text-xs);
         }
 
         .table-hotel-itinerary td:first-child {
@@ -415,7 +400,6 @@
             padding: var(--inv-cell-padding-y) 6px;
             min-height: 20px;
             text-align: left;
-            font-size: var(--inv-text-xs);
         }
 
         .table-invoice-section th {
@@ -457,7 +441,6 @@
 
         .table-transport td {
             text-align: center;
-            font-size: var(--inv-text-xs);
         }
 
         .invoice-ziaraats {
