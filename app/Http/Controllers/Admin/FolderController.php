@@ -165,13 +165,20 @@ class FolderController extends Controller
             abort(404);
         }
 
+        $folder = null;
+        if ($request->filled('folder_id')) {
+            $folder = Folder::query()->find($request->integer('folder_id'));
+            if ($folder === null) {
+                return response()->json([
+                    'message' => __('Folder not found.'),
+                ], 404);
+            }
+        }
+
         if ($section === 'payments') {
             $payments = folder_filter_non_empty_payment_rows($request->input('payments'));
-            if ($request->filled('folder_id')) {
-                $folder = Folder::query()->find($request->integer('folder_id'));
-                if ($folder !== null) {
-                    $payments = folder_strip_locked_payment_rows($folder, $payments);
-                }
+            if ($folder !== null) {
+                $payments = folder_strip_locked_payment_rows($folder, $payments);
             }
             $request->merge(['payments' => $payments]);
         }
@@ -221,8 +228,41 @@ class FolderController extends Controller
         }
 
         $validated = $validator->validated();
-        $draftFolderId = $request->filled('folder_id') ? $request->integer('folder_id') : null;
-        folder_put_draft_section($request, $draftFolderId, $section, $validated[$section] ?? []);
+        $rows = $validated[$section] ?? [];
+
+        // Edit mode: persist this section to the folder in the database.
+        if ($folder !== null) {
+            try {
+                $persistedPayments = folder_persist_section_rows(
+                    $folder,
+                    $section,
+                    $rows,
+                    FolderPayment::STATUS_APPROVED,
+                    $request,
+                );
+            } catch (Throwable $e) {
+                report($e);
+
+                return response()->json([
+                    'message' => __('Could not save section. Please try again.'),
+                ], 500);
+            }
+
+            folder_put_draft_section($request, $folder->id, $section, $rows);
+
+            $response = [
+                'message' => __('Section saved successfully.'),
+            ];
+
+            if ($section === 'payments') {
+                $response['payments'] = $persistedPayments ?? [];
+            }
+
+            return response()->json($response);
+        }
+
+        // Create mode: session draft only.
+        folder_put_draft_section($request, null, $section, $rows);
 
         return response()->json([
             'message' => __('Section saved successfully.'),

@@ -163,9 +163,12 @@ class FolderController extends Controller
         $folder = null;
         if ($request->filled('folder_id')) {
             $folder = Folder::query()->find($request->integer('folder_id'));
-            if ($folder !== null) {
-                $this->authorizeAgentFolderEdit($request, $folder);
+            if ($folder === null) {
+                return response()->json([
+                    'message' => __('Folder not found.'),
+                ], 404);
             }
+            $this->authorizeAgentFolderEdit($request, $folder);
         }
 
         if ($section === 'payments') {
@@ -221,8 +224,45 @@ class FolderController extends Controller
         }
 
         $validated = $validator->validated();
-        $draftFolderId = $folder?->id;
-        folder_put_draft_section($request, $draftFolderId, $section, $validated[$section] ?? []);
+        $rows = $validated[$section] ?? [];
+
+        // Edit mode: persist this section to the folder in the database.
+        if ($folder !== null) {
+            try {
+                $persistedPayments = folder_persist_section_rows(
+                    $folder,
+                    $section,
+                    $rows,
+                    FolderPayment::STATUS_PENDING,
+                    $request,
+                );
+            } catch (Throwable $e) {
+                report($e);
+
+                return response()->json([
+                    'message' => __('Could not save section. Please try again.'),
+                ], 500);
+            }
+
+            if ($section === 'payments' && $rows !== []) {
+                $this->notifySuperAdminsOfPendingFolderPayments($folder, $request->user());
+            }
+
+            folder_put_draft_section($request, $folder->id, $section, $rows);
+
+            $response = [
+                'message' => __('Section saved successfully.'),
+            ];
+
+            if ($section === 'payments') {
+                $response['payments'] = $persistedPayments ?? [];
+            }
+
+            return response()->json($response);
+        }
+
+        // Create mode: session draft only.
+        folder_put_draft_section($request, null, $section, $rows);
 
         return response()->json([
             'message' => __('Section saved successfully.'),

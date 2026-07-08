@@ -14,6 +14,7 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Request;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
@@ -785,6 +786,68 @@ function folder_put_draft_section(Request $request, ?int $folderId, string $sect
 }
 
 /**
+ * Persist a single folder section to the database (replaces that relation only).
+ * Used for AJAX section saves while editing an existing folder.
+ *
+ * @param  list<array<string, mixed>>  $rows
+ * @return list<array{id: int}>|null Payment IDs when section is payments; otherwise null.
+ */
+function folder_persist_section_rows(
+    Folder $folder,
+    string $section,
+    array $rows,
+    string $paymentApprovalStatusForNew,
+    ?Request $request = null,
+): ?array {
+    $paymentIds = null;
+
+    DB::transaction(function () use ($folder, $section, $rows, $paymentApprovalStatusForNew, $request, &$paymentIds): void {
+        switch ($section) {
+            case 'itineraries':
+                $folder->itineraries()->delete();
+                $folder->itineraries()->createMany($rows);
+                break;
+            case 'passengers':
+                $folder->passengers()->delete();
+                $folder->passengers()->createMany($rows);
+                break;
+            case 'package_costs':
+                $folder->packageCosts()->delete();
+                $folder->packageCosts()->createMany($rows);
+                break;
+            case 'hotel_details':
+                $folder->hotelDetails()->delete();
+                $folder->hotelDetails()->createMany(folder_hotel_details_for_storage($rows));
+                break;
+            case 'transport_details':
+                $folder->transportDetails()->delete();
+                $folder->transportDetails()->createMany($rows);
+                break;
+            case 'visa_details':
+                $folder->visaDetails()->delete();
+                $folder->visaDetails()->createMany($rows);
+                break;
+            case 'other_details':
+                $folder->otherDetails()->delete();
+                $folder->otherDetails()->createMany(folder_other_details_for_storage($rows));
+                break;
+            case 'payments':
+                $paymentIds = folder_sync_folder_payments(
+                    $folder,
+                    $rows,
+                    $paymentApprovalStatusForNew,
+                    $request,
+                );
+                break;
+            default:
+                throw new \InvalidArgumentException("Unsupported folder section [{$section}].");
+        }
+    });
+
+    return $paymentIds;
+}
+
+/**
  * First itinerary row in form submission order (not sorted by sr_no).
  *
  * @param  list<array<string, mixed>>  $itineraries
@@ -1109,13 +1172,14 @@ function folder_payment_merge_image_attributes(
  * Replace unlocked payments on a folder; locked payments are never deleted or updated.
  *
  * @param  list<array<string, mixed>>  $rows
+ * @return list<array{id: int}> Payment IDs in the same order as storable submitted rows.
  */
 function folder_sync_folder_payments(
     Folder $folder,
     array $rows,
     string $approvalStatusForNew,
     ?Request $request = null,
-): void {
+): array {
     $storage = app(FolderPaymentImageStorage::class);
     $lockedPayments = folder_locked_payments_for($folder);
     $rows = folder_strip_locked_payment_rows($folder, $rows);
@@ -1180,6 +1244,11 @@ function folder_sync_folder_payments(
         ->when($keptUnlockedIds !== [], fn ($query) => $query->whereNotIn('id', $keptUnlockedIds))
         ->get()
         ->each(fn (FolderPayment $payment) => $payment->delete());
+
+    return array_map(
+        static fn (int $id): array => ['id' => $id],
+        $keptUnlockedIds,
+    );
 }
 
 /**

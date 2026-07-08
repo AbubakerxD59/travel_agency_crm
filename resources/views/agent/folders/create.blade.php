@@ -1219,9 +1219,11 @@
                                     @endphp
                                     <tr class="payment-row bg-white" data-locked="{{ $paymentLocked ? '1' : '0' }}">
                                         <td class="border border-slate-200 px-2 py-2 align-top">
-                                            @if ($paymentLocked)
+                                            @if (data_get($row, 'id'))
                                                 <input type="hidden" name="payments[{{ $i }}][id]"
-                                                    value="{{ data_get($row, 'id') }}">
+                                                    value="{{ data_get($row, 'id') }}" data-payment-id>
+                                            @endif
+                                            @if ($paymentLocked)
                                                 @include('partials.folders.payment-locked-icon')
                                             @else
                                                 <button type="button"
@@ -3056,6 +3058,9 @@
                             `input[name^="${sectionName}["], select[name^="${sectionName}["], textarea[name^="${sectionName}["]`
                         )
                         .forEach((field) => {
+                            if (field.type === 'file' || field.type === 'checkbox') {
+                                return;
+                            }
                             const match = field.name.match(/\[([^\]]+)\]$/);
                             if (!match) {
                                 return;
@@ -3066,31 +3071,124 @@
                 });
             }
 
+            function unlockedPaymentRowsForSave() {
+                return [...document.querySelectorAll('#payment-rows .payment-row')]
+                    .filter((row) => {
+                        if (isLockedPaymentRow(row)) {
+                            return false;
+                        }
+
+                        return rowHasAnyValue(row) || Boolean(row.querySelector('input[data-payment-id]')?.value);
+                    });
+            }
+
+            function collectPaymentsFormData() {
+                const formData = new FormData();
+                @if ($isEditMode)
+                    formData.append('folder_id', String({{ (int) $lead->id }}));
+                @endif
+
+                unlockedPaymentRowsForSave().forEach((row, index) => {
+                    row.querySelectorAll('input[name^="payments["], select[name^="payments["], textarea[name^="payments["]')
+                        .forEach((field) => {
+                            const match = field.name.match(/\[([^\]]+)\]$/);
+                            if (!match) {
+                                return;
+                            }
+
+                            const key = match[1];
+                            if (field.type === 'file') {
+                                if (field.files && field.files[0]) {
+                                    formData.append(`payments[${index}][${key}]`, field.files[0]);
+                                }
+                                return;
+                            }
+
+                            if (field.type === 'checkbox') {
+                                if (field.checked) {
+                                    formData.append(`payments[${index}][${key}]`, field.value || '1');
+                                }
+                                return;
+                            }
+
+                            formData.append(`payments[${index}][${key}]`, field.value ?? '');
+                        });
+
+                    formData.append(`payments[${index}][form_index]`, String(index));
+                });
+
+                return formData;
+            }
+
+            function applySavedPaymentIds(payments) {
+                if (!Array.isArray(payments)) {
+                    return;
+                }
+
+                const unlockedRows = unlockedPaymentRowsForSave();
+
+                payments.forEach((payment, index) => {
+                    const row = unlockedRows[index];
+                    const paymentId = payment?.id;
+                    if (!(row instanceof HTMLElement) || !paymentId) {
+                        return;
+                    }
+
+                    let idInput = row.querySelector('input[data-payment-id]');
+                    if (!(idInput instanceof HTMLInputElement)) {
+                        idInput = document.createElement('input');
+                        idInput.type = 'hidden';
+                        idInput.setAttribute('data-payment-id', '');
+                        const actionCell = row.querySelector('td');
+                        if (actionCell) {
+                            actionCell.prepend(idInput);
+                        } else {
+                            row.prepend(idInput);
+                        }
+                    }
+
+                    const rowIndexMatch = row.querySelector('input[name^="payments["], select[name^="payments["]')
+                        ?.name
+                        ?.match(/^payments\[(\d+)\]/);
+                    const rowIndex = rowIndexMatch ? rowIndexMatch[1] : String(index);
+                    idInput.name = `payments[${rowIndex}][id]`;
+                    idInput.value = String(paymentId);
+                });
+            }
+
             async function saveSectionDraft(sectionName, rowSelector, buttonElement) {
                 if (!csrfToken) {
                     showError('Could not verify form token. Please refresh and try again.');
                     return;
                 }
 
-                const rows = collectSectionRows(sectionName, rowSelector);
                 const url = sectionSaveUrlTemplate.replace('__SECTION__', sectionName);
+                const isPayments = sectionName === 'payments';
+                const headers = {
+                    'Accept': 'application/json',
+                    'X-CSRF-TOKEN': csrfToken,
+                    'X-Requested-With': 'XMLHttpRequest',
+                };
+                let body;
+
+                if (isPayments) {
+                    body = collectPaymentsFormData();
+                } else {
+                    headers['Content-Type'] = 'application/json';
+                    body = JSON.stringify({
+                        [sectionName]: collectSectionRows(sectionName, rowSelector),
+                        @if ($isEditMode)
+                            folder_id: {{ (int) $lead->id }},
+                        @endif
+                    });
+                }
 
                 buttonElement?.setAttribute('disabled', 'disabled');
                 try {
                     const response = await fetch(url, {
                         method: 'POST',
-                        headers: {
-                            'Accept': 'application/json',
-                            'Content-Type': 'application/json',
-                            'X-CSRF-TOKEN': csrfToken,
-                            'X-Requested-With': 'XMLHttpRequest',
-                        },
-                        body: JSON.stringify({
-                            [sectionName]: rows,
-                            @if ($isEditMode)
-                                folder_id: {{ (int) $lead->id }},
-                            @endif
-                        }),
+                        headers,
+                        body,
                     });
 
                     const data = await response.json().catch(() => ({}));
@@ -3098,6 +3196,12 @@
                         showError(data.message || 'Could not save section.');
                         return;
                     }
+
+                    @if ($isEditMode)
+                        if (isPayments && Array.isArray(data.payments)) {
+                            applySavedPaymentIds(data.payments);
+                        }
+                    @endif
 
                     if (window.toastr) {
                         window.toastr.success(data.message || 'Section saved successfully.');
