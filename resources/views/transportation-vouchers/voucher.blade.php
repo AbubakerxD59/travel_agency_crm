@@ -161,8 +161,12 @@
             vertical-align: top;
             background: transparent;
             font-weight: 400;
-            font-size: var(--inv-text-base);
+            font-size: var(--inv-text-sm);
             line-height: var(--inv-leading-tight);
+            white-space: normal;
+            overflow-wrap: break-word;
+            word-wrap: break-word;
+            word-break: break-word;
         }
 
         .tv-header__meta tr:first-child td {
@@ -312,12 +316,21 @@
             background: transparent;
             font-weight: 400;
             white-space: normal;
+            overflow-wrap: break-word;
+            word-wrap: break-word;
+            word-break: break-word;
         }
 
         .tv-details__table th {
-            width: 170px;
+            width: 38%;
+            max-width: 200px;
             padding-right: 18px;
             font-weight: 700;
+            font-size: var(--inv-table-heading);
+        }
+
+        .tv-details__table td {
+            font-size: var(--inv-text-sm);
         }
 
         .tv-details__label {
@@ -330,6 +343,8 @@
 
         table {
             width: 100%;
+            max-width: 100%;
+            table-layout: auto;
             border-collapse: separate;
             border-spacing: 3px;
             margin-bottom: var(--inv-section-gap);
@@ -342,6 +357,10 @@
             border: 1px solid #000;
             padding: var(--inv-cell-padding-y) var(--inv-cell-padding-x);
             vertical-align: top;
+            white-space: normal;
+            overflow-wrap: break-word;
+            word-wrap: break-word;
+            word-break: break-word;
         }
 
         th {
@@ -349,7 +368,10 @@
             text-align: left;
             background: #fff;
             font-size: var(--inv-table-heading);
-            white-space: nowrap;
+        }
+
+        td {
+            font-size: var(--inv-text-sm);
         }
 
         .table-itinerary,
@@ -384,33 +406,16 @@
 
         .table-itinerary td {
             min-height: 20px;
-            font-size: var(--inv-text-xs);
-        }
-
-        .tv-itinerary-nowrap,
-        body.tv-pdf .tv-itinerary-nowrap {
-            white-space: nowrap !important;
-        }
-
-        .table-flight-itinerary {
-            table-layout: fixed;
-            width: 100%;
         }
 
         .table-flight-itinerary th {
-            white-space: normal;
             padding: var(--inv-cell-padding-y) 3px;
-            font-size: 10pt;
             letter-spacing: 0;
         }
 
         .table-flight-itinerary td {
             padding: var(--inv-cell-padding-y) 3px;
             text-align: center;
-        }
-
-        body.tv-pdf .table-flight-itinerary {
-            font-size: 9.5pt;
         }
 
         body.tv-pdf .table-flight-itinerary th,
@@ -436,7 +441,6 @@
         .table-transport tr:not(.invoice-section-title-row) th:first-child,
         .table-transport tr:not(.invoice-section-title-row) td:first-child {
             text-align: left;
-            width: 38%;
         }
 
         .table-transport .invoice-section-title-row th {
@@ -445,7 +449,6 @@
 
         .table-transport td {
             text-align: center;
-            font-size: var(--inv-text-xs);
         }
 
         .invoice-terms {
@@ -657,26 +660,16 @@
         @if (!empty($flight_itinerary))
             <p class="itinerary-bar">Flight Itinerary</p>
             <table class="table-itinerary table-flight-itinerary">
-                <colgroup>
-                    <col style="width: 15%">
-                    <col style="width: 8%">
-                    <col style="width: 13%">
-                    <col style="width: 12%">
-                    <col style="width: 10%">
-                    <col style="width: 12%">
-                    <col style="width: 10%">
-                    <col style="width: 20%">
-                </colgroup>
                 <thead>
                     <tr>
                         <th>Operated by</th>
                         <th>Flight No</th>
-                        <th class="tv-itinerary-nowrap">Departure Date</th>
-                        <th class="tv-itinerary-nowrap">Departure Time</th>
+                        <th>Departure Date</th>
+                        <th>Departure Time</th>
                         <th>From</th>
-                        <th class="tv-itinerary-nowrap">Arrival Time</th>
+                        <th>Arrival Time</th>
                         <th>To</th>
-                        <th class="tv-itinerary-nowrap">Arrival Date</th>
+                        <th>Arrival Date</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -684,12 +677,12 @@
                         <tr>
                             <td>{{ $leg['operated_by'] ?: '—' }}</td>
                             <td>{{ $leg['flight_no'] ?: '—' }}</td>
-                            <td class="tv-itinerary-nowrap">{{ $leg['departure_date'] ?: '—' }}</td>
-                            <td class="tv-itinerary-nowrap">{{ $leg['departure_time'] ?: '—' }}</td>
+                            <td>{{ $leg['departure_date'] ?: '—' }}</td>
+                            <td>{{ $leg['departure_time'] ?: '—' }}</td>
                             <td>{{ $leg['from'] ?: '—' }}</td>
-                            <td class="tv-itinerary-nowrap">{{ $leg['arrival_time'] ?: '—' }}</td>
+                            <td>{{ $leg['arrival_time'] ?: '—' }}</td>
                             <td>{{ $leg['to'] ?: '—' }}</td>
-                            <td class="tv-itinerary-nowrap">{{ $leg['arrival_date'] ?: '—' }}</td>
+                            <td>{{ $leg['arrival_date'] ?: '—' }}</td>
                         </tr>
                     @endforeach
                 </tbody>
