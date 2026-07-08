@@ -923,18 +923,14 @@
         @endif
 
         @if (!empty($other_details))
+            <p class="itinerary-bar">OTHER DETAILS</p>
             <table class="table-itinerary table-invoice-section table-other-services">
                 <tbody>
-                    <tr class="invoice-section-title-row">
-                        <th colspan="2">OTHER DETAILS</th>
-                    </tr>
                     <tr>
-                        <th>Supplier</th>
                         <th>Description</th>
                     </tr>
                     @foreach ($other_details as $detail)
                         <tr>
-                            <td>{{ $detail['supplier'] ?: '—' }}</td>
                             <td>{{ $detail['description'] ?: '—' }}</td>
                         </tr>
                     @endforeach
