@@ -12,7 +12,7 @@
                     @endif
                 </p>
             </div>
-            <a href="{{ route('admin.agents.index') }}"
+            <a href="{{ portal_route('agents.index') }}"
                 class="inline-flex items-center justify-center rounded-xl border border-slate-200 px-4 py-2.5 text-sm font-medium text-concierge-navy transition hover:bg-slate-50">
                 Back to agents
             </a>
@@ -102,7 +102,7 @@
                                 <td class="px-4 py-4 text-concierge-muted lg:px-6">{{ $lead->created_at?->format('M j, Y') }}
                                 </td>
                                 <td class="px-4 py-4 text-right lg:px-6">
-                                    <a href="{{ route('admin.leads.show', $lead) }}"
+                                    <a href="{{ portal_route('leads.show', $lead) }}"
                                         class="lead-row-action inline-flex cursor-pointer rounded-lg p-2 text-concierge-muted transition hover:bg-slate-100 hover:text-concierge-accent"
                                         title="View" aria-label="View">
                                         <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none"
@@ -133,7 +133,7 @@
         </section>
 
         <script type="application/json" id="dashboard-agent-chart-config"
-            data-chart-endpoint="{{ route('admin.agents.overview.performance', $agent) }}">@json($dashboardAgentChart)</script>
+            data-chart-endpoint="{{ portal_route('agents.overview.performance', $agent) }}">@json($dashboardAgentChart)</script>
     </div>
 @endsection
 

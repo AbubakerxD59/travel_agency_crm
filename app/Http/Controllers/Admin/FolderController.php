@@ -26,7 +26,7 @@ class FolderController extends Controller
     public function __construct()
     {
         $this->middleware('can:folders.access')->only(['index', 'show', 'upcoming']);
-        $this->middleware('role:super-admin')->only([
+        $this->middleware('can:folders.edit')->only([
             'create',
             'store',
             'edit',
@@ -44,6 +44,7 @@ class FolderController extends Controller
             ->with(['agent', 'company', 'destination', 'itineraries'])
             ->withCount('passengers')
             ->withIncompleteBookingFlag();
+        apply_staff_company_records_scope($folders, $request->user(), 'folders');
         $this->applyAdminFolderListFilters(
             $folders,
             $params['search'],
@@ -71,10 +72,10 @@ class FolderController extends Controller
             'selectedTravelArrivalFrom' => $params['travelArrivalFrom'],
             'selectedTravelArrivalTo' => $params['travelArrivalTo'],
             'selectedBookingStatus' => $params['bookingStatus'],
-            'agents' => User::role('agent')->orderBy('name')->get(['id', 'name']),
-            'companies' => Company::query()->orderBy('name')->get(['id', 'name']),
+            'agents' => User::recordAssigneesVisibleTo($request->user())->orderBy('name')->get(['id', 'name']),
+            'companies' => companies_visible_to_staff($request->user())->get(['id', 'name']),
             'destinations' => Destination::query()->orderBy('name')->get(['id', 'name']),
-            'canManageFolders' => $request->user()->hasRole('super-admin'),
+            'canManageFolders' => user_is_staff_portal($request->user()),
         ]);
     }
 
@@ -87,6 +88,7 @@ class FolderController extends Controller
             ->withCount('passengers')
             ->withIncompleteBookingFlag()
             ->upcomingByTravelDate(Folder::UPCOMING_TRAVEL_DATE_WINDOW_DAYS);
+        apply_staff_company_records_scope($folders, $request->user(), 'folders');
         $this->applyAdminFolderListFilters(
             $folders,
             $params['search'],
@@ -107,15 +109,15 @@ class FolderController extends Controller
 
         return view('admin.folders.upcoming', [
             'folders' => $folders,
-            'canManageFolders' => $request->user()->hasRole('super-admin'),
+            'canManageFolders' => user_is_staff_portal($request->user()),
             'search' => $params['search'],
             'selectedAgentId' => $params['agentId'],
             'selectedCompanyId' => $params['companyId'],
             'selectedDestinationId' => $params['destinationId'],
             'selectedOrderType' => $params['orderType'],
             'selectedBookingStatus' => $params['bookingStatus'],
-            'agents' => User::role('agent')->orderBy('name')->get(['id', 'name']),
-            'companies' => Company::query()->orderBy('name')->get(['id', 'name']),
+            'agents' => User::recordAssigneesVisibleTo($request->user())->orderBy('name')->get(['id', 'name']),
+            'companies' => companies_visible_to_staff($request->user())->get(['id', 'name']),
             'destinations' => Destination::query()->orderBy('name')->get(['id', 'name']),
         ]);
     }
@@ -125,7 +127,7 @@ class FolderController extends Controller
         $drafts = folder_draft_sections_from_session($request);
 
         return view('agent.folders.create', [
-            'companies' => Company::query()->with('country')->orderBy('name')->get(),
+            'companies' => companies_visible_to_staff($request->user())->with('country')->get(),
             'destinations' => Destination::query()->orderBy('name')->get(),
             'banks' => Bank::query()->orderBy('name')->get(),
             'draftItineraryRows' => $drafts['itineraries'] ?? [[]],
@@ -136,7 +138,7 @@ class FolderController extends Controller
             'draftVisaDetailRows' => $drafts['visa_details'] ?? [[]],
             'draftOtherDetailRows' => $drafts['other_details'] ?? [],
             'draftPaymentRows' => $drafts['payments'] ?? [[]],
-            'leadRoutePrefix' => 'admin',
+            'leadRoutePrefix' => portal_route_prefix(),
             'leadRouteResource' => 'folders',
             'leadLayout' => 'layouts.admin',
         ]);
@@ -154,7 +156,7 @@ class FolderController extends Controller
         }
 
         return redirect()
-            ->route('admin.folders.index')
+            ->route(portal_route_prefix().'.folders.index')
             ->with($flashType, $flashMessage);
     }
 
@@ -169,6 +171,12 @@ class FolderController extends Controller
         if ($request->filled('folder_id')) {
             $folder = Folder::query()->find($request->integer('folder_id'));
             if ($folder === null) {
+                return response()->json([
+                    'message' => __('Folder not found.'),
+                ], 404);
+            }
+
+            if (! staff_can_access_agent_record($request->user(), $folder->agent_id, $folder->company_id)) {
                 return response()->json([
                     'message' => __('Folder not found.'),
                 ], 404);
@@ -269,18 +277,26 @@ class FolderController extends Controller
         ]);
     }
 
-    public function show(Folder $folder): View
+    public function show(Request $request, Folder $folder): View
     {
+        if (! staff_can_access_agent_record($request->user(), $folder->agent_id, $folder->company_id)) {
+            abort(404);
+        }
+
         $folder->load(['agent', 'company', 'destination', 'itineraries', 'passengers', 'packageCosts', 'hotelDetails', 'transportDetails', 'visaDetails', 'otherDetails', 'payments.bank']);
 
         return view('admin.folders.show', [
             'folder' => $folder,
-            'canManageFolders' => request()->user()?->hasRole('super-admin') ?? false,
+            'canManageFolders' => user_is_staff_portal(request()->user()),
         ]);
     }
 
-    public function toggleLock(Folder $folder): RedirectResponse
+    public function toggleLock(Request $request, Folder $folder): RedirectResponse
     {
+        if (! staff_can_access_agent_record($request->user(), $folder->agent_id, $folder->company_id)) {
+            abort(404);
+        }
+
         $folder->update([
             'lock' => $folder->isLocked() ? 0 : 1,
         ]);
@@ -295,12 +311,16 @@ class FolderController extends Controller
 
     public function edit(Request $request, Folder $folder): View
     {
+        if (! staff_can_access_agent_record($request->user(), $folder->agent_id, $folder->company_id)) {
+            abort(404);
+        }
+
         $folder->load(['itineraries', 'passengers', 'packageCosts', 'hotelDetails', 'transportDetails', 'visaDetails', 'otherDetails', 'payments']);
         $drafts = folder_draft_sections_from_session($request, $folder->id);
 
         return view('agent.folders.create', [
             'lead' => $folder,
-            'companies' => Company::query()->with('country')->orderBy('name')->get(),
+            'companies' => companies_visible_to_staff($request->user())->with('country')->get(),
             'destinations' => Destination::query()->orderBy('name')->get(),
             'banks' => Bank::query()->orderBy('name')->get(),
             'draftItineraryRows' => $drafts['itineraries'] ?? $folder->itineraries
@@ -408,7 +428,7 @@ class FolderController extends Controller
                             'image_url' => $p->imageUrl(),
                         ])->toArray()),
             'isEditMode' => true,
-            'leadRoutePrefix' => 'admin',
+            'leadRoutePrefix' => portal_route_prefix(),
             'leadRouteResource' => 'folders',
             'leadLayout' => 'layouts.admin',
         ]);
@@ -416,6 +436,10 @@ class FolderController extends Controller
 
     public function update(Request $request, Folder $folder): RedirectResponse
     {
+        if (! staff_can_access_agent_record($request->user(), $folder->agent_id, $folder->company_id)) {
+            abort(404);
+        }
+
         $validated = $this->validateFolder($request->all(), $folder);
         [$flashType, $flashMessage, $_folder] = $this->persistFolder($validated, $folder, $request);
 
@@ -426,7 +450,7 @@ class FolderController extends Controller
         }
 
         return redirect()
-            ->route('admin.folders.index')
+            ->route(portal_route_prefix().'.folders.index')
             ->with($flashType, $flashMessage);
     }
 
@@ -449,7 +473,14 @@ class FolderController extends Controller
             'order_type' => ['required', 'string', Rule::in(folder_order_types())],
             'vendor_reference' => ['required', 'string', 'max:255'],
             'customer_name' => ['required', 'string', 'max:255'],
-            'company_id' => ['required', 'integer', 'exists:companies,id'],
+            'company_id' => [
+                'required',
+                'integer',
+                'exists:companies,id',
+                function (string $attribute, mixed $value, \Closure $fail): void {
+                    assert_staff_company_allowed(request()->user(), $value, $fail);
+                },
+            ],
             'destination_id' => ['required', 'integer', 'exists:destinations,id'],
             'travel_date' => ['required', 'date'],
             'booking_date' => ['required', 'date'],
@@ -591,7 +622,10 @@ class FolderController extends Controller
     {
         $search = trim((string) $request->string('search')->value());
         $agentId = $request->integer('agent_id') ?: null;
-        $companyId = $request->integer('company_id') ?: null;
+        $companyId = resolve_staff_company_filter(
+            $request->user(),
+            $request->integer('company_id') ?: null,
+        );
         $destinationId = $request->integer('destination_id') ?: null;
         $travelArrivalFrom = trim((string) $request->query('travel_arrival_from', ''));
         $travelArrivalTo = trim((string) $request->query('travel_arrival_to', ''));

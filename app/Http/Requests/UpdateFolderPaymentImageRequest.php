@@ -8,7 +8,7 @@ class UpdateFolderPaymentImageRequest extends FormRequest
 {
     public function authorize(): bool
     {
-        return (bool) $this->user()?->hasRole('super-admin');
+        return (bool) user_is_staff_portal($this->user());
     }
 
     public function rules(): array

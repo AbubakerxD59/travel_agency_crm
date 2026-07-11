@@ -30,7 +30,7 @@ class NotificationController extends Controller
                     'message' => (string) ($data['message'] ?? ''),
                     'type' => (string) ($data['type'] ?? ''),
                     'customer_name' => (string) ($data['customer_name'] ?? ''),
-                    'url' => route('admin.notifications.open', ['notificationId' => $notification->id]),
+                    'url' => portal_route('notifications.open', ['notificationId' => $notification->id]),
                 ];
             })
             ->values()
@@ -54,7 +54,7 @@ class NotificationController extends Controller
                     'message' => (string) ($data['message'] ?? ''),
                     'type' => (string) ($data['type'] ?? ''),
                     'customer_name' => (string) ($data['customer_name'] ?? ''),
-                    'url' => route('admin.notifications.open', ['notificationId' => $notification->id]),
+                    'url' => portal_route('notifications.open', ['notificationId' => $notification->id]),
                     'is_read' => $notification->read_at !== null,
                     'created_at_human' => $notification->created_at?->diffForHumans(),
                 ];
@@ -88,6 +88,6 @@ class NotificationController extends Controller
             return redirect()->to($url);
         }
 
-        return redirect()->route('admin.dashboard');
+        return redirect()->route(portal_route_prefix().'.dashboard');
     }
 }

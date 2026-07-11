@@ -3,7 +3,6 @@
 namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
-use App\Models\User;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -31,16 +30,6 @@ class LoginController extends Controller
             return back()
                 ->withInput($request->only('email'))
                 ->withErrors(['email' => __('These credentials do not match our records.')]);
-        }
-
-        if (Auth::user()?->hasRole(User::ROLE_MANAGER)) {
-            Auth::logout();
-            $request->session()->invalidate();
-            $request->session()->regenerateToken();
-
-            return back()
-                ->withInput($request->only('email'))
-                ->withErrors(['email' => __('Manager accounts cannot sign in at this time.')]);
         }
 
         $request->session()->regenerate();

@@ -3,7 +3,7 @@
 @section('title', 'Agents')
 
 @section('content')
-    <div id="js-agents-config" class="hidden" data-url-base="{{ route('admin.agents.index') }}"
+    <div id="js-agents-config" class="hidden" data-url-base="{{ portal_route('agents.index') }}"
         data-can-manage="{{ $canManageAgents ? '1' : '0' }}" data-current-user-id="{{ auth()->id() }}"
         data-actions-colspan="{{ $canManageAgents ? 8 : 7 }}"></div>
 
@@ -22,7 +22,7 @@
             </button>
         </div>
 
-        <form id="agent-list-filters-form" method="GET" action="{{ route('admin.agents.index') }}"
+        <form id="agent-list-filters-form" method="GET" action="{{ portal_route('agents.index') }}"
             class="mt-6 grid grid-cols-1 gap-3 sm:grid-cols-2">
             <div>
                 <label for="agent-list-filter" class="block text-sm font-medium text-concierge-navy">Search agents</label>
@@ -69,7 +69,7 @@
                                 data-company-id="{{ $agent->company_id ?? '' }}"
                                 data-search-text="{{ e(mb_strtolower($agent->name . ' ' . $agent->email . ' ' . ($agent->phone_number ?? ''), 'UTF-8')) }}">
                                 <td class="px-6 py-4 font-medium text-concierge-navy">
-                                    <a href="{{ route('admin.agents.overview', $agent) }}" class="hover:underline">
+                                    <a href="{{ portal_route('agents.overview', $agent) }}" class="hover:underline">
                                         {{ $agent->name }}
                                         @if ($agent->agent_cnic)
                                             <br>
@@ -80,7 +80,7 @@
                                     </a>
                                 </td>
                                 <td class="px-6 py-4 font-medium text-concierge-navy">
-                                    <a href="{{ route('admin.agents.overview', $agent) }}" class="hover:underline">
+                                    <a href="{{ portal_route('agents.overview', $agent) }}" class="hover:underline">
                                         {{ $agent->email }}
                                         @if ($agent->phone_number)
                                             <br>
@@ -92,7 +92,7 @@
                                 </td>
                                 @if ($agent->guardian_name)
                                     <td class="px-6 py-4 font-medium text-concierge-navy">
-                                        <a href="{{ route('admin.agents.overview', $agent) }}" class="hover:underline">
+                                        <a href="{{ portal_route('agents.overview', $agent) }}" class="hover:underline">
                                             {{ $agent->guardian_name ?? '-' }}
                                             @if ($agent->guardian_phone_number)
                                                 <br>
@@ -199,7 +199,7 @@
                 </button>
             </div>
 
-            <form id="store-agent-form" method="POST" action="{{ route('admin.agents.store') }}"
+            <form id="store-agent-form" method="POST" action="{{ portal_route('agents.store') }}"
                 class="space-y-4 px-6 py-5">
                 @csrf
 

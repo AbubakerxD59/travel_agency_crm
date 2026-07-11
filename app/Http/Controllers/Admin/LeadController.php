@@ -9,7 +9,6 @@ use App\Http\Requests\AssignLeadRequest;
 use App\Http\Requests\CheckLeadDuplicateRequest;
 use App\Http\Requests\StoreLeadRequest;
 use App\Http\Requests\UpdateLeadRequest;
-use App\Models\Company;
 use App\Models\Destination;
 use App\Models\Lead;
 use App\Models\User;
@@ -35,7 +34,7 @@ class LeadController extends Controller
     {
         $this->middleware('can:leads.access')->only(['index', 'show']);
         $this->middleware('can:leads.export')->only(['export']);
-        $this->middleware('role:super-admin')->only(['create', 'store', 'edit', 'update', 'destroy']);
+        $this->middleware('can:leads.create')->only(['create', 'store', 'edit', 'update', 'destroy']);
     }
 
     public function index(Request $request): View
@@ -55,6 +54,7 @@ class LeadController extends Controller
             $filters['status'],
             $filters['start_bound'],
             $filters['end_bound'],
+            $request->user(),
         );
 
         $totalLeads = (clone $statsQuery)->count();
@@ -92,10 +92,10 @@ class LeadController extends Controller
             'selectedStartDate' => $filters['start_date'],
             'selectedEndDate' => $filters['end_date'],
             'selectedDateFilterLabel' => $filters['date_label'],
-            'companies' => Company::query()->orderBy('name')->get(['id', 'name']),
+            'companies' => companies_visible_to_staff($request->user())->get(['id', 'name']),
             'statuses' => Lead::statusLabels(),
-            'agents' => User::role(User::ROLE_AGENT)->orderBy('name')->get(['id', 'name', 'company_id']),
-            'canCreateLeads' => $request->user()->hasRole('super-admin'),
+            'agents' => User::recordAssigneesVisibleTo($request->user())->orderBy('name')->get(['id', 'name', 'company_id']),
+            'canCreateLeads' => user_is_staff_portal($request->user()),
             'canExportLeads' => $request->user()->can('leads.export'),
             'totalLeads' => $totalLeads,
             'totalClosed' => $totalClosed,
@@ -126,7 +126,7 @@ class LeadController extends Controller
 
     public function checkDuplicate(CheckLeadDuplicateRequest $request): JsonResponse
     {
-        return $this->checkDuplicateLeadResponse($request, 'admin.leads.show');
+        return $this->checkDuplicateLeadResponse($request, portal_route_prefix().'.leads.show');
     }
 
     public function assign(AssignLeadRequest $request): RedirectResponse
@@ -175,12 +175,16 @@ class LeadController extends Controller
         $this->notifyAssignedAgent($lead, null, $agentId);
 
         return redirect()
-            ->route('admin.leads.index')
+            ->route(portal_route_prefix().'.leads.index')
             ->with('status', __('Lead assigned successfully.'));
     }
 
     public function updateAssign(AssignLeadRequest $request, Lead $lead): RedirectResponse
     {
+        if (! staff_can_access_agent_record($request->user(), $lead->agent_id, $lead->company_id)) {
+            abort(404);
+        }
+
         $data = $request->validated();
         $previousAgentId = (int) ($lead->agent_id ?? 0);
         $nextAgentId = (int) $data['agent_id'];
@@ -204,14 +208,14 @@ class LeadController extends Controller
         $this->notifyAssignedAgent($lead, $previousAgentId, $nextAgentId);
 
         return redirect()
-            ->route('admin.leads.index')
+            ->route(portal_route_prefix().'.leads.index')
             ->with('status', __('Lead updated successfully.'));
     }
 
     public function create(Request $request): View
     {
-        $agents = User::role(User::ROLE_AGENT)->orderBy('name')->get(['id', 'name', 'company_id']);
-        $companies = Company::query()->with('country')->orderBy('name')->get();
+        $agents = User::recordAssigneesVisibleTo($request->user())->orderBy('name')->get(['id', 'name', 'company_id']);
+        $companies = companies_visible_to_staff($request->user())->with('country')->get();
         $destinations = Destination::query()->orderBy('name')->get();
 
         return view('agent.leads.create', [
@@ -219,13 +223,17 @@ class LeadController extends Controller
             'companies' => $companies,
             'destinations' => $destinations,
             'statuses' => Lead::statusLabels(),
-            'leadRoutePrefix' => 'admin',
+            'leadRoutePrefix' => portal_route_prefix(),
             'leadLayout' => 'layouts.admin',
         ]);
     }
 
-    public function show(Lead $lead): View
+    public function show(Request $request, Lead $lead): View
     {
+        if (! staff_can_access_agent_record($request->user(), $lead->agent_id, $lead->company_id)) {
+            abort(404);
+        }
+
         $lead->load([
             'agent',
             'company',
@@ -236,11 +244,15 @@ class LeadController extends Controller
         ]);
     }
 
-    public function edit(Lead $lead): View
+    public function edit(Request $request, Lead $lead): View
     {
+        if (! staff_can_access_agent_record($request->user(), $lead->agent_id, $lead->company_id)) {
+            abort(404);
+        }
+
         $lead->load(['itineraries', 'passengers', 'packageCosts']);
-        $agents = User::role(User::ROLE_AGENT)->orderBy('name')->get(['id', 'name', 'company_id']);
-        $companies = Company::query()->with('country')->orderBy('name')->get();
+        $agents = User::recordAssigneesVisibleTo($request->user())->orderBy('name')->get(['id', 'name', 'company_id']);
+        $companies = companies_visible_to_staff($request->user())->with('country')->get();
         $destinations = Destination::query()->orderBy('name')->get();
 
         return view('agent.leads.edit', [
@@ -249,7 +261,7 @@ class LeadController extends Controller
             'companies' => $companies,
             'destinations' => $destinations,
             'statuses' => Lead::statusLabels(),
-            'leadRoutePrefix' => 'admin',
+            'leadRoutePrefix' => portal_route_prefix(),
             'leadLayout' => 'layouts.admin',
         ]);
     }
@@ -298,12 +310,16 @@ class LeadController extends Controller
         }
 
         return redirect()
-            ->route('admin.leads.index')
+            ->route(portal_route_prefix().'.leads.index')
             ->with('status', __('Lead created successfully.'));
     }
 
     public function update(UpdateLeadRequest $request, Lead $lead): RedirectResponse
     {
+        if (! staff_can_access_agent_record($request->user(), $lead->agent_id, $lead->company_id)) {
+            abort(404);
+        }
+
         try {
             DB::transaction(function () use ($request, $lead): void {
                 $previousAgentId = (int) ($lead->agent_id ?? 0);
@@ -350,12 +366,16 @@ class LeadController extends Controller
         }
 
         return redirect()
-            ->route('admin.leads.index')
+            ->route(portal_route_prefix().'.leads.index')
             ->with('status', __('Lead updated successfully.'));
     }
 
-    public function destroy(Lead $lead): RedirectResponse
+    public function destroy(Request $request, Lead $lead): RedirectResponse
     {
+        if (! staff_can_access_agent_record($request->user(), $lead->agent_id, $lead->company_id)) {
+            abort(404);
+        }
+
         try {
             $lead->delete();
         } catch (Throwable $e) {
@@ -365,7 +385,7 @@ class LeadController extends Controller
         }
 
         return redirect()
-            ->route('admin.leads.index')
+            ->route(portal_route_prefix().'.leads.index')
             ->with('status', __('Lead deleted successfully.'));
     }
 

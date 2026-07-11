@@ -23,7 +23,7 @@
 
         @if ($filterFolderId)
             <p class="mt-4 text-sm text-concierge-muted">Filtered to folder #{{ $filterFolderId }}.
-                <a href="{{ route('admin.folder-payments.index', request()->except('folder_id')) }}"
+                <a href="{{ portal_route('folder-payments.index', request()->except('folder_id')) }}"
                     class="font-medium text-concierge-navy underline">Show all payments</a>
             </p>
         @endif
@@ -51,7 +51,7 @@
                     @forelse ($payments as $payment)
                         <tr class="bg-white">
                             <td class="border border-slate-200 px-3 py-2">
-                                <a href="{{ route('admin.folders.show', $payment->folder) }}"
+                                <a href="{{ portal_route('folders.show', $payment->folder) }}"
                                     class="font-medium text-concierge-navy underline">#{{ $payment->folder_id }}</a>
                             </td>
                             <td class="border border-slate-200 px-3 py-2">
@@ -67,7 +67,7 @@
                             <td class="border border-slate-200 px-3 py-2">{{ $payment->bank?->name ?? '—' }}</td>
                             <td class="border border-slate-200 px-3 py-2">
                                 @if ($payment->imageUrl())
-                                    <a href="{{ route('admin.folder-payments.show', $payment) }}"
+                                    <a href="{{ portal_route('folder-payments.show', $payment) }}"
                                         class="inline-block">
                                         <img src="{{ $payment->imageUrl() }}" alt=""
                                             class="h-10 w-10 rounded-lg border border-slate-200 object-cover">
@@ -90,13 +90,13 @@
                             </td>
                             <td class="border border-slate-200 px-3 py-2">
                                 <div class="flex flex-wrap items-center gap-2">
-                                    <a href="{{ route('admin.folder-payments.show', $payment) }}"
+                                    <a href="{{ portal_route('folder-payments.show', $payment) }}"
                                         class="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-concierge-navy hover:bg-slate-50">
                                         View
                                     </a>
                                     @if ($payment->approval_status === 'pending' && ! $payment->isLocked())
                                         <form method="POST"
-                                            action="{{ route('admin.folder-payments.approve', $payment) }}"
+                                            action="{{ portal_route('folder-payments.approve', $payment) }}"
                                             onsubmit="return confirm({{ json_encode(__('Approve this payment?')) }})">
                                             @csrf
                                             <button type="submit"
@@ -105,7 +105,7 @@
                                             </button>
                                         </form>
                                         <form method="POST"
-                                            action="{{ route('admin.folder-payments.reject', $payment) }}"
+                                            action="{{ portal_route('folder-payments.reject', $payment) }}"
                                             onsubmit="return confirm({{ json_encode(__('Reject this payment?')) }})">
                                             @csrf
                                             <button type="submit"

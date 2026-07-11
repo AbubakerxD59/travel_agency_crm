@@ -10,7 +10,7 @@
                 <p class="mt-1 text-sm text-concierge-muted">Folder listing across agents.</p>
             </div>
             @if ($canManageFolders ?? false)
-                <a href="{{ route('admin.folders.create') }}"
+                <a href="{{ portal_route('folders.create') }}"
                     class="inline-flex shrink-0 cursor-pointer items-center justify-center gap-2 rounded-xl bg-concierge-navy px-5 py-2.5 text-sm font-semibold text-white shadow-md shadow-concierge-navy/25 transition hover:bg-concierge-navy-deep">
                     <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24"
                         stroke="currentColor" stroke-width="2" aria-hidden="true">
@@ -33,8 +33,8 @@
         @endif
 
         @include('partials.folders.admin-folder-list-filters', [
-            'formAction' => route('admin.folders.index'),
-            'clearUrl' => route('admin.folders.index'),
+            'formAction' => portal_route('folders.index'),
+            'clearUrl' => portal_route('folders.index'),
         ])
 
         <div class="mt-6 overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-sm">
@@ -151,7 +151,7 @@
                                                 'folder' => $folder,
                                                 'canToggle' => true,
                                             ])
-                                            <a href="{{ route('admin.folders.edit', $folder) }}"
+                                            <a href="{{ portal_route('folders.edit', $folder) }}"
                                                 class="lead-row-action inline-flex cursor-pointer rounded-lg p-2 text-concierge-muted transition hover:bg-slate-100 hover:text-concierge-navy"
                                                 title="Edit" aria-label="Edit">
                                                 <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none"
@@ -164,13 +164,13 @@
                                         @endif
                                         @include('partials.folders.invoice-action', [
                                             'folder' => $folder,
-                                            'routeName' => 'admin.folders.invoice',
+                                            'routeName' => portal_route_prefix().'.folders.invoice',
                                         ])
                                         @include('partials.folders.transportation-voucher-action', [
                                             'folder' => $folder,
-                                            'routeName' => 'admin.folders.transportation-voucher',
+                                            'routeName' => portal_route_prefix().'.folders.transportation-voucher',
                                         ])
-                                        <a href="{{ route('admin.folders.show', $folder) }}"
+                                        <a href="{{ portal_route('folders.show', $folder) }}"
                                             class="lead-row-action inline-flex cursor-pointer rounded-lg p-2 text-concierge-muted transition hover:bg-slate-100 hover:text-concierge-accent"
                                             title="View" aria-label="View">
                                             <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none"

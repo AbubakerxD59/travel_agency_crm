@@ -25,6 +25,18 @@ class FolderPaymentController extends Controller
 
         $payments = FolderPayment::query()
             ->with(['folder.agent', 'bank']);
+
+        if ($request->user()?->hasRole(User::ROLE_MANAGER)) {
+            $payments->whereHas(
+                'folder',
+                fn (Builder $folderQuery) => apply_staff_company_records_scope(
+                    $folderQuery,
+                    $request->user(),
+                    $folderQuery->getModel()->getTable(),
+                ),
+            );
+        }
+
         $this->applyPaymentListFilters($payments, $params);
         $payments = $payments
             ->orderByDesc('payment_date')
@@ -39,7 +51,7 @@ class FolderPaymentController extends Controller
             'selectedAgentId' => $params['agentId'],
             'selectedPaymentDate' => $params['paymentDate'],
             'selectedStatus' => $params['status'],
-            'agents' => User::role('agent')->orderBy('name')->get(['id', 'name']),
+            'agents' => User::recordAssigneesVisibleTo($request->user())->orderBy('name')->get(['id', 'name']),
             'statuses' => [
                 FolderPayment::STATUS_PENDING => 'Pending',
                 FolderPayment::STATUS_APPROVED => 'Approved',
@@ -48,9 +60,13 @@ class FolderPaymentController extends Controller
         ]);
     }
 
-    public function show(FolderPayment $folderPayment): View
+    public function show(Request $request, FolderPayment $folderPayment): View
     {
         $folderPayment->load(['folder.agent', 'folder.company', 'bank']);
+
+        if (! staff_can_access_agent_record($request->user(), $folderPayment->folder?->agent_id, $folderPayment->folder?->company_id)) {
+            abort(404);
+        }
 
         return view('admin.folder-payments.show', [
             'payment' => $folderPayment,
@@ -62,7 +78,7 @@ class FolderPaymentController extends Controller
     {
         if ($folderPayment->isLocked()) {
             return redirect()
-                ->route('admin.folder-payments.show', $folderPayment)
+                ->route(portal_route_prefix().'.folder-payments.show', $folderPayment)
                 ->with('error', __('This payment is locked and cannot be changed.'));
         }
 
@@ -72,7 +88,7 @@ class FolderPaymentController extends Controller
 
             if ($path === null) {
                 return redirect()
-                    ->route('admin.folder-payments.show', $folderPayment)
+                    ->route(portal_route_prefix().'.folder-payments.show', $folderPayment)
                     ->with('error', __('Could not upload image. Please try again.'));
             }
 
@@ -82,12 +98,12 @@ class FolderPaymentController extends Controller
             report($e);
 
             return redirect()
-                ->route('admin.folder-payments.show', $folderPayment)
+                ->route(portal_route_prefix().'.folder-payments.show', $folderPayment)
                 ->with('error', __('Could not upload image. Please try again.'));
         }
 
         return redirect()
-            ->route('admin.folder-payments.show', $folderPayment)
+            ->route(portal_route_prefix().'.folder-payments.show', $folderPayment)
             ->with('status', __('Payment image saved.'));
     }
 
@@ -95,7 +111,7 @@ class FolderPaymentController extends Controller
     {
         if ($folderPayment->isLocked()) {
             return redirect()
-                ->route('admin.folder-payments.show', $folderPayment)
+                ->route(portal_route_prefix().'.folder-payments.show', $folderPayment)
                 ->with('error', __('This payment is locked and cannot be changed.'));
         }
 
@@ -103,7 +119,7 @@ class FolderPaymentController extends Controller
         $folderPayment->update(['image' => null]);
 
         return redirect()
-            ->route('admin.folder-payments.show', $folderPayment)
+            ->route(portal_route_prefix().'.folder-payments.show', $folderPayment)
             ->with('status', __('Payment image removed.'));
     }
 

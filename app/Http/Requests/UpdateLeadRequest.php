@@ -16,11 +16,19 @@ class UpdateLeadRequest extends FormRequest
             return false;
         }
 
-        if ($user->hasRole('super-admin')) {
+        if (user_is_staff_portal($user)) {
+            if ($user->hasRole(User::ROLE_MANAGER)) {
+                /** @var \App\Models\Lead|null $lead */
+                $lead = $this->route('lead');
+
+                return $lead !== null
+                    && staff_can_access_agent_record($user, $lead->agent_id, $lead->company_id);
+            }
+
             return true;
         }
 
-        if ($user->hasRole('agent')) {
+        if ($user->hasRole(User::ROLE_AGENT)) {
             /** @var \App\Models\Lead|null $lead */
             $lead = $this->route('lead');
             return $lead !== null && (int) $lead->agent_id === (int) $user->id;
@@ -41,14 +49,19 @@ class UpdateLeadRequest extends FormRequest
                         return;
                     }
 
-                    if (!User::role('agent')->whereKey($value)->exists()) {
-                        $fail('The selected '.$attribute.' is invalid.');
-                    }
+                    assert_staff_agent_allowed($this->user(), $value, $fail);
                 },
             ],
             'order_type' => ['required', 'string', 'max:120'],
             'vendor_reference' => ['nullable', 'string', 'max:255'],
-            'company_id' => ['required', 'integer', 'exists:companies,id'],
+            'company_id' => [
+                'required',
+                'integer',
+                'exists:companies,id',
+                function (string $attribute, mixed $value, \Closure $fail): void {
+                    assert_staff_company_allowed($this->user(), $value, $fail);
+                },
+            ],
             'status' => ['required', 'string', Rule::in(Lead::statusKeys())],
             'destination_id' => ['required', 'integer', 'exists:destinations,id'],
             'travel_date' => ['required', 'date'],

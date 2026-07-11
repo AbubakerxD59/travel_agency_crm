@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Folder;
+use App\Models\User;
 use App\Services\FolderInvoicePdf;
 use App\Services\FolderInvoiceViewData;
 use Illuminate\Http\Request;
@@ -35,9 +36,7 @@ class FolderInvoiceController extends Controller
 
     private function downloadRouteName(Request $request): string
     {
-        return $request->routeIs('agent.*')
-            ? 'agent.folders.invoice.download'
-            : 'admin.folders.invoice.download';
+        return portal_route_prefix($request).'.folders.invoice.download';
     }
 
     private function authorizeFolderInvoice(Request $request, Folder $folder): void
@@ -48,7 +47,11 @@ class FolderInvoiceController extends Controller
             abort(403);
         }
 
-        if ($user->hasRole('agent') && (int) $folder->agent_id !== (int) $user->id) {
+        if ($user->hasRole(User::ROLE_AGENT) && (int) $folder->agent_id !== (int) $user->id) {
+            abort(403);
+        }
+
+        if (! staff_can_access_agent_record($user, $folder->agent_id, $folder->company_id)) {
             abort(403);
         }
     }

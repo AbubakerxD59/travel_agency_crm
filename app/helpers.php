@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use App\Models\Company;
 use App\Models\Folder;
 use App\Models\FolderPayment;
 use App\Models\Lead;
@@ -19,6 +20,193 @@ use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
+
+/**
+ * Route name prefix for the current staff/agent portal request (admin|manager|agent).
+ */
+function portal_route_prefix(?Request $request = null): string
+{
+    $name = ($request ?? request())->route()?->getName() ?? '';
+
+    if (str_starts_with($name, 'manager.')) {
+        return 'manager';
+    }
+
+    if (str_starts_with($name, 'agent.')) {
+        return 'agent';
+    }
+
+    return 'admin';
+}
+
+/**
+ * Generate a named route under the current portal prefix.
+ *
+ * @param  mixed  $parameters
+ */
+function portal_route(string $name, mixed $parameters = [], bool $absolute = true): string
+{
+    return route(portal_route_prefix().'.'.$name, $parameters, $absolute);
+}
+
+function user_is_staff_portal(?User $user): bool
+{
+    return (bool) $user?->hasAnyRole(['super-admin', User::ROLE_MANAGER]);
+}
+
+/**
+ * Company id forced for managers; null means "no force" (super-admin / others).
+ */
+function staff_forced_company_id(?User $viewer): ?int
+{
+    if (! $viewer?->hasRole(User::ROLE_MANAGER)) {
+        return null;
+    }
+
+    return $viewer->company_id !== null ? (int) $viewer->company_id : null;
+}
+
+/**
+ * Resolve company filter for staff portal lists.
+ * Managers are always locked to their own company (or empty when unassigned).
+ */
+function resolve_staff_company_filter(?User $viewer, ?int $requestedCompanyId): ?int
+{
+    if ($viewer?->hasRole(User::ROLE_MANAGER)) {
+        return staff_forced_company_id($viewer);
+    }
+
+    return $requestedCompanyId;
+}
+
+/**
+ * @param  Builder<\Illuminate\Database\Eloquent\Model>  $query
+ */
+function apply_staff_company_scope(Builder $query, ?User $viewer, string $column = 'company_id'): void
+{
+    if (! $viewer?->hasRole(User::ROLE_MANAGER)) {
+        return;
+    }
+
+    $companyId = staff_forced_company_id($viewer);
+    if ($companyId === null) {
+        $query->whereRaw('0 = 1');
+
+        return;
+    }
+
+    $query->where($column, $companyId);
+}
+
+/**
+ * Scope lead/folder listings for managers to their own records and their company agents'.
+ *
+ * @param  Builder<\Illuminate\Database\Eloquent\Model>  $query
+ */
+function apply_staff_company_records_scope(Builder $query, ?User $viewer, string $table): void
+{
+    if (! $viewer?->hasRole(User::ROLE_MANAGER)) {
+        return;
+    }
+
+    $companyId = staff_forced_company_id($viewer);
+    if ($companyId === null) {
+        $query->whereRaw('0 = 1');
+
+        return;
+    }
+
+    $query
+        ->where("{$table}.company_id", $companyId)
+        ->whereIn(
+            "{$table}.agent_id",
+            User::recordAssigneesVisibleTo($viewer)->select('users.id'),
+        );
+}
+
+/**
+ * Whether a lead/folder company is visible to the staff viewer.
+ */
+function staff_can_access_company_record(?User $viewer, mixed $companyId): bool
+{
+    if (! $viewer?->hasRole(User::ROLE_MANAGER)) {
+        return true;
+    }
+
+    $forced = staff_forced_company_id($viewer);
+
+    return $forced !== null && (int) $companyId === $forced;
+}
+
+/**
+ * Whether a lead/folder assigned to an agent (or the manager themself) is visible.
+ */
+function staff_can_access_agent_record(?User $viewer, mixed $agentId, mixed $companyId = null): bool
+{
+    if (! $viewer?->hasRole(User::ROLE_MANAGER)) {
+        return true;
+    }
+
+    if ($companyId !== null && ! staff_can_access_company_record($viewer, $companyId)) {
+        return false;
+    }
+
+    if ($agentId === null || $agentId === '') {
+        return false;
+    }
+
+    return User::recordAssigneesVisibleTo($viewer)->whereKey((int) $agentId)->exists();
+}
+
+/**
+ * Companies visible in staff portal filters/forms.
+ *
+ * @return Builder<Company>
+ */
+function companies_visible_to_staff(?User $viewer): Builder
+{
+    $query = Company::query()->orderBy('name');
+
+    if ($viewer?->hasRole(User::ROLE_MANAGER)) {
+        $companyId = staff_forced_company_id($viewer);
+        if ($companyId === null) {
+            return $query->whereRaw('0 = 1');
+        }
+
+        return $query->whereKey($companyId);
+    }
+
+    return $query;
+}
+
+/**
+ * Fail validation when a manager tries to use another company's id.
+ */
+function assert_staff_company_allowed(?User $viewer, mixed $companyId, \Closure $fail): void
+{
+    if (! $viewer?->hasRole(User::ROLE_MANAGER)) {
+        return;
+    }
+
+    $forced = staff_forced_company_id($viewer);
+    if ($forced === null || (int) $companyId !== $forced) {
+        $fail(__('You can only use your assigned company.'));
+    }
+}
+
+/**
+ * Fail validation when a manager selects an agent outside their company.
+ */
+function assert_staff_agent_allowed(?User $viewer, mixed $agentId, \Closure $fail): void
+{
+    if ($agentId === null || $agentId === '') {
+        return;
+    }
+
+    if (! User::recordAssigneesVisibleTo($viewer)->whereKey((int) $agentId)->exists()) {
+        $fail(__('The selected agent is invalid.'));
+    }
+}
 
 /**
  * Public URL for a file on the `public` disk (e.g. company logos under storage/app/public).
@@ -684,13 +872,23 @@ function folder_sync_agent_name_from_user(Folder $folder): void
  *
  * @return list<string|callable>
  */
-function team_member_user_id_validation_rules(): array
+function team_member_user_id_validation_rules(?User $viewer = null): array
 {
+    $viewer ??= request()->user();
+
     return [
         'nullable',
         'integer',
-        function (string $attribute, mixed $value, Closure $fail): void {
+        function (string $attribute, mixed $value, Closure $fail) use ($viewer): void {
             if ($value === null || $value === '') {
+                return;
+            }
+
+            if ($viewer?->hasRole(User::ROLE_MANAGER)) {
+                if (! User::recordAssigneesVisibleTo($viewer)->withTrashed()->whereKey((int) $value)->exists()) {
+                    $fail(__('The selected agent is invalid.'));
+                }
+
                 return;
             }
 
@@ -721,7 +919,7 @@ function folder_is_locked(Folder $folder): bool
 
 function user_can_edit_folder(User $user, Folder $folder): bool
 {
-    if ($user->hasRole('super-admin')) {
+    if (user_is_staff_portal($user)) {
         return true;
     }
 
@@ -742,7 +940,7 @@ function user_can_edit_folder(User $user, Folder $folder): bool
 
 function user_can_create_folder(User $user): bool
 {
-    if ($user->hasRole('super-admin')) {
+    if (user_is_staff_portal($user)) {
         return true;
     }
 

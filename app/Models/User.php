@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Support\AgentCnicPhotoStorage;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -26,6 +27,75 @@ class User extends Authenticatable
     public static function teamRoleNames(): array
     {
         return [self::ROLE_AGENT, self::ROLE_MANAGER];
+    }
+
+    /**
+     * Limit users to the viewer's company when the viewer is a manager.
+     *
+     * @param  Builder<User>  $query
+     * @return Builder<User>
+     */
+    public function scopeVisibleToStaff(Builder $query, ?self $viewer): Builder
+    {
+        if (! $viewer?->hasRole(self::ROLE_MANAGER)) {
+            return $query;
+        }
+
+        if ($viewer->company_id === null) {
+            return $query->whereRaw('0 = 1');
+        }
+
+        return $query->where('users.company_id', $viewer->company_id);
+    }
+
+    /**
+     * Agents the staff viewer is allowed to see (managers: same-company agents only).
+     *
+     * @return Builder<User>
+     */
+    public static function agentsVisibleTo(?self $viewer): Builder
+    {
+        return static::role(self::ROLE_AGENT)->visibleToStaff($viewer);
+    }
+
+    /**
+     * Users who may own leads/folders for this viewer.
+     * Super admin: all agents and managers. Manager: company agents + themself.
+     *
+     * @return Builder<User>
+     */
+    public static function recordAssigneesVisibleTo(?self $viewer): Builder
+    {
+        if ($viewer?->hasRole(self::ROLE_MANAGER)) {
+            return static::query()
+                ->where(function (Builder $builder) use ($viewer): void {
+                    $builder
+                        ->whereIn(
+                            'users.id',
+                            static::agentsVisibleTo($viewer)->select('users.id'),
+                        )
+                        ->orWhere('users.id', $viewer->id);
+                });
+        }
+
+        return static::role(self::teamRoleNames());
+    }
+
+    public function isVisibleToStaff(?self $viewer): bool
+    {
+        if (! $viewer?->hasRole(self::ROLE_MANAGER)) {
+            return true;
+        }
+
+        if (! $this->hasRole(self::ROLE_AGENT)) {
+            return false;
+        }
+
+        if ($viewer->company_id === null || $this->company_id === null) {
+            return false;
+        }
+
+        return (int) $this->company_id === (int) $viewer->company_id;
     }
 
     /**
@@ -55,6 +125,26 @@ class User extends Authenticatable
             'leads.create',
             'folders.access',
             'folders.edit',
+        ];
+    }
+
+    /**
+     * Managers receive the full permission set (same as super admin).
+     *
+     * @return list<string>
+     */
+    public static function defaultManagerPermissions(): array
+    {
+        return [
+            'dashboard.access',
+            'agents.create',
+            'agents.manage',
+            'leads.access',
+            'leads.create',
+            'leads.export',
+            'folders.access',
+            'folders.edit',
+            'folders.edit_locked',
         ];
     }
 
@@ -130,7 +220,19 @@ class User extends Authenticatable
     public function defaultRedirectRoute(): string
     {
         if ($this->hasRole(self::ROLE_MANAGER)) {
-            return 'admin.dashboard';
+            if ($this->can('dashboard.access')) {
+                return 'manager.dashboard';
+            }
+
+            if ($this->can('leads.access')) {
+                return 'manager.leads.index';
+            }
+
+            if ($this->can('folders.access')) {
+                return 'manager.folders.index';
+            }
+
+            return 'manager.dashboard';
         }
 
         if ($this->hasRole(self::ROLE_AGENT)) {

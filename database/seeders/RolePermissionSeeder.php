@@ -43,8 +43,18 @@ class RolePermissionSeeder extends Seeder
 
         $superAdmin = Role::firstOrCreate(['name' => 'super-admin', 'guard_name' => 'web']);
         Role::firstOrCreate(['name' => 'agent', 'guard_name' => 'web']);
-        Role::firstOrCreate(['name' => 'manager', 'guard_name' => 'web']);
-        $superAdmin->syncPermissions(Permission::all());
+        $manager = Role::firstOrCreate(['name' => 'manager', 'guard_name' => 'web']);
+        $allPermissions = Permission::all();
+        $superAdmin->syncPermissions($allPermissions);
+
+        $managerPermissions = Permission::query()
+            ->whereIn('name', User::defaultManagerPermissions())
+            ->get();
+        $manager->syncPermissions($managerPermissions);
+
+        foreach (User::role('manager')->get() as $managerUser) {
+            $managerUser->syncPermissions($managerPermissions);
+        }
 
         $removedFromAgents = [
             'agents.create',

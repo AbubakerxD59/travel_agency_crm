@@ -12,7 +12,7 @@
                     <h1 class="mt-1 text-2xl font-bold text-concierge-navy lg:text-3xl">Folder #{{ $folder->id }}</h1>
                 </div>
                 <div class="flex flex-wrap items-center gap-2">
-                    <a href="{{ route('admin.folders.index') }}"
+                    <a href="{{ portal_route('folders.index') }}"
                         class="inline-flex shrink-0 items-center justify-center rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-medium text-concierge-navy shadow-sm transition hover:bg-slate-50">
                         Back to folders
                     </a>
@@ -21,7 +21,7 @@
                             'folder' => $folder,
                             'canToggle' => true,
                         ])
-                        <a href="{{ route('admin.folders.edit', $folder) }}"
+                        <a href="{{ portal_route('folders.edit', $folder) }}"
                             class="inline-flex shrink-0 items-center justify-center rounded-xl bg-concierge-navy px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-concierge-navy-deep">
                             Edit folder
                         </a>
@@ -376,7 +376,7 @@
                                 <td class="border border-slate-200 px-2 py-2">{{ $p->mode_of_payment ?? '—' }}</td>
                                 <td class="border border-slate-200 px-2 py-2">{{ $p->bank?->name ?? '—' }}</td>
                                 <td class="border border-slate-200 px-2 py-2">
-                                    <a href="{{ route('admin.folder-payments.show', $p) }}"
+                                    <a href="{{ portal_route('folder-payments.show', $p) }}"
                                         class="text-sm font-medium text-concierge-navy underline">
                                         {{ $p->imageUrl() ? __('View image') : __('Upload') }}
                                     </a>

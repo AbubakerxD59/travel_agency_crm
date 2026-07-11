@@ -60,7 +60,7 @@
         </div>
 
         @include('partials.leads.closed-leads-chart', [
-            'chartEndpoint' => route('admin.leads.chart.closed'),
+            'chartEndpoint' => portal_route('leads.chart.closed'),
             'closedLeadsChart' => $closedLeadsChart,
             'chartDateLabel' => $chartDateLabel,
             'chartDateRange' => $chartDateRange,
@@ -71,7 +71,7 @@
             'chartCompanyId' => $selectedCompanyId,
         ])
 
-        <form id="lead-management-filter-form" method="GET" action="{{ route('admin.leads.index') }}" class="mt-6">
+        <form id="lead-management-filter-form" method="GET" action="{{ portal_route('leads.index') }}" class="mt-6">
             <input type="hidden" id="lead-date-range-input" name="date_range" value="{{ $selectedDateRange }}">
             <input type="hidden" id="lead-start-date-input" name="start_date" value="{{ $selectedStartDate }}">
             <input type="hidden" id="lead-end-date-input" name="end_date" value="{{ $selectedEndDate }}">
@@ -153,7 +153,7 @@
                     </button>
                     @if ($canExportLeads)
                         @include('partials.leads.export-action', [
-                            'exportUrl' => route('admin.leads.export', request()->except('page')),
+                            'exportUrl' => portal_route('leads.export', request()->except('page')),
                         ])
                     @endif
                     @if (
@@ -164,7 +164,7 @@
                             $selectedStatus !== '' ||
                             $selectedDateRange !== 'year' ||
                             ($selectedDateRange === 'custom' && ($selectedStartDate !== '' || $selectedEndDate !== '')))
-                        <a href="{{ route('admin.leads.index') }}"
+                        <a href="{{ portal_route('leads.index') }}"
                             class="inline-flex items-center justify-center rounded-xl border border-slate-200 px-4 py-2.5 text-sm font-medium text-concierge-navy transition hover:bg-slate-50">
                             Clear
                         </a>
@@ -196,7 +196,7 @@
                             <tr class="hover:bg-slate-50/50">
                                 <td class="px-4 py-4 text-concierge-navy lg:px-6">
                                     @if ($lead->agent_id && $lead->agent)
-                                        <a href="{{ route('admin.agents.overview', $lead->agent) }}"
+                                        <a href="{{ portal_route('agents.overview', $lead->agent) }}"
                                             class="font-medium text-concierge-accent hover:underline">
                                             {{ lead_agent_display_name($lead) }}
                                         </a>
@@ -251,7 +251,7 @@
                                                 </svg>
                                             </button>
                                         @endif
-                                        <a href="{{ route('admin.leads.show', $lead) }}"
+                                        <a href="{{ portal_route('leads.show', $lead) }}"
                                             class="lead-row-action inline-flex cursor-pointer rounded-lg p-2 text-concierge-muted transition hover:bg-slate-100 hover:text-concierge-accent"
                                             title="View" aria-label="View">
                                             <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none"
@@ -264,7 +264,7 @@
                                             </svg>
                                         </a>
                                         @if ($canCreateLeads)
-                                            <form method="POST" action="{{ route('admin.leads.destroy', $lead) }}"
+                                            <form method="POST" action="{{ portal_route('leads.destroy', $lead) }}"
                                                 class="js-lead-delete-form">
                                                 @csrf
                                                 @method('DELETE')
@@ -321,8 +321,8 @@
                     </button>
                 </div>
 
-                <form id="assign-lead-form" method="POST" action="{{ route('admin.leads.assign') }}"
-                    data-lead-duplicate-check="{{ route('admin.leads.check-duplicate') }}"
+                <form id="assign-lead-form" method="POST" action="{{ portal_route('leads.assign') }}"
+                    data-lead-duplicate-check="{{ portal_route('leads.check-duplicate') }}"
                     data-lead-duplicate-create="1" data-lead-duplicate-submit="#assign-lead-submit-btn"
                     class="space-y-4 px-6 py-5">
                     @csrf
@@ -446,7 +446,7 @@
         const assignLeadModalTitle = document.getElementById('assign-lead-modal-title');
         const assignLeadFormMethod = document.getElementById('assign_lead_form_method');
         const assignLeadSubmitBtn = document.getElementById('assign-lead-submit-btn');
-        const assignLeadUpdateUrlTemplate = "{{ url('/admin/leads') }}/__LEAD_ID__/assign";
+        const assignLeadUpdateUrlTemplate = "{{ url('/'.portal_route_prefix().'/leads') }}/__LEAD_ID__/assign";
 
         function setButtonLoading(button, isLoading) {
             if (!(button instanceof HTMLButtonElement)) {
@@ -506,7 +506,7 @@
             if (!assignLeadForm) {
                 return;
             }
-            assignLeadForm.action = "{{ route('admin.leads.assign') }}";
+            assignLeadForm.action = "{{ portal_route('leads.assign') }}";
             if (assignLeadFormMethod) {
                 assignLeadFormMethod.value = '';
             }

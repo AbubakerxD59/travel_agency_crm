@@ -28,7 +28,7 @@ trait ValidatesTeamMemberManager
                         return;
                     }
 
-                    if (! User::role(User::ROLE_MANAGER)->whereKey($value)->exists()) {
+                    if (! User::role(User::ROLE_MANAGER)->visibleToStaff($this->user())->whereKey($value)->exists()) {
                         $fail(__('The selected manager is invalid.'));
                     }
                 },

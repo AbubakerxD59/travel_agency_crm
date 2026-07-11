@@ -11,7 +11,7 @@ class StoreLeadRequest extends FormRequest
 {
     public function authorize(): bool
     {
-        return (bool) $this->user()?->hasRole('super-admin');
+        return (bool) user_is_staff_portal($this->user());
     }
 
     public function rules(): array
@@ -26,14 +26,19 @@ class StoreLeadRequest extends FormRequest
                         return;
                     }
 
-                    if (!User::role('agent')->whereKey($value)->exists()) {
-                        $fail('The selected '.$attribute.' is invalid.');
-                    }
+                    assert_staff_agent_allowed($this->user(), $value, $fail);
                 },
             ],
             'order_type' => ['required', 'string', 'max:120'],
             'vendor_reference' => ['nullable', 'string', 'max:255'],
-            'company_id' => ['required', 'integer', 'exists:companies,id'],
+            'company_id' => [
+                'required',
+                'integer',
+                'exists:companies,id',
+                function (string $attribute, mixed $value, \Closure $fail): void {
+                    assert_staff_company_allowed($this->user(), $value, $fail);
+                },
+            ],
             'status' => ['required', 'string', Rule::in(Lead::statusKeys())],
             'destination_id' => ['required', 'integer', 'exists:destinations,id'],
             'travel_date' => ['required', 'date'],

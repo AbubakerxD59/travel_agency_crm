@@ -3,7 +3,6 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
-use App\Models\Company;
 use App\Models\Lead;
 use App\Models\User;
 use Carbon\Carbon;
@@ -33,7 +32,7 @@ class DashboardController extends Controller
         );
 
         return view('admin.dashboard', [
-            'companies' => Company::query()->orderBy('name')->get(['id', 'name']),
+            'companies' => companies_visible_to_staff($request->user())->get(['id', 'name']),
             'selectedCompanyId' => $filters['companyId'],
             'selectedDateRange' => $filters['dateRange'],
             'selectedStartDate' => $filters['startDate'],
@@ -84,7 +83,10 @@ class DashboardController extends Controller
      */
     private function resolveDashboardFilters(Request $request): array
     {
-        $companyId = $request->integer('company_id') ?: null;
+        $companyId = resolve_staff_company_filter(
+            $request->user(),
+            $request->integer('company_id') ?: null,
+        );
         $date = resolveLeadDateRangeFilter(
             (string) $request->query('date_range', ''),
             (string) $request->query('start_date', ''),
@@ -103,18 +105,21 @@ class DashboardController extends Controller
             'endDate' => $date['endDate'],
             'start' => $start,
             'end' => $end,
+            'viewer' => $request->user(),
         ];
     }
 
     /**
-     * @param  array{companyId: ?int, start: Carbon, end: Carbon}  $filters
+     * @param  array{companyId: ?int, start: Carbon, end: Carbon, viewer?: ?User}  $filters
      */
     private function dashboardLeadsQuery(array $filters): Builder
     {
         $query = Lead::query();
 
+        apply_staff_company_records_scope($query, $filters['viewer'] ?? null, 'leads');
+
         if ($filters['companyId']) {
-            $query->where('company_id', $filters['companyId']);
+            $query->where('leads.company_id', $filters['companyId']);
         }
 
         return $query->whereBetween('created_at', [$filters['start'], $filters['end']]);
@@ -152,11 +157,12 @@ class DashboardController extends Controller
     }
 
     /**
+     * @param  array{companyId: ?int, viewer?: ?User}  $filters
      * @return Collection<int, User>
      */
     private function agentsForDashboard(array $filters): Collection
     {
-        $query = User::role(User::ROLE_AGENT);
+        $query = User::recordAssigneesVisibleTo($filters['viewer'] ?? null);
 
         if ($filters['companyId']) {
             $query->where('company_id', $filters['companyId']);

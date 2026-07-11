@@ -1,4 +1,4 @@
-<form method="GET" action="{{ route('admin.folder-payments.index') }}" class="mt-6">
+<form method="GET" action="{{ portal_route('folder-payments.index') }}" class="mt-6">
     @if ($filterFolderId ?? null)
         <input type="hidden" name="folder_id" value="{{ $filterFolderId }}">
     @endif
@@ -58,7 +58,7 @@
                     ($selectedPaymentDate ?? '') !== '' ||
                     ($selectedStatus ?? '') !== '' ||
                     ($filterFolderId ?? null))
-                <a href="{{ route('admin.folder-payments.index') }}"
+                <a href="{{ portal_route('folder-payments.index') }}"
                     class="inline-flex items-center justify-center rounded-xl border border-slate-200 px-4 py-2.5 text-sm font-medium text-concierge-navy transition hover:bg-slate-50">
                     Clear
                 </a>

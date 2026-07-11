@@ -35,6 +35,7 @@ function initAdminSidebar() {
     function setOpen(open) {
         if (!useDrawerMode()) {
             html.classList.remove('admin-sidebar-open');
+            sidebar.style.removeProperty('translate');
             sidebar.style.removeProperty('transform');
             sidebar.removeAttribute('aria-hidden');
             sidebar.removeAttribute('role');
@@ -57,7 +58,8 @@ function initAdminSidebar() {
         }
         document.body.classList.toggle('overflow-hidden', open);
         overlay.setAttribute('aria-hidden', open ? 'false' : 'true');
-        sidebar.style.transform = open ? 'translate3d(0, 0, 0)' : 'translate3d(-100%, 0, 0)';
+        // Tailwind v4 uses the CSS `translate` property (not `transform`).
+        sidebar.style.translate = open ? '0' : '-100%';
 
         if (open) {
             sidebar.setAttribute('aria-hidden', 'false');
@@ -154,7 +156,7 @@ function initAdminSidebar() {
 
     if (useDrawerMode()) {
         sidebar.setAttribute('aria-hidden', 'true');
-        sidebar.style.transform = 'translate3d(-100%, 0, 0)';
+        sidebar.style.translate = '-100%';
     }
 
     document.addEventListener('keydown', (e) => {

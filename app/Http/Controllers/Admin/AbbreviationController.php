@@ -69,7 +69,7 @@ class AbbreviationController extends Controller
         }
 
         return redirect()
-            ->route('admin.abbreviations.index')
+            ->route(portal_route_prefix().'.abbreviations.index')
             ->with('status', __('Abbreviation created successfully.'));
     }
 

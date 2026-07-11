@@ -28,7 +28,10 @@ class LeadListingQuery
     {
         $search = trim((string) $request->query('search', ''));
         $agentId = $request->integer('agent_id') ?: null;
-        $companyId = $request->integer('company_id') ?: null;
+        $companyId = resolve_staff_company_filter(
+            $request->user(),
+            $request->integer('company_id') ?: null,
+        );
         $source = trim((string) $request->query('source', ''));
         $status = trim((string) $request->query('status', ''));
         $dateFilter = resolveLeadDateRangeFilter(
@@ -41,6 +44,8 @@ class LeadListingQuery
         $query = Lead::query()
             ->with(['agent', 'company', 'destination'])
             ->latest();
+
+        apply_staff_company_records_scope($query, $request->user(), 'leads');
 
         self::applyAdminFilters(
             $query,
@@ -106,8 +111,10 @@ class LeadListingQuery
         string $status,
         ?\Carbon\Carbon $startBound,
         ?\Carbon\Carbon $endBound,
+        ?\App\Models\User $viewer = null,
     ): Builder {
         $statsQuery = Lead::query();
+        apply_staff_company_records_scope($statsQuery, $viewer, 'leads');
         self::applyAdminFilters(
             $statsQuery,
             $search,

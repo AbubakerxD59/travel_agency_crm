@@ -4,7 +4,7 @@
 
 @section('content')
     <div id="js-abbreviations-config" class="hidden"
-        data-url-base="{{ route('admin.abbreviations.index') }}"
+        data-url-base="{{ portal_route('abbreviations.index') }}"
         data-can-manage="{{ $canManageAbbreviations ? '1' : '0' }}"
         data-actions-colspan="{{ $canManageAbbreviations ? '4' : '3' }}"></div>
 
@@ -124,7 +124,7 @@
                 </button>
             </div>
 
-            <form id="store-abbreviation-form" method="POST" action="{{ route('admin.abbreviations.store') }}"
+            <form id="store-abbreviation-form" method="POST" action="{{ portal_route('abbreviations.store') }}"
                 class="space-y-4 px-6 py-5">
                 @csrf
                 <div>

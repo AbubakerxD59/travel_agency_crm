@@ -6,7 +6,6 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\StoreAgentRequest;
 use App\Http\Requests\SyncAgentPermissionsRequest;
 use App\Http\Requests\UpdateAgentRequest;
-use App\Models\Company;
 use App\Models\Lead;
 use App\Models\User;
 use App\Support\AgentCnicPhotoStorage;
@@ -39,9 +38,12 @@ class AgentController extends Controller
 
     public function index(Request $request): View
     {
-        $companyId = $request->integer('company_id') ?: null;
+        $viewer = $request->user();
+        $companyId = resolve_staff_company_filter($viewer, $request->integer('company_id') ?: null);
 
-        $agentsQuery = User::role(User::teamRoleNames())
+        $agentsQuery = ($viewer?->hasRole(User::ROLE_MANAGER)
+            ? User::agentsVisibleTo($viewer)
+            : User::role(User::teamRoleNames())->visibleToStaff($viewer))
             ->with(['roles', 'company', 'manager'])
             ->select('users.*')
             ->latest();
@@ -52,8 +54,11 @@ class AgentController extends Controller
 
         return view('admin.agents.index', [
             'agents' => $agentsQuery->get(),
-            'companies' => Company::query()->orderBy('name')->get(['id', 'name']),
-            'managers' => User::role(User::ROLE_MANAGER)->orderBy('name')->get(['id', 'name']),
+            'companies' => companies_visible_to_staff($viewer)->get(['id', 'name']),
+            'managers' => User::role(User::ROLE_MANAGER)
+                ->visibleToStaff($viewer)
+                ->orderBy('name')
+                ->get(['id', 'name']),
             'selectedCompanyId' => $companyId,
             'canManageAgents' => $request->user()->can('agents.manage'),
         ]);
@@ -80,14 +85,10 @@ class AgentController extends Controller
                 $data['agent_cnic_photo'] = $this->agentCnicPhotos->store($request->file('agent_cnic_photo'));
                 $user = User::create($data);
                 $user->assignRole($request->validated('role'));
-                $user->givePermissionTo(
+                $user->syncPermissions(
                     $request->validated('role') === User::ROLE_AGENT
                         ? User::defaultAgentPermissions()
-                        : [
-                            'dashboard.access',
-                            'leads.access',
-                            'folders.access',
-                        ]
+                        : User::defaultManagerPermissions()
                 );
 
                 return $user;
@@ -114,7 +115,7 @@ class AgentController extends Controller
         }
 
         return redirect()
-            ->route('admin.agents.index')
+            ->route(portal_route_prefix().'.agents.index')
             ->with('status', __('Agent created successfully.'));
     }
 
@@ -211,7 +212,15 @@ class AgentController extends Controller
             }
 
             $agent->update($data);
-            $agent->syncRoles([$request->validated('role')]);
+            $wasManager = $agent->hasRole(User::ROLE_MANAGER);
+            $role = $request->validated('role');
+            $agent->syncRoles([$role]);
+
+            if ($role === User::ROLE_MANAGER) {
+                $agent->syncPermissions(User::defaultManagerPermissions());
+            } elseif ($wasManager) {
+                $agent->syncPermissions(User::defaultAgentPermissions());
+            }
         } catch (Throwable $e) {
             report($e);
 
@@ -312,6 +321,10 @@ class AgentController extends Controller
     private function ensureTeamMember(User $user): void
     {
         if (! $user->hasAnyRole(User::teamRoleNames())) {
+            abort(404);
+        }
+
+        if (! $user->isVisibleToStaff(request()->user())) {
             abort(404);
         }
     }

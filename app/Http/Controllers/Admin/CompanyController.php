@@ -29,9 +29,8 @@ class CompanyController extends Controller
 
     public function index(Request $request): View
     {
-        $companies = Company::query()
+        $companies = companies_visible_to_staff($request->user())
             ->with('country')
-            ->orderBy('name')
             ->get();
 
         $countries = Country::query()->orderBy('name')->get();
@@ -76,7 +75,7 @@ class CompanyController extends Controller
         }
 
         return redirect()
-            ->route('admin.companies.index')
+            ->route(portal_route_prefix().'.companies.index')
             ->with('status', __('Company created successfully.'));
     }
 

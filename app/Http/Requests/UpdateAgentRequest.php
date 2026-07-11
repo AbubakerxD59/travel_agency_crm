@@ -38,7 +38,14 @@ class UpdateAgentRequest extends FormRequest
             'guardian_name' => ['nullable', 'string', 'max:255'],
             'guardian_phone_number' => ['nullable', 'string', 'max:32'],
             'guardian_cnic' => ['nullable', 'string', 'max:32'],
-            'company_id' => ['required', 'integer', 'exists:companies,id'],
+            'company_id' => [
+                'required',
+                'integer',
+                'exists:companies,id',
+                function (string $attribute, mixed $value, \Closure $fail): void {
+                    assert_staff_company_allowed($this->user(), $value, $fail);
+                },
+            ],
             'role' => ['required', 'string', Rule::in(['agent', 'manager'])],
             'password' => ['nullable', 'string', Password::defaults(), 'confirmed'],
             ...$this->teamMemberManagerRules($agent->id),

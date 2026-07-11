@@ -11,12 +11,12 @@
                     <p class="text-xs font-semibold uppercase tracking-[0.16em] text-concierge-muted">Payment details</p>
                     <h1 class="mt-1 text-2xl font-bold text-concierge-navy lg:text-3xl">Payment #{{ $payment->id }}</h1>
                     <p class="mt-1 text-sm text-concierge-muted">Folder
-                        <a href="{{ route('admin.folders.show', $payment->folder) }}"
+                        <a href="{{ portal_route('folders.show', $payment->folder) }}"
                             class="font-medium text-concierge-navy underline">#{{ $payment->folder_id }}</a>
                         · {{ $payment->folder?->customer_name ?? '—' }}
                     </p>
                 </div>
-                <a href="{{ route('admin.folder-payments.index', ['folder_id' => $payment->folder_id]) }}"
+                <a href="{{ portal_route('folder-payments.index', ['folder_id' => $payment->folder_id]) }}"
                     class="inline-flex shrink-0 items-center justify-center rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-medium text-concierge-navy shadow-sm transition hover:bg-slate-50">
                     Back to payments
                 </a>
@@ -81,7 +81,7 @@
 
             @if ($payment->approval_status === 'pending' && ! $payment->isLocked())
                 <div class="mt-6 flex flex-wrap gap-2 border-t border-slate-100 pt-6">
-                    <form method="POST" action="{{ route('admin.folder-payments.approve', $payment) }}"
+                    <form method="POST" action="{{ portal_route('folder-payments.approve', $payment) }}"
                         onsubmit="return confirm({{ json_encode(__('Approve this payment?')) }})">
                         @csrf
                         <button type="submit"
@@ -89,7 +89,7 @@
                             Approve
                         </button>
                     </form>
-                    <form method="POST" action="{{ route('admin.folder-payments.reject', $payment) }}"
+                    <form method="POST" action="{{ portal_route('folder-payments.reject', $payment) }}"
                         onsubmit="return confirm({{ json_encode(__('Reject this payment?')) }})">
                         @csrf
                         <button type="submit"
@@ -119,7 +119,7 @@
 
             @if ($canEditImage)
                 <form id="folder-payment-image-form" method="POST"
-                    action="{{ route('admin.folder-payments.image.update', $payment) }}" enctype="multipart/form-data"
+                    action="{{ portal_route('folder-payments.image.update', $payment) }}" enctype="multipart/form-data"
                     class="mt-6 border-t border-slate-100 pt-6">
                     @csrf
                     <div data-folder-payment-image-upload
@@ -160,7 +160,7 @@
 
                 @if ($payment->imageUrl())
                     <form id="folder-payment-remove-image-form" method="POST"
-                        action="{{ route('admin.folder-payments.image.destroy', $payment) }}" class="hidden">
+                        action="{{ portal_route('folder-payments.image.destroy', $payment) }}" class="hidden">
                         @csrf
                         @method('DELETE')
                     </form>

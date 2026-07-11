@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Folder;
+use App\Models\User;
 use App\Services\FolderTransportationVoucherPdf;
 use App\Services\FolderTransportationVoucherViewData;
 use Illuminate\Http\Request;
@@ -36,9 +37,7 @@ class FolderTransportationVoucherController extends Controller
 
     private function downloadRouteName(Request $request): string
     {
-        return $request->routeIs('agent.*')
-            ? 'agent.folders.transportation-voucher.download'
-            : 'admin.folders.transportation-voucher.download';
+        return portal_route_prefix($request).'.folders.transportation-voucher.download';
     }
 
     private function authorizeVoucher(Request $request, Folder $folder): void
@@ -49,7 +48,11 @@ class FolderTransportationVoucherController extends Controller
             abort(403);
         }
 
-        if ($user->hasRole('agent') && (int) $folder->agent_id !== (int) $user->id) {
+        if ($user->hasRole(User::ROLE_AGENT) && (int) $folder->agent_id !== (int) $user->id) {
+            abort(403);
+        }
+
+        if (! staff_can_access_agent_record($user, $folder->agent_id, $folder->company_id)) {
             abort(403);
         }
     }

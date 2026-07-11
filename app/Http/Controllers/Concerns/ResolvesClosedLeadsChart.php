@@ -21,13 +21,22 @@ trait ResolvesClosedLeadsChart
         [$start, $end, $groupByMonth] = performanceChartDateRange($range, $customStart, $customEnd);
 
         $agentId = $scopedAgentId;
-        if ($agentId === null && $request->user()?->hasRole('super-admin')) {
+        if ($agentId === null && user_is_staff_portal($request->user())) {
             $agentId = $request->integer('chart_agent_id') ?: null;
         }
 
-        $companyId = $request->user()?->hasRole('super-admin')
-            ? ($request->integer('chart_company_id') ?: null)
-            : null;
+        $companyId = resolve_staff_company_filter(
+            $request->user(),
+            user_is_staff_portal($request->user())
+                ? ($request->integer('chart_company_id') ?: null)
+                : null,
+        );
+
+        if ($agentId !== null
+            && $request->user()?->hasRole(\App\Models\User::ROLE_MANAGER)
+            && ! \App\Models\User::recordAssigneesVisibleTo($request->user())->whereKey($agentId)->exists()) {
+            $agentId = null;
+        }
 
         $sourceOptions = $scopedAgentId !== null ? getAgentLeadSources() : null;
         if ($source !== '' && $sourceOptions !== null && ! array_key_exists($source, $sourceOptions)) {

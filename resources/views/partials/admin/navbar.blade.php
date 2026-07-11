@@ -51,13 +51,13 @@
                     </div>
                 </div>
             @endif
-            @if (auth()->user()?->hasRole('super-admin'))
+            @if (user_is_staff_portal(auth()->user()))
                 @php
                     $adminUnreadCount = auth()->user()->unreadNotifications()->count();
                 @endphp
                 <div class="relative">
                     <button type="button" id="admin-notification-icon"
-                        data-poll-url="{{ route('admin.notifications.poll') }}"
+                        data-poll-url="{{ portal_route('notifications.poll') }}"
                         data-alert-sound-url="{{ asset('sounds/mixkit-confirmation-tone-2867.wav') }}"
                         data-service-worker-url="{{ agent_notification_sw_url() }}"
                         class="relative inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-slate-300/80 bg-slate-100 text-concierge-navy shadow-sm transition hover:bg-slate-200"

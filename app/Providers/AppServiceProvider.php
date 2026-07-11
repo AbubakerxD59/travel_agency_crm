@@ -41,6 +41,14 @@ class AppServiceProvider extends ServiceProvider
                 return true;
             }
 
+            if ($user->hasRole(User::ROLE_MANAGER)) {
+                if (str_starts_with($ability, 'companies.') || str_starts_with($ability, 'abbreviations.')) {
+                    return false;
+                }
+
+                return true;
+            }
+
             return null;
         });
     }

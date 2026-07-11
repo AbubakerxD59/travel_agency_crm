@@ -38,9 +38,14 @@ class Folder extends Model
             ->whereDate('travel_date', '<=', $to);
     }
 
-    public static function countUpcomingByTravelDate(?int $agentId = null, int $daysFromToday = self::UPCOMING_TRAVEL_DATE_WINDOW_DAYS): int
-    {
+    public static function countUpcomingByTravelDate(
+        ?int $agentId = null,
+        int $daysFromToday = self::UPCOMING_TRAVEL_DATE_WINDOW_DAYS,
+        ?User $viewer = null,
+    ): int {
         $query = static::query()->upcomingByTravelDate($daysFromToday);
+
+        apply_staff_company_records_scope($query, $viewer ?? auth()->user(), 'folders');
 
         if ($agentId !== null) {
             $query->where('agent_id', $agentId);

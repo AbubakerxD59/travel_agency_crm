@@ -9,7 +9,7 @@
                 <h1 class="text-2xl font-bold text-concierge-navy lg:text-3xl">Dashboard</h1>
                 <p class="mt-1 text-concierge-muted">Overview of your concierge operations.</p>
             </div>
-            <form id="dashboard-filters-form" method="GET" action="{{ route('admin.dashboard') }}"
+            <form id="dashboard-filters-form" method="GET" action="{{ portal_route('dashboard') }}"
                 class="col-span-2 flex w-full flex-col gap-3 sm:flex-row sm:items-end sm:justify-end md:col-span-2 md:col-start-3">
                 <input type="hidden" id="dashboard-date-range-input" name="date_range" value="{{ $selectedDateRange }}">
                 <input type="hidden" id="dashboard-start-date-input" name="start_date" value="{{ $selectedStartDate }}">
@@ -144,7 +144,7 @@
         </section>
 
         <script type="application/json" id="dashboard-agent-chart-config"
-            data-chart-endpoint="{{ route('admin.dashboard.agent-performance') }}"
+            data-chart-endpoint="{{ portal_route('dashboard.agent-performance') }}"
             data-highlight-top-performer="true">@json($dashboardAgentChart)</script>
     </div>
 @endsection

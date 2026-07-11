@@ -4,7 +4,7 @@
 
 @section('content')
     <div id="js-companies-config" class="hidden"
-         data-url-base="{{ route('admin.companies.index') }}"
+         data-url-base="{{ portal_route('companies.index') }}"
          data-can-manage="{{ $canManageCompanies ? '1' : '0' }}"
          data-actions-colspan="{{ $canManageCompanies ? 6 : 5 }}"></div>
 
@@ -119,7 +119,7 @@
                 </button>
             </div>
 
-            <form id="store-company-form" method="POST" action="{{ route('admin.companies.store') }}" enctype="multipart/form-data" class="space-y-4 px-6 py-5">
+            <form id="store-company-form" method="POST" action="{{ portal_route('companies.store') }}" enctype="multipart/form-data" class="space-y-4 px-6 py-5">
                 @csrf
 
                 @include('partials.companies.image-upload-field', [

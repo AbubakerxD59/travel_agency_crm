@@ -18,9 +18,9 @@ class DatabaseSeeder extends Seeder
             DestinationSeeder::class,
             BankSeeder::class,
             // CompaniesSeeder::class,
-            // AgentsSeeder::class,
-            // LeadsSeeder::class,
-            // FoldersSeeder::class,
+            AgentsSeeder::class,
+            LeadsSeeder::class,
+            FoldersSeeder::class,
         ]);
     }
 }

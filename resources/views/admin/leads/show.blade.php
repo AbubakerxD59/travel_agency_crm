@@ -12,7 +12,7 @@
                     <h1 class="mt-1 text-2xl font-bold text-concierge-navy lg:text-3xl">Lead #{{ $lead->id }}</h1>
                     <p class="mt-1 text-sm text-concierge-muted">Contact and assignment details for this lead.</p>
                 </div>
-                <a href="{{ route('admin.leads.index') }}"
+                <a href="{{ portal_route('leads.index') }}"
                     class="inline-flex shrink-0 items-center justify-center rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-medium text-concierge-navy shadow-sm transition hover:bg-slate-50">
                     Back to leads
                 </a>

@@ -22,7 +22,7 @@ class AssignLeadRequest extends FormRequest
 
     public function authorize(): bool
     {
-        return (bool) $this->user()?->hasRole('super-admin');
+        return (bool) user_is_staff_portal($this->user());
     }
 
     public function rules(): array
@@ -33,7 +33,7 @@ class AssignLeadRequest extends FormRequest
                 'integer',
                 'exists:users,id',
                 function (string $attribute, mixed $value, \Closure $fail): void {
-                    $agentQuery = User::role(User::ROLE_AGENT)->whereKey($value);
+                    $agentQuery = User::recordAssigneesVisibleTo($this->user())->whereKey($value);
 
                     if ($this->filled('company_id')) {
                         $agentQuery->where('company_id', $this->integer('company_id'));
@@ -49,7 +49,14 @@ class AssignLeadRequest extends FormRequest
             'customer_name' => ['required', 'string', 'max:150'],
             'phone_number' => ['required', 'string', 'max:30'],
             'email' => ['nullable', 'email', 'max:255'],
-            'company_id' => ['required', 'integer', 'exists:companies,id'],
+            'company_id' => [
+                'required',
+                'integer',
+                'exists:companies,id',
+                function (string $attribute, mixed $value, \Closure $fail): void {
+                    assert_staff_company_allowed($this->user(), $value, $fail);
+                },
+            ],
             'city' => ['required', 'string', 'max:120'],
             'total_passengers' => ['nullable', 'integer', 'min:1', 'max:500'],
             'source' => ['required', 'string', Rule::in(array_keys(getSources()))],

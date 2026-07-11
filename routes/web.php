@@ -57,5 +57,6 @@ Route::middleware('auth')->group(function () {
     Route::post('/logout', [LoginController::class, 'destroy'])->name('logout');
 
     require __DIR__.'/admin.php';
+    require __DIR__.'/manager.php';
     require __DIR__.'/agent.php';
 });
