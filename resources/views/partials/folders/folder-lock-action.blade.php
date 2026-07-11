@@ -1,14 +1,17 @@
 @php
     $locked = (bool) ($folder->lock ?? false);
     $canToggle = (bool) ($canToggle ?? false);
-    $toggleUrl = $toggleUrl ?? portal_route('folders.toggle-lock', $folder);
+    $toggleUrl = $toggleUrl ?? null;
+    if ($canToggle && $toggleUrl === null) {
+        $toggleUrl = portal_route('folders.toggle-lock', $folder);
+    }
     $lockTitle = $locked
         ? __('This folder is locked. Agents need Edit Locked Folders permission to edit it.')
         : __('Lock this folder to prevent agent edits.');
     $unlockTitle = __('Unlock this folder to allow agent edits again.');
 @endphp
 
-@if ($canToggle)
+@if ($canToggle && $toggleUrl)
     <form method="POST" action="{{ $toggleUrl }}" class="inline">
         @csrf
         @method('PATCH')
