@@ -6,12 +6,13 @@ const NAVY = '#0f2744';
 const MUTED = '#64748b';
 
 /**
- * @param {Array<{ label: string, color: string, data: number[] }>} datasets
+ * @param {Array<{ label: string, color: string, data: number[], totalLeads?: number }>} datasets
  */
 function mapChartDatasets(datasets) {
     return datasets.map((dataset) => ({
         label: dataset.label,
         data: dataset.data,
+        totalLeads: dataset.totalLeads ?? 0,
         backgroundColor: hexToRgba(dataset.color, 0.85),
         borderColor: dataset.color,
         borderWidth: 0,
@@ -114,6 +115,12 @@ function initClosedLeadsChart() {
                     padding: 12,
                     cornerRadius: 8,
                     callbacks: {
+                        label(context) {
+                            const closed = Number(context.parsed.y ?? 0);
+                            const totalLeads = Number(context.dataset?.totalLeads ?? 0);
+                            const numberFormatter = new Intl.NumberFormat();
+                            return `${context.dataset.label}: ${numberFormatter.format(closed)} (${numberFormatter.format(totalLeads)})`;
+                        },
                         footer(items) {
                             const sum = items.reduce((acc, item) => acc + (item.parsed.y ?? 0), 0);
                             return sum > 0 ? `Total: ${sum}` : '';

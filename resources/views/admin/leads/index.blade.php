@@ -3,6 +3,10 @@
 @section('title', 'Lead Management')
 
 @section('content')
+    @php
+        $isManager = auth()->user()?->hasRole(\App\Models\User::ROLE_MANAGER);
+    @endphp
+
     <div class="mx-auto max-w-8xl">
         <div class="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
             <div>
@@ -59,17 +63,19 @@
             </div>
         </div>
 
-        @include('partials.leads.closed-leads-chart', [
-            'chartEndpoint' => portal_route('leads.chart.closed'),
-            'closedLeadsChart' => $closedLeadsChart,
-            'chartDateLabel' => $chartDateLabel,
-            'chartDateRange' => $chartDateRange,
-            'chartStartDate' => $chartStartDate,
-            'chartEndDate' => $chartEndDate,
-            'chartSource' => $chartSource,
-            'chartAgentId' => $selectedAgentId,
-            'chartCompanyId' => $selectedCompanyId,
-        ])
+        @unless ($isManager)
+            @include('partials.leads.closed-leads-chart', [
+                'chartEndpoint' => portal_route('leads.chart.closed'),
+                'closedLeadsChart' => $closedLeadsChart,
+                'chartDateLabel' => $chartDateLabel,
+                'chartDateRange' => $chartDateRange,
+                'chartStartDate' => $chartStartDate,
+                'chartEndDate' => $chartEndDate,
+                'chartSource' => $chartSource,
+                'chartAgentId' => $selectedAgentId,
+                'chartCompanyId' => $selectedCompanyId,
+            ])
+        @endunless
 
         <form id="lead-management-filter-form" method="GET" action="{{ portal_route('leads.index') }}" class="mt-6">
             <input type="hidden" id="lead-date-range-input" name="date_range" value="{{ $selectedDateRange }}">
@@ -151,7 +157,7 @@
                         class="inline-flex cursor-pointer items-center justify-center rounded-xl bg-concierge-navy px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-concierge-navy-deep">
                         Apply
                     </button>
-                    @if ($canExportLeads)
+                    @if ($canExportLeads && ! $isManager)
                         @include('partials.leads.export-action', [
                             'exportUrl' => portal_route('leads.export', request()->except('page')),
                         ])
@@ -438,7 +444,11 @@
 @endsection
 
 @push('scripts')
-    @vite(['resources/js/admin-leads-filters.js', 'resources/js/leads-closed-chart.js', 'resources/js/lead-duplicate-check.js'])
+    @if ($isManager)
+        @vite(['resources/js/admin-leads-filters.js', 'resources/js/lead-duplicate-check.js'])
+    @else
+        @vite(['resources/js/admin-leads-filters.js', 'resources/js/leads-closed-chart.js', 'resources/js/lead-duplicate-check.js'])
+    @endif
     <script>
         const assignLeadModal = document.getElementById('assign-lead-modal');
         const openAssignLeadModalBtn = document.getElementById('open-assign-lead-modal');

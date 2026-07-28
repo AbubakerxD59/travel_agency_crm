@@ -3,6 +3,10 @@
 @section('title', 'Agents')
 
 @section('content')
+    @php
+        $isManager = auth()->user()?->hasRole(\App\Models\User::ROLE_MANAGER);
+    @endphp
+
     <div id="js-agents-config" class="hidden" data-url-base="{{ portal_route('agents.index') }}"
         data-can-manage="{{ $canManageAgents ? '1' : '0' }}" data-current-user-id="{{ auth()->id() }}"
         data-actions-colspan="{{ $canManageAgents ? 8 : 7 }}"></div>
@@ -12,14 +16,16 @@
             <div>
                 <h1 class="text-2xl font-bold text-concierge-navy lg:text-3xl">Agents</h1>
             </div>
-            <button type="button" id="open-agent-modal"
-                class="inline-flex shrink-0 cursor-pointer items-center justify-center gap-2 rounded-xl bg-concierge-navy px-5 py-2.5 text-sm font-semibold text-white shadow-md shadow-concierge-navy/25 transition hover:bg-concierge-navy-deep">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24"
-                    stroke="currentColor" stroke-width="2">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
-                </svg>
-                Add new
-            </button>
+            @unless ($isManager)
+                <button type="button" id="open-agent-modal"
+                    class="inline-flex shrink-0 cursor-pointer items-center justify-center gap-2 rounded-xl bg-concierge-navy px-5 py-2.5 text-sm font-semibold text-white shadow-md shadow-concierge-navy/25 transition hover:bg-concierge-navy-deep">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24"
+                        stroke="currentColor" stroke-width="2">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
+                    </svg>
+                    Add new
+                </button>
+            @endunless
         </div>
 
         <form id="agent-list-filters-form" method="GET" action="{{ portal_route('agents.index') }}"
@@ -168,7 +174,11 @@
                                     @if ($selectedCompanyId ?? null)
                                         No agents found for the selected company.
                                     @else
-                                        No agents yet. Use “Add new” to create one.
+                                        @if ($isManager)
+                                            No agents found.
+                                        @else
+                                            No agents yet. Use “Add new” to create one.
+                                        @endif
                                     @endif
                                 </td>
                             </tr>
@@ -183,25 +193,26 @@
         </div>
     </div>
 
-    {{-- Modal --}}
-    <div id="agent-modal" class="fixed inset-0 z-50 hidden items-center justify-center bg-slate-900/40 p-4"
-        aria-hidden="true" role="dialog" aria-labelledby="agent-modal-title">
-        <div class="max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-2xl bg-white shadow-xl">
-            <div class="flex items-center justify-between border-b border-slate-100 px-6 py-4">
-                <h2 id="agent-modal-title" class="text-lg font-semibold text-concierge-navy">Add new agent</h2>
-                <button type="button" data-close-agent-modal
-                    class="rounded-lg p-2 text-concierge-muted hover:bg-slate-100 hover:text-concierge-navy"
-                    aria-label="Close">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24"
-                        stroke="currentColor" stroke-width="1.5">
-                        <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
-                    </svg>
-                </button>
-            </div>
+    @unless ($isManager)
+        {{-- Modal --}}
+        <div id="agent-modal" class="fixed inset-0 z-50 hidden items-center justify-center bg-slate-900/40 p-4"
+            aria-hidden="true" role="dialog" aria-labelledby="agent-modal-title">
+            <div class="max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-2xl bg-white shadow-xl">
+                <div class="flex items-center justify-between border-b border-slate-100 px-6 py-4">
+                    <h2 id="agent-modal-title" class="text-lg font-semibold text-concierge-navy">Add new agent</h2>
+                    <button type="button" data-close-agent-modal
+                        class="rounded-lg p-2 text-concierge-muted hover:bg-slate-100 hover:text-concierge-navy"
+                        aria-label="Close">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24"
+                            stroke="currentColor" stroke-width="1.5">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                    </button>
+                </div>
 
-            <form id="store-agent-form" method="POST" action="{{ portal_route('agents.store') }}"
-                class="space-y-4 px-6 py-5">
-                @csrf
+                <form id="store-agent-form" method="POST" action="{{ portal_route('agents.store') }}"
+                    class="space-y-4 px-6 py-5">
+                    @csrf
 
                 <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
                     <div>
@@ -382,9 +393,10 @@
                         Create agent
                     </button>
                 </div>
-            </form>
+                </form>
+            </div>
         </div>
-    </div>
+    @endunless
 
     @if ($canManageAgents)
         {{-- Edit agent modal --}}

@@ -373,7 +373,7 @@ function closedLeadsChartSourceColor(string $sourceKey): string
  *
  * @return array{
  *     labels: list<string>,
- *     datasets: list<array{key: string, label: string, color: string, data: list<int>}>,
+ *     datasets: list<array{key: string, label: string, color: string, data: list<int>, totalLeads: int}>,
  *     totalClosed: int,
  *     range: string
  * }
@@ -414,18 +414,25 @@ function buildClosedLeadsChartData(
         ->where('status', Lead::STATUS_SALE_DONE)
         ->whereBetween('created_at', [$start, $end]);
 
+    $totalLeadsQuery = Lead::query()
+        ->whereBetween('created_at', [$start, $end]);
+
     if ($sourceFilter !== null && $sourceFilter !== '') {
         $query->where('source', $sourceFilter);
+        $totalLeadsQuery->where('source', $sourceFilter);
     } elseif ($restrictToCatalog) {
         $query->whereIn('source', array_keys($sourceCatalog));
+        $totalLeadsQuery->whereIn('source', array_keys($sourceCatalog));
     }
 
     if ($agentId !== null) {
         $query->where('agent_id', $agentId);
+        $totalLeadsQuery->where('agent_id', $agentId);
     }
 
     if ($companyId !== null) {
         $query->where('company_id', $companyId);
+        $totalLeadsQuery->where('company_id', $companyId);
     }
 
     $totalClosed = (int) (clone $query)->count();
@@ -439,6 +446,12 @@ function buildClosedLeadsChartData(
         ->groupBy('bucket', 'source_key')
         ->orderBy('bucket')
         ->get();
+
+    /** @var \Illuminate\Support\Collection<string, int> $totalLeadsBySource */
+    $totalLeadsBySource = (clone $totalLeadsQuery)
+        ->selectRaw("COALESCE(source, '') as source_key, COUNT(*) as total")
+        ->groupBy('source_key')
+        ->pluck('total', 'source_key');
 
     /** @var array<string, array<string, int>> $countsByBucket */
     $countsByBucket = [];
@@ -491,6 +504,7 @@ function buildClosedLeadsChartData(
             'label' => $label,
             'color' => closedLeadsChartSourceColor($key),
             'data' => $data,
+            'totalLeads' => (int) ($totalLeadsBySource[$key] ?? 0),
         ];
     }
 

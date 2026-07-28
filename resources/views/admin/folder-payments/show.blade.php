@@ -3,6 +3,10 @@
 @section('title', 'Payment #' . $payment->id)
 
 @section('content')
+    @php
+        $isManager = auth()->user()?->hasRole(\App\Models\User::ROLE_MANAGER);
+    @endphp
+
     <div class="mx-auto max-w-4xl">
         <div
             class="rounded-2xl border border-slate-200/70 bg-gradient-to-r from-white via-slate-50/60 to-white p-6 shadow-sm lg:p-8">
@@ -79,7 +83,7 @@
                 </div>
             </dl>
 
-            @if ($payment->approval_status === 'pending' && ! $payment->isLocked())
+            @if (! $isManager && $payment->approval_status === 'pending' && ! $payment->isLocked())
                 <div class="mt-6 flex flex-wrap gap-2 border-t border-slate-100 pt-6">
                     <form method="POST" action="{{ portal_route('folder-payments.approve', $payment) }}"
                         onsubmit="return confirm({{ json_encode(__('Approve this payment?')) }})">
@@ -117,7 +121,7 @@
                 <p class="mt-3 text-sm text-concierge-muted">No image uploaded yet.</p>
             @endif
 
-            @if ($canEditImage)
+            @if ($canEditImage && ! $isManager)
                 <form id="folder-payment-image-form" method="POST"
                     action="{{ portal_route('folder-payments.image.update', $payment) }}" enctype="multipart/form-data"
                     class="mt-6 border-t border-slate-100 pt-6">
@@ -175,7 +179,7 @@
 @endsection
 
 @push('scripts')
-    @if ($canEditImage)
+    @if ($canEditImage && ! $isManager)
         @vite(['resources/js/folder-payment-show.js'])
     @endif
 @endpush

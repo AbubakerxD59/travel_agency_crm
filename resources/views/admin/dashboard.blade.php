@@ -3,6 +3,10 @@
 @section('title', 'Dashboard')
 
 @section('content')
+    @php
+        $isManager = auth()->user()?->hasRole(\App\Models\User::ROLE_MANAGER);
+    @endphp
+
     <div class="mx-auto max-w-8xl">
         <div class="mb-8 grid min-w-0 grid-cols-2 gap-4 md:grid-cols-4 md:gap-6 md:items-end">
             <div class="col-span-2 md:col-span-2">
@@ -75,28 +79,30 @@
             @endforeach
         </div>
 
-        <section
-            class="mb-6 min-w-0 rounded-xl border border-slate-200/80 bg-white p-5 shadow-[0_1px_3px_rgba(21,44,73,0.08)] md:p-6"
-            aria-labelledby="dashboard-leads-by-source-heading">
-            <h2 id="dashboard-leads-by-source-heading" class="text-lg font-semibold text-concierge-navy md:text-xl">
-                Leads by source
-            </h2>
-            <p class="mt-0.5 text-sm text-concierge-muted">All leads in the selected period, grouped by source.</p>
-            <ul class="mt-4 divide-y divide-slate-100 rounded-xl border border-slate-200/80">
-                @forelse ($leadsBySource as $sourceStat)
-                    <li
-                        class="flex items-center justify-between gap-4 px-4 py-3.5 first:rounded-t-xl last:rounded-b-xl sm:px-5">
-                        <span class="text-sm font-medium text-concierge-navy">{{ $sourceStat['label'] }}</span>
-                        <span class="shrink-0 text-lg font-bold tabular-nums text-concierge-navy">
-                            {{ number_format($sourceStat['count']) }}
-                        </span>
-                    </li>
-                @empty
-                    <li class="px-4 py-6 text-center text-sm text-concierge-muted sm:px-5">No leads to show for these
-                        filters.</li>
-                @endforelse
-            </ul>
-        </section>
+        @unless ($isManager)
+            <section
+                class="mb-6 min-w-0 rounded-xl border border-slate-200/80 bg-white p-5 shadow-[0_1px_3px_rgba(21,44,73,0.08)] md:p-6"
+                aria-labelledby="dashboard-leads-by-source-heading">
+                <h2 id="dashboard-leads-by-source-heading" class="text-lg font-semibold text-concierge-navy md:text-xl">
+                    Leads by source
+                </h2>
+                <p class="mt-0.5 text-sm text-concierge-muted">All leads in the selected period, grouped by source.</p>
+                <ul class="mt-4 divide-y divide-slate-100 rounded-xl border border-slate-200/80">
+                    @forelse ($leadsBySource as $sourceStat)
+                        <li
+                            class="flex items-center justify-between gap-4 px-4 py-3.5 first:rounded-t-xl last:rounded-b-xl sm:px-5">
+                            <span class="text-sm font-medium text-concierge-navy">{{ $sourceStat['label'] }}</span>
+                            <span class="shrink-0 text-lg font-bold tabular-nums text-concierge-navy">
+                                {{ number_format($sourceStat['count']) }}
+                            </span>
+                        </li>
+                    @empty
+                        <li class="px-4 py-6 text-center text-sm text-concierge-muted sm:px-5">No leads to show for these
+                            filters.</li>
+                    @endforelse
+                </ul>
+            </section>
+        @endunless
 
         <section
             class="mt-2 min-w-0 rounded-xl border border-slate-200/80 bg-white p-5 shadow-[0_1px_3px_rgba(21,44,73,0.08)] md:p-6"

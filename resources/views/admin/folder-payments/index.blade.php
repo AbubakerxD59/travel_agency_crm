@@ -3,12 +3,20 @@
 @section('title', 'Payment approvals')
 
 @section('content')
+    @php
+        $isManager = auth()->user()?->hasRole(\App\Models\User::ROLE_MANAGER);
+    @endphp
+
     <div class="mx-auto max-w-8xl">
         <div class="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
             <div>
                 <h1 class="text-2xl font-bold text-concierge-navy lg:text-3xl">Payment management</h1>
-                <p class="mt-1 text-sm text-concierge-muted">All folder payments, newest first. Approve or reject pending
-                    rows after confirmation.</p>
+                <p class="mt-1 text-sm text-concierge-muted">
+                    All folder payments, newest first.
+                    @unless ($isManager)
+                        Approve or reject pending rows after confirmation.
+                    @endunless
+                </p>
             </div>
         </div>
 
@@ -94,7 +102,7 @@
                                         class="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-concierge-navy hover:bg-slate-50">
                                         View
                                     </a>
-                                    @if ($payment->approval_status === 'pending' && ! $payment->isLocked())
+                                    @if (! $isManager && $payment->approval_status === 'pending' && ! $payment->isLocked())
                                         <form method="POST"
                                             action="{{ portal_route('folder-payments.approve', $payment) }}"
                                             onsubmit="return confirm({{ json_encode(__('Approve this payment?')) }})">

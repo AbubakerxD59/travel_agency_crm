@@ -76,6 +76,12 @@ class FolderPaymentController extends Controller
 
     public function updateImage(UpdateFolderPaymentImageRequest $request, FolderPayment $folderPayment): RedirectResponse
     {
+        if ($request->user()?->hasRole(User::ROLE_MANAGER)) {
+            return redirect()
+                ->route(portal_route_prefix().'.folder-payments.show', $folderPayment)
+                ->with('error', __('Managers can view payments but cannot perform payment actions.'));
+        }
+
         if ($folderPayment->isLocked()) {
             return redirect()
                 ->route(portal_route_prefix().'.folder-payments.show', $folderPayment)
@@ -109,6 +115,12 @@ class FolderPaymentController extends Controller
 
     public function destroyImage(FolderPayment $folderPayment): RedirectResponse
     {
+        if (request()->user()?->hasRole(User::ROLE_MANAGER)) {
+            return redirect()
+                ->route(portal_route_prefix().'.folder-payments.show', $folderPayment)
+                ->with('error', __('Managers can view payments but cannot perform payment actions.'));
+        }
+
         if ($folderPayment->isLocked()) {
             return redirect()
                 ->route(portal_route_prefix().'.folder-payments.show', $folderPayment)
@@ -125,6 +137,12 @@ class FolderPaymentController extends Controller
 
     public function approve(FolderPayment $folderPayment): RedirectResponse
     {
+        if (request()->user()?->hasRole(User::ROLE_MANAGER)) {
+            return redirect()
+                ->back()
+                ->with('error', __('Managers can view payments but cannot perform payment actions.'));
+        }
+
         if ($folderPayment->isLocked()) {
             return redirect()
                 ->back()
@@ -149,6 +167,12 @@ class FolderPaymentController extends Controller
 
     public function reject(FolderPayment $folderPayment): RedirectResponse
     {
+        if (request()->user()?->hasRole(User::ROLE_MANAGER)) {
+            return redirect()
+                ->back()
+                ->with('error', __('Managers can view payments but cannot perform payment actions.'));
+        }
+
         if ($folderPayment->isLocked()) {
             return redirect()
                 ->back()

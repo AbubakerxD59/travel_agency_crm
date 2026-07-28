@@ -66,6 +66,18 @@ class AgentController extends Controller
 
     public function store(StoreAgentRequest $request): JsonResponse|RedirectResponse
     {
+        if ($request->user()?->hasRole(User::ROLE_MANAGER)) {
+            if ($request->expectsJson()) {
+                return response()->json([
+                    'message' => __('Managers are not allowed to add agents.'),
+                ], 403);
+            }
+
+            return redirect()
+                ->route(portal_route_prefix().'.agents.index')
+                ->with('error', __('Managers are not allowed to add agents.'));
+        }
+
         try {
             $user = DB::transaction(function () use ($request) {
                 $data = $request->safe()->only([

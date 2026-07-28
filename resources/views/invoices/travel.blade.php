@@ -764,12 +764,17 @@
                 </tr>
             </thead>
             <tbody>
+                @php
+                    $formatPassengerName = static fn (?string $value): string => \Illuminate\Support\Str::title(
+                        mb_strtolower(trim((string) $value))
+                    );
+                @endphp
                 @foreach ($passengers as $passenger)
                     <tr>
-                        <td>{{ $passenger['title'] }}</td>
-                        <td>{{ $passenger['first_name'] }}</td>
-                        <td>{{ $passenger['middle_name'] ?: ' ' }}</td>
-                        <td>{{ $passenger['last_name'] }}</td>
+                        <td>{{ $formatPassengerName($passenger['title'] ?? '') }}</td>
+                        <td>{{ $formatPassengerName($passenger['first_name'] ?? '') }}</td>
+                        <td>{{ $passenger['middle_name'] ? $formatPassengerName($passenger['middle_name']) : ' ' }}</td>
+                        <td>{{ $formatPassengerName($passenger['last_name'] ?? '') }}</td>
                         <td>{{ $passenger['flight_details'] }}</td>
                         <td>{{ $passenger['type'] }}</td>
                         <td class="price">£ {{ number_format($passenger['price'], 0) }}</td>
