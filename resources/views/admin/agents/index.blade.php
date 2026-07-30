@@ -5,10 +5,12 @@
 @section('content')
     @php
         $isManager = auth()->user()?->hasRole(\App\Models\User::ROLE_MANAGER);
+        $canEditAgents = $canManageAgents && ! $isManager;
     @endphp
 
     <div id="js-agents-config" class="hidden" data-url-base="{{ portal_route('agents.index') }}"
-        data-can-manage="{{ $canManageAgents ? '1' : '0' }}" data-current-user-id="{{ auth()->id() }}"
+        data-can-manage="{{ $canManageAgents ? '1' : '0' }}" data-can-edit="{{ $canEditAgents ? '1' : '0' }}"
+        data-current-user-id="{{ auth()->id() }}"
         data-actions-colspan="{{ $canManageAgents ? 8 : 7 }}"></div>
 
     <div class="mx-auto max-w-8xl">
@@ -131,16 +133,18 @@
                                                     'url' => $agent->agentCnicPhotoUrl(),
                                                 ])
                                             @endif
-                                            <button type="button"
-                                                class="agent-row-action cursor-pointer rounded-lg p-2 text-concierge-muted transition hover:bg-slate-100 hover:text-concierge-navy"
-                                                data-edit-agent="{{ $agent->id }}" title="Edit">
-                                                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none"
-                                                    viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5"
-                                                    aria-hidden="true">
-                                                    <path stroke-linecap="round" stroke-linejoin="round"
-                                                        d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931zm0 0L19.5 7.125" />
-                                                </svg>
-                                            </button>
+                                            @if ($canEditAgents)
+                                                <button type="button"
+                                                    class="agent-row-action cursor-pointer rounded-lg p-2 text-concierge-muted transition hover:bg-slate-100 hover:text-concierge-navy"
+                                                    data-edit-agent="{{ $agent->id }}" title="Edit">
+                                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none"
+                                                        viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5"
+                                                        aria-hidden="true">
+                                                        <path stroke-linecap="round" stroke-linejoin="round"
+                                                            d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931zm0 0L19.5 7.125" />
+                                                    </svg>
+                                                </button>
+                                            @endif
                                             <button type="button"
                                                 class="agent-row-action cursor-pointer rounded-lg p-2 text-concierge-muted transition hover:bg-slate-100 hover:text-concierge-accent"
                                                 data-permissions-agent="{{ $agent->id }}" title="Permissions">
@@ -398,7 +402,7 @@
         </div>
     @endunless
 
-    @if ($canManageAgents)
+    @if ($canEditAgents)
         {{-- Edit agent modal --}}
         <div id="edit-agent-modal" class="fixed inset-0 z-50 hidden items-center justify-center bg-slate-900/40 p-4"
             aria-hidden="true" role="dialog" aria-labelledby="edit-agent-modal-title">
@@ -612,7 +616,9 @@
                 </form>
             </div>
         </div>
+    @endif
 
+    @if ($canManageAgents)
         {{-- Permissions modal --}}
         <div id="permissions-modal" class="fixed inset-0 z-50 hidden items-center justify-center bg-slate-900/40 p-4"
             aria-hidden="true" role="dialog" aria-labelledby="permissions-modal-title">

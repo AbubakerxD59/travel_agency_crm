@@ -106,18 +106,20 @@
                         @endforeach
                     </select>
                 </div>
-                <div>
-                    <label for="lead-source-filter" class="block text-sm font-medium text-concierge-navy">Source</label>
-                    <select id="lead-source-filter" name="source"
-                        class="mt-1.5 w-full rounded-xl border border-slate-200 bg-slate-50/80 px-4 py-2.5 text-sm text-slate-800 focus:border-concierge-accent focus:bg-white focus:outline-none focus:ring-2 focus:ring-concierge-accent/20">
-                        <option value="">All sources</option>
-                        @foreach (getSources() as $sourceKey => $sourceLabelOption)
-                            <option value="{{ $sourceKey }}" @selected($selectedSource === $sourceKey)>
-                                {{ $sourceLabelOption }}
-                            </option>
-                        @endforeach
-                    </select>
-                </div>
+                @unless ($isManager)
+                    <div>
+                        <label for="lead-source-filter" class="block text-sm font-medium text-concierge-navy">Source</label>
+                        <select id="lead-source-filter" name="source"
+                            class="mt-1.5 w-full rounded-xl border border-slate-200 bg-slate-50/80 px-4 py-2.5 text-sm text-slate-800 focus:border-concierge-accent focus:bg-white focus:outline-none focus:ring-2 focus:ring-concierge-accent/20">
+                            <option value="">All sources</option>
+                            @foreach (getSources() as $sourceKey => $sourceLabelOption)
+                                <option value="{{ $sourceKey }}" @selected($selectedSource === $sourceKey)>
+                                    {{ $sourceLabelOption }}
+                                </option>
+                            @endforeach
+                        </select>
+                    </div>
+                @endunless
                 <div>
                     <label for="lead-status-filter" class="block text-sm font-medium text-concierge-navy">Status</label>
                     <select id="lead-status-filter" name="status"

@@ -113,6 +113,10 @@ function canManageAgents() {
     return cfg?.dataset.canManage === '1';
 }
 
+function canEditAgents() {
+    return cfg?.dataset.canEdit === '1';
+}
+
 function currentUserId() {
     return cfg?.dataset.currentUserId ?? '';
 }
@@ -180,11 +184,14 @@ function agentActionButtonsInnerHtml(agentId, photoUrl = null) {
     const isSelf = id === String(currentUserId());
     const delDisabled = isSelf ? ' disabled' : '';
     const delTitle = isSelf ? 'You cannot delete your own account' : 'Delete';
+    const editButton = canEditAgents()
+        ? `<button type="button" class="agent-row-action cursor-pointer rounded-lg p-2 text-concierge-muted transition hover:bg-slate-100 hover:text-concierge-navy" data-edit-agent="${id}" title="Edit">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931zm0 0L19.5 7.125" /></svg>
+        </button>`
+        : '';
     return `<div class="inline-flex flex-wrap items-center justify-end gap-1">
         ${agentIdCardActionHtml(photoUrl)}
-        <button type="button" class="agent-row-action cursor-pointer rounded-lg p-2 text-concierge-muted transition hover:bg-slate-100 hover:text-concierge-navy" data-edit-agent="${id}" title="Edit">
-            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931zm0 0L19.5 7.125" /></svg>
-        </button>
+        ${editButton}
         <button type="button" class="agent-row-action cursor-pointer rounded-lg p-2 text-concierge-muted transition hover:bg-slate-100 hover:text-concierge-accent" data-permissions-agent="${id}" title="Permissions">
             <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M15.75 5.25a3 3 0 013 3m3 0a6 6 0 01-7.029 5.912c-.563-.097-1.159.026-1.563.43L10.5 17.25H8.25v2.25H6v2.25H3.75v-2.818c0-.597.237-1.17.659-1.591l6.499-6.499c.404-.404.527-1 .43-1.563A6 6 0 1121.75 8.25z" /></svg>
         </button>
@@ -582,6 +589,9 @@ document.addEventListener('click', async (e) => {
     const permBtn = root.closest('[data-permissions-agent]');
 
     if (editBtn) {
+        if (!canEditAgents()) {
+            return;
+        }
         if (editBtn.dataset.loading === '1') {
             return;
         }

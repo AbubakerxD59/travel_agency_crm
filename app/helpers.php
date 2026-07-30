@@ -370,6 +370,7 @@ function closedLeadsChartSourceColor(string $sourceKey): string
 
 /**
  * Closed (sale done) leads over time, optionally split by source.
+ * Source datasets are ordered highest → lowest by closed lead count.
  *
  * @return array{
  *     labels: list<string>,
@@ -505,12 +506,28 @@ function buildClosedLeadsChartData(
             'color' => closedLeadsChartSourceColor($key),
             'data' => $data,
             'totalLeads' => (int) ($totalLeadsBySource[$key] ?? 0),
+            'totalClosed' => array_sum($data),
         ];
     }
 
+    usort($datasets, static function (array $left, array $right): int {
+        $closedCmp = ($right['totalClosed'] ?? 0) <=> ($left['totalClosed'] ?? 0);
+        if ($closedCmp !== 0) {
+            return $closedCmp;
+        }
+
+        return ($right['totalLeads'] ?? 0) <=> ($left['totalLeads'] ?? 0);
+    });
+
+    $datasets = array_map(static function (array $dataset): array {
+        unset($dataset['totalClosed']);
+
+        return $dataset;
+    }, $datasets);
+
     return [
         'labels' => $labels,
-        'datasets' => $datasets,
+        'datasets' => array_values($datasets),
         'totalClosed' => $totalClosed,
         'range' => $groupByMonth ? 'monthly' : 'daily',
     ];

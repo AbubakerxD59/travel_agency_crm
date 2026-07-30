@@ -232,10 +232,15 @@
             text-align: center;
         }
 
+        .table-invoice-primary th.price,
         .table-invoice-primary td.price {
-            text-align: right;
+            width: 1%;
             white-space: nowrap;
             font-variant-numeric: tabular-nums;
+        }
+
+        .table-invoice-primary td.price {
+            text-align: right;
         }
 
         .table-invoice-primary td.valign-top {
@@ -760,7 +765,7 @@
                     <th>Last Name</th>
                     <th>Flight Details</th>
                     <th>Type</th>
-                    <th>Price</th>
+                    <th class="price">Price</th>
                 </tr>
             </thead>
             <tbody>

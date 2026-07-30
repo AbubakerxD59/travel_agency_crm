@@ -9,18 +9,26 @@ const MUTED = '#64748b';
  * @param {Array<{ label: string, color: string, data: number[], totalLeads?: number }>} datasets
  */
 function mapChartDatasets(datasets) {
-    return datasets.map((dataset) => ({
-        label: dataset.label,
-        data: dataset.data,
-        totalLeads: dataset.totalLeads ?? 0,
-        backgroundColor: hexToRgba(dataset.color, 0.85),
-        borderColor: dataset.color,
-        borderWidth: 0,
-        borderRadius: 6,
-        borderSkipped: false,
-        hoverBackgroundColor: dataset.color,
-        stack: 'closed',
-    }));
+    const numberFormatter = new Intl.NumberFormat();
+
+    return datasets.map((dataset) => {
+        const totalLeads = dataset.totalLeads ?? 0;
+        const sourceLabel = dataset.label;
+
+        return {
+            label: `${sourceLabel} (${numberFormatter.format(totalLeads)})`,
+            sourceLabel,
+            data: dataset.data,
+            totalLeads,
+            backgroundColor: hexToRgba(dataset.color, 0.85),
+            borderColor: dataset.color,
+            borderWidth: 0,
+            borderRadius: 6,
+            borderSkipped: false,
+            hoverBackgroundColor: dataset.color,
+            stack: 'closed',
+        };
+    });
 }
 
 function hexToRgba(hex, alpha) {
@@ -114,12 +122,15 @@ function initClosedLeadsChart() {
                     bodyFont: { family: "'Inter', system-ui, sans-serif", size: 12 },
                     padding: 12,
                     cornerRadius: 8,
+                    itemSort(a, b) {
+                        return (b.parsed?.y ?? 0) - (a.parsed?.y ?? 0);
+                    },
                     callbacks: {
                         label(context) {
                             const closed = Number(context.parsed.y ?? 0);
-                            const totalLeads = Number(context.dataset?.totalLeads ?? 0);
                             const numberFormatter = new Intl.NumberFormat();
-                            return `${context.dataset.label}: ${numberFormatter.format(closed)} (${numberFormatter.format(totalLeads)})`;
+                            const sourceLabel = context.dataset?.sourceLabel || context.dataset?.label || '';
+                            return `${sourceLabel}: ${numberFormatter.format(closed)}`;
                         },
                         footer(items) {
                             const sum = items.reduce((acc, item) => acc + (item.parsed.y ?? 0), 0);

@@ -197,6 +197,12 @@ class AgentController extends Controller
 
     public function update(UpdateAgentRequest $request, User $agent): JsonResponse
     {
+        if ($request->user()?->hasRole(User::ROLE_MANAGER)) {
+            return response()->json([
+                'message' => __('Managers are not allowed to edit agents.'),
+            ], 403);
+        }
+
         $this->ensureTeamMember($agent);
 
         try {

@@ -3,6 +3,7 @@
 namespace App\Support;
 
 use App\Models\Lead;
+use App\Models\User;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Request;
 
@@ -33,6 +34,9 @@ class LeadListingQuery
             $request->integer('company_id') ?: null,
         );
         $source = trim((string) $request->query('source', ''));
+        if ($request->user()?->hasRole(User::ROLE_MANAGER)) {
+            $source = '';
+        }
         $status = trim((string) $request->query('status', ''));
         $dateFilter = resolveLeadDateRangeFilter(
             (string) $request->query('date_range', ''),

@@ -13,7 +13,13 @@ class UpdateAgentRequest extends FormRequest
     use ValidatesTeamMemberManager;
     public function authorize(): bool
     {
-        return $this->user()?->can('agents.manage') ?? false;
+        $user = $this->user();
+
+        if ($user?->hasRole(User::ROLE_MANAGER)) {
+            return false;
+        }
+
+        return $user?->can('agents.manage') ?? false;
     }
 
     public function rules(): array

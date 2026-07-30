@@ -103,28 +103,28 @@ class InvoicePreviewController extends Controller
             'transport' => [
                 [
                     'description' => 'Full Loop Transportation+ Ziyarah',
-                    'leading_passenger' => 'FAIZA ALI',
+                    'leading_passenger' => 'Faiza ali',
                     'pickup_date' => format_invoice_date(Carbon::parse('2026-02-21')),
                     'pickup_time' => format_invoice_time('00:00'),
                     'vehicle' => 'H1',
                 ],
                 [
                     'description' => 'Full Loop Transportation+ Ziyarah',
-                    'leading_passenger' => 'FAIZA ALI',
+                    'leading_passenger' => 'Faiza ali',
                     'pickup_date' => format_invoice_date(Carbon::parse('2026-02-25')),
                     'pickup_time' => format_invoice_time('00:00'),
                     'vehicle' => 'H1',
                 ],
                 [
                     'description' => 'Full Loop Transportation+ Ziyarah',
-                    'leading_passenger' => 'FAIZA ALI',
+                    'leading_passenger' => 'Faiza ali',
                     'pickup_date' => format_invoice_date(Carbon::parse('2026-03-01')),
                     'pickup_time' => format_invoice_time('00:00'),
                     'vehicle' => 'H1',
                 ],
                 [
                     'description' => 'Full Loop Transportation+ Ziyarah',
-                    'leading_passenger' => 'FAIZA ALI',
+                    'leading_passenger' => 'Faiza ali',
                     'pickup_date' => format_invoice_date(Carbon::parse('2026-03-03')),
                     'pickup_time' => format_invoice_time('00:00'),
                     'vehicle' => 'H1',

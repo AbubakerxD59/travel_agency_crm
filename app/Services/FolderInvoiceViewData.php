@@ -7,6 +7,7 @@ use App\Models\FolderHotelDetail;
 use App\Models\FolderPayment;
 use App\Support\AbbreviationResolver;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Str;
 
 class FolderInvoiceViewData
 {
@@ -39,6 +40,8 @@ class FolderInvoiceViewData
         $firstCost = $folder->packageCosts->first();
         $flightFrom = $firstCost ? $this->abbreviations->display($firstCost->airline_from) : '';
         $flightTo = $firstCost ? $this->abbreviations->display($firstCost->airline_to) : '';
+        $flightFrom = $this->toSentenceCase($flightFrom);
+        $flightTo = $this->toSentenceCase($flightTo);
         $flightDetails = trim($flightFrom.($flightFrom !== '' && $flightTo !== '' ? ' to ' : '').$flightTo);
 
         $amountPaid = (float) $folder->payments
@@ -111,13 +114,13 @@ class FolderInvoiceViewData
                 'type' => $hotel->type ?? '—',
             ])->all(),
             'flight_itinerary' => $itineraries->map(fn ($leg) => [
-                'operated_by' => $this->abbreviations->display($leg->airline_code ?? ''),
+                'operated_by' => $this->toSentenceCase($this->abbreviations->display($leg->airline_code ?? '')),
                 'flight_no' => $leg->airline_number ?? '',
                 'departure_date' => format_invoice_date($leg->departure_date),
                 'departure_time' => format_invoice_time($leg->departure_time),
-                'from' => $this->abbreviations->display($leg->departure_airport ?? ''),
+                'from' => $this->toSentenceCase($this->abbreviations->display($leg->departure_airport ?? '')),
                 'arrival_time' => format_invoice_time($leg->arrival_time),
-                'to' => $this->abbreviations->display($leg->arrival_airport ?? ''),
+                'to' => $this->toSentenceCase($this->abbreviations->display($leg->arrival_airport ?? '')),
                 'arrival_date' => format_invoice_date($leg->arrival_date),
                 'class' => $this->abbreviations->display($leg->class ?? ''),
             ])->all(),
@@ -142,15 +145,16 @@ class FolderInvoiceViewData
                 ->all(),
             'transport' => $transportDetails->map(function ($transport) use ($folder) {
                 $leadingPassenger = $folder->passengers->first();
+                $leadingPassengerName = $leadingPassenger
+                    ? trim(implode(' ', array_filter([
+                        $leadingPassenger->first_name,
+                        $leadingPassenger->last_name,
+                    ])))
+                    : ($folder->customer_name ?? '');
 
                 return [
                     'description' => $transport->description ?? '',
-                    'leading_passenger' => $leadingPassenger
-                        ? trim(strtoupper(implode(' ', array_filter([
-                            $leadingPassenger->first_name,
-                            $leadingPassenger->last_name,
-                        ]))))
-                        : ($folder->customer_name ?? ''),
+                    'leading_passenger' => $this->toSentenceCase($leadingPassengerName),
                     'pickup_date' => format_invoice_date($transport->service_date),
                     'pickup_time' => format_invoice_time($transport->pickup_time),
                     'vehicle' => $this->abbreviations->display($transport->vehicle_type ?? ''),
@@ -234,5 +238,15 @@ class FolderInvoiceViewData
         }
 
         return false;
+    }
+
+    private function toSentenceCase(string $value): string
+    {
+        $value = trim($value);
+        if ($value === '') {
+            return '';
+        }
+
+        return Str::ucfirst(Str::lower($value));
     }
 }
