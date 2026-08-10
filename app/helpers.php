@@ -1868,9 +1868,15 @@ function invoice_company_payment_section(?string $companyName): ?array
         $bankDetails = array_values(array_filter(
             $section['bank_details'] ?? [],
             static fn ($row): bool => is_array($row)
-                && trim((string) ($row['label'] ?? '')) !== ''
-                && trim((string) ($row['value'] ?? '')) !== '',
+                && trim((string) ($row['label'] ?? '')) !== '',
         ));
+        $bankDetails = array_map(
+            static fn (array $row): array => [
+                'label' => trim((string) ($row['label'] ?? '')),
+                'value' => trim((string) ($row['value'] ?? '')),
+            ],
+            $bankDetails,
+        );
 
         if ($intro === [] && $bankDetails === []) {
             return null;

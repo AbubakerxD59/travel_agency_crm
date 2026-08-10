@@ -51,5 +51,18 @@ return [
                 ['label' => 'Account Number', 'value' => '01114646'],
             ],
         ],
+        'Al Kabir Travel' => [
+            'intro' => [
+                'For your security, please ensure all payments are made only to the company bank account listed Below.',
+                'GM Tours & Travel T/A Al Kabir Travel will not accept responsibility for payments made to any personal bank account or third party unless officially confirmed in writing by the company.',
+            ],
+            'bank_details' => [
+                ['label' => 'Bank Name', 'value' => 'U.S. Bank'],
+                ['label' => 'Account Name', 'value' => 'GM Tours & Travel'],
+                ['label' => 'Account Number', 'value' => '199389318361'],
+                ['label' => 'Routing Number', 'value' => '071904779'],
+                ['label' => 'Zelle Email', 'value' => 'Gmpayments786@gmail.com'],
+            ],
+        ],
     ],
 ];
