@@ -1798,6 +1798,49 @@ function format_invoice_time(mixed $time): string
 }
 
 /**
+ * Blade view name for invoice terms & conditions, keyed by company name in config.
+ * Falls back to Haram Travels when the company is unknown.
+ */
+function invoice_terms_and_conditions_view(?string $companyName): string
+{
+    $default = 'invoices.partials.terms-and-conditions-haram-travels';
+    $views = config('invoice.terms_views', []);
+
+    if ($companyName === null || trim($companyName) === '' || ! is_array($views)) {
+        return $default;
+    }
+
+    foreach ($views as $name => $view) {
+        if (strcasecmp(trim((string) $name), trim($companyName)) === 0 && is_string($view) && $view !== '') {
+            return $view;
+        }
+    }
+
+    return $default;
+}
+
+/**
+ * Legal entity name used inside invoice terms & conditions for a company.
+ */
+function invoice_terms_legal_name(?string $companyName): string
+{
+    $default = (string) config('invoice.terms_legal_name', 'Bukhari Travel Ltd T/A Haram Travel');
+    $names = config('invoice.terms_legal_names', []);
+
+    if ($companyName === null || trim($companyName) === '' || ! is_array($names)) {
+        return $default;
+    }
+
+    foreach ($names as $name => $legalName) {
+        if (strcasecmp(trim((string) $name), trim($companyName)) === 0 && is_string($legalName) && trim($legalName) !== '') {
+            return $legalName;
+        }
+    }
+
+    return $default;
+}
+
+/**
  * Payment instructions block for an invoice, keyed by company name in config.
  *
  * @return array{intro: list<string>, bank_details: list<array{label: string, value: string}>}|null

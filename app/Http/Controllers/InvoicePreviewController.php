@@ -134,7 +134,10 @@ class InvoicePreviewController extends Controller
                 ['label' => 'Ziaraats Makkah', 'status' => 'Included'],
                 ['label' => 'Ziaraats Madinah', 'status' => 'Included'],
             ],
-            'terms_legal_name' => config('invoice.terms_legal_name'),
+            'company_payment_section' => invoice_company_payment_section(
+                config('invoice.company.name'),
+            ),
+            'terms_legal_name' => invoice_terms_legal_name(config('invoice.company.name')),
             'acceptance' => [
                 'signer_email' => 'faiza.ali74@yahoo.co.uk',
                 'signed_date' => format_invoice_date(Carbon::parse('2026-02-08')),

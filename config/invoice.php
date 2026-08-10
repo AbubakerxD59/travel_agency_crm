@@ -11,9 +11,28 @@ return [
     ],
 
     /*
-    | Legal entity name used in invoice terms & conditions.
+    | Default legal entity name used in invoice terms & conditions (Haram Travels).
     */
     'terms_legal_name' => env('INVOICE_TERMS_LEGAL_NAME', 'Bukhari Travel Ltd T/A Haram Travel'),
+
+    /*
+    | Company-specific legal names for terms & conditions.
+    | Keys must match the company name on the folder (case-insensitive).
+    */
+    'terms_legal_names' => [
+        'Haram Travels' => env('INVOICE_TERMS_LEGAL_NAME', 'Bukhari Travel Ltd T/A Haram Travel'),
+        'Al Kabir Travel' => env('INVOICE_AL_KABIR_TERMS_LEGAL_NAME', 'GM Tours & Travels T/A Al Kabir Travel'),
+    ],
+
+    /*
+    | Company-specific terms & conditions Blade views.
+    | Keys must match the company name on the folder (case-insensitive).
+    | Unknown companies fall back to Haram Travels.
+    */
+    'terms_views' => [
+        'Haram Travels' => 'invoices.partials.terms-and-conditions-haram-travels',
+        'Al Kabir Travel' => 'invoices.partials.terms-and-conditions-al-kabir-travel',
+    ],
 
     /*
     | Company-specific payment instructions shown on invoices after the ziarat section.

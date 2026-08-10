@@ -167,7 +167,9 @@ class FolderInvoiceViewData
             'company_payment_section' => invoice_company_payment_section(
                 $folder->company?->name ?? $companyConfig['name'],
             ),
-            'terms_legal_name' => config('invoice.terms_legal_name'),
+            'terms_legal_name' => invoice_terms_legal_name(
+                $folder->company?->name ?? $companyConfig['name'],
+            ),
             'acceptance' => [],
             'document_ref' => 'FOLDER-'.$folder->id,
             'page' => 1,

@@ -16,6 +16,11 @@ class Company extends Model
         'website_link',
     ];
 
+    protected $companies = [
+        "Al Kabir Travel",
+        "Haram Travels"
+    ];
+
     protected static function booted(): void
     {
         static::deleting(function (Company $company): void {
