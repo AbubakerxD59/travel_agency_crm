@@ -31,6 +31,11 @@
                 {{ session('status') }}
             </div>
         @endif
+        @if (session('warning'))
+            <div class="mt-6 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+                {{ session('warning') }}
+            </div>
+        @endif
         @if (session('error'))
             <div class="mt-6 rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-800">
                 {{ session('error') }}
@@ -451,6 +456,45 @@
     @else
         @vite(['resources/js/admin-leads-filters.js', 'resources/js/leads-closed-chart.js', 'resources/js/lead-duplicate-check.js'])
     @endif
+    <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.js"></script>
+    <script>
+        (() => {
+            if (!document.getElementById('toastr-css-cdn')) {
+                const link = document.createElement('link');
+                link.id = 'toastr-css-cdn';
+                link.rel = 'stylesheet';
+                link.href = 'https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.css';
+                document.head.appendChild(link);
+            }
+
+            if (window.toastr) {
+                window.toastr.options = {
+                    closeButton: true,
+                    progressBar: true,
+                    positionClass: 'toast-top-right',
+                    timeOut: 5000,
+                    extendedTimeOut: 2000,
+                };
+            }
+
+            const flashStatus = @json(session('status'));
+            const flashWarning = @json(session('warning'));
+            const flashError = @json(session('error'));
+
+            if (window.toastr) {
+                if (flashStatus) {
+                    window.toastr.success(flashStatus);
+                }
+                if (flashWarning) {
+                    window.toastr.warning(flashWarning);
+                }
+                if (flashError) {
+                    window.toastr.error(flashError);
+                }
+            }
+        })();
+    </script>
     <script>
         const assignLeadModal = document.getElementById('assign-lead-modal');
         const openAssignLeadModalBtn = document.getElementById('open-assign-lead-modal');

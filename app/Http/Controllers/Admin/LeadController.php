@@ -172,11 +172,15 @@ class LeadController extends Controller
             'ziarat_madinah' => false,
         ]);
 
-        $this->notifyAssignedAgent($lead, null, $agentId);
+        $notificationWarning = null;
+        try {
+            $notificationWarning = $this->notifyAssignedAgent($lead, null, $agentId);
+        } catch (Throwable $e) {
+            report($e);
+            $notificationWarning = __('Lead was saved, but the assignment email could not be sent to the agent.');
+        }
 
-        return redirect()
-            ->route(portal_route_prefix().'.leads.index')
-            ->with('status', __('Lead assigned successfully.'));
+        return $this->leadsIndexRedirect(__('Lead assigned successfully.'), $notificationWarning);
     }
 
     public function updateAssign(AssignLeadRequest $request, Lead $lead): RedirectResponse
@@ -205,11 +209,16 @@ class LeadController extends Controller
             'notes' => $data['notes'] ?? null,
         ]);
         $lead->refresh();
-        $this->notifyAssignedAgent($lead, $previousAgentId, $nextAgentId);
 
-        return redirect()
-            ->route(portal_route_prefix().'.leads.index')
-            ->with('status', __('Lead updated successfully.'));
+        $notificationWarning = null;
+        try {
+            $notificationWarning = $this->notifyAssignedAgent($lead, $previousAgentId, $nextAgentId);
+        } catch (Throwable $e) {
+            report($e);
+            $notificationWarning = __('Lead was saved, but the assignment email could not be sent to the agent.');
+        }
+
+        return $this->leadsIndexRedirect(__('Lead updated successfully.'), $notificationWarning);
     }
 
     public function create(Request $request): View
@@ -268,8 +277,11 @@ class LeadController extends Controller
 
     public function store(StoreLeadRequest $request): RedirectResponse
     {
+        $createdLead = null;
+        $notifyAgentId = 0;
+
         try {
-            DB::transaction(function () use ($request): void {
+            DB::transaction(function () use ($request, &$createdLead, &$notifyAgentId): void {
                 $payload = $request->safe()->only([
                     'agent_id',
                     'order_type',
@@ -299,7 +311,8 @@ class LeadController extends Controller
                 $packageCosts = $request->safe()->input('package_costs', []);
                 $lead->packageCosts()->createMany($packageCosts);
 
-                $this->notifyAssignedAgent($lead, null, (int) ($payload['agent_id'] ?? 0));
+                $createdLead = $lead;
+                $notifyAgentId = (int) ($payload['agent_id'] ?? 0);
             });
         } catch (Throwable $e) {
             report($e);
@@ -309,9 +322,12 @@ class LeadController extends Controller
                 ->with('error', __('Could not create lead. Please try again.'));
         }
 
-        return redirect()
-            ->route(portal_route_prefix().'.leads.index')
-            ->with('status', __('Lead created successfully.'));
+        $notificationWarning = null;
+        if ($createdLead !== null) {
+            $notificationWarning = $this->notifyAssignedAgent($createdLead, null, $notifyAgentId);
+        }
+
+        return $this->leadsIndexRedirect(__('Lead created successfully.'), $notificationWarning);
     }
 
     public function update(UpdateLeadRequest $request, Lead $lead): RedirectResponse
@@ -320,8 +336,11 @@ class LeadController extends Controller
             abort(404);
         }
 
+        $previousAgentId = (int) ($lead->agent_id ?? 0);
+        $nextAgentId = 0;
+
         try {
-            DB::transaction(function () use ($request, $lead): void {
+            DB::transaction(function () use ($request, $lead, &$previousAgentId, &$nextAgentId): void {
                 $previousAgentId = (int) ($lead->agent_id ?? 0);
                 $payload = $request->safe()->only([
                     'agent_id',
@@ -337,13 +356,13 @@ class LeadController extends Controller
                     'ziarat_madinah',
                 ]);
 
-                $nextAgentId = $payload['agent_id'] ?? null;
-                $payload['lead_assign_date'] = $nextAgentId === null
+                $nextAgentId = (int) ($payload['agent_id'] ?? 0);
+                $payload['lead_assign_date'] = empty($payload['agent_id'])
                     ? null
-                    : ((int) $lead->agent_id !== (int) $nextAgentId ? now() : $lead->lead_assign_date);
-                $payload['agent_name'] = $nextAgentId === null
+                    : ((int) $lead->agent_id !== $nextAgentId ? now() : $lead->lead_assign_date);
+                $payload['agent_name'] = empty($payload['agent_id'])
                     ? null
-                    : User::withTrashed()->whereKey((int) $nextAgentId)->value('name');
+                    : User::withTrashed()->whereKey($nextAgentId)->value('name');
 
                 $lead->update($payload);
 
@@ -354,8 +373,6 @@ class LeadController extends Controller
                 $lead->itineraries()->createMany($request->safe()->input('itineraries', []));
                 $lead->passengers()->createMany($request->safe()->input('passengers', []));
                 $lead->packageCosts()->createMany($request->safe()->input('package_costs', []));
-
-                $this->notifyAssignedAgent($lead->fresh(), $previousAgentId, (int) ($nextAgentId ?? 0));
             });
         } catch (Throwable $e) {
             report($e);
@@ -365,9 +382,9 @@ class LeadController extends Controller
                 ->with('error', __('Could not update lead. Please try again.'));
         }
 
-        return redirect()
-            ->route(portal_route_prefix().'.leads.index')
-            ->with('status', __('Lead updated successfully.'));
+        $notificationWarning = $this->notifyAssignedAgent($lead->fresh(), $previousAgentId, $nextAgentId);
+
+        return $this->leadsIndexRedirect(__('Lead updated successfully.'), $notificationWarning);
     }
 
     public function destroy(Request $request, Lead $lead): RedirectResponse
@@ -388,41 +405,82 @@ class LeadController extends Controller
             return back()->with('error', __('Could not delete lead. Please try again.'));
         }
 
-        return redirect()
-            ->route(portal_route_prefix().'.leads.index')
-            ->with('status', __('Lead deleted successfully.'));
+        return $this->leadsIndexRedirect(__('Lead deleted successfully.'));
     }
 
-    private function notifyAssignedAgent(Lead $lead, ?int $previousAgentId, int $nextAgentId): void
+    private function leadsIndexRedirect(string $status, ?string $warning = null): RedirectResponse
+    {
+        $redirect = redirect()
+            ->route(portal_route_prefix().'.leads.index')
+            ->with('status', $status);
+
+        if (is_string($warning) && $warning !== '') {
+            $redirect->with('warning', $warning);
+        }
+
+        return $redirect;
+    }
+
+    /**
+     * Notify the assigned agent. Email failures must not interrupt lead submission.
+     */
+    private function notifyAssignedAgent(Lead $lead, ?int $previousAgentId, int $nextAgentId): ?string
     {
         if ($nextAgentId <= 0) {
-            return;
+            return null;
         }
 
         // Only send notification when lead is newly assigned or reassigned.
         if ($previousAgentId !== null && $previousAgentId === $nextAgentId) {
-            return;
+            return null;
         }
 
         $agent = User::query()->find($nextAgentId);
         if (! $agent || ! $agent->hasRole('agent')) {
-            return;
+            return null;
         }
 
         $isReassigned = $previousAgentId !== null && $previousAgentId > 0 && $previousAgentId !== $nextAgentId;
+        $notification = new LeadAssignedNotification($lead, $isReassigned);
+        $emailFailed = false;
 
-        $agent->notify(new LeadAssignedNotification($lead, $isReassigned));
+        // Persist in-app notification first (independent of email delivery).
+        try {
+            $agent->notifyNow($notification, ['database']);
 
-        app(AgentWebPushService::class)->sendLeadAssigned($agent, $lead, $isReassigned);
-
-        // Keep sent_at null until polling endpoint fetches the notification once.
-        if (Schema::hasColumn('notifications', 'sent_at')) {
-            $agent->notifications()
-                ->where('type', LeadAssignedNotification::class)
-                ->where('data->lead_id', $lead->id)
-                ->latest()
-                ->limit(1)
-                ->update(['sent_at' => null]);
+            // Keep sent_at null until polling endpoint fetches the notification once.
+            if (Schema::hasColumn('notifications', 'sent_at')) {
+                $agent->notifications()
+                    ->where('type', LeadAssignedNotification::class)
+                    ->where('data->lead_id', $lead->id)
+                    ->latest()
+                    ->limit(1)
+                    ->update(['sent_at' => null]);
+            }
+        } catch (Throwable $e) {
+            report($e);
         }
+
+        // Email is best-effort — SMTP failures (e.g. 550) must not fail the assign request.
+        if (! empty($agent->email)) {
+            try {
+                $agent->notifyNow($notification, ['mail']);
+            } catch (Throwable $e) {
+                report($e);
+                $emailFailed = true;
+            }
+        }
+
+        try {
+            app(AgentWebPushService::class)->sendLeadAssigned($agent, $lead, $isReassigned);
+        } catch (Throwable $e) {
+            report($e);
+        }
+
+        if ($emailFailed) {
+            return __('Lead was saved, but the assignment email could not be sent to the agent.');
+        }
+
+        return null;
     }
 }
