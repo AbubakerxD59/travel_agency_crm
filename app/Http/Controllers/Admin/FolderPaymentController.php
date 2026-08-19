@@ -135,6 +135,41 @@ class FolderPaymentController extends Controller
             ->with('status', __('Payment image removed.'));
     }
 
+    public function destroy(Request $request, FolderPayment $folderPayment): RedirectResponse
+    {
+        if (! staff_can_delete_records($request->user())) {
+            abort(403);
+        }
+
+        if (! staff_can_access_agent_record($request->user(), $folderPayment->folder?->agent_id, $folderPayment->folder?->company_id)) {
+            abort(404);
+        }
+
+        if ($folderPayment->isLocked()) {
+            return redirect()
+                ->back()
+                ->with('error', __('This payment is locked and cannot be deleted.'));
+        }
+
+        try {
+            if (! $folderPayment->delete()) {
+                return redirect()
+                    ->back()
+                    ->with('error', __('Could not delete payment. Please try again.'));
+            }
+        } catch (Throwable $e) {
+            report($e);
+
+            return redirect()
+                ->back()
+                ->with('error', __('Could not delete payment. Please try again.'));
+        }
+
+        return redirect()
+            ->route(portal_route_prefix().'.folder-payments.index', ['folder_id' => $folderPayment->folder_id])
+            ->with('status', __('Payment deleted successfully.'));
+    }
+
     public function approve(FolderPayment $folderPayment): RedirectResponse
     {
         if (request()->user()?->hasRole(User::ROLE_MANAGER)) {

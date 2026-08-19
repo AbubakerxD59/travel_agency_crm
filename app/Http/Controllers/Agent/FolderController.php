@@ -588,13 +588,7 @@ class FolderController extends Controller
                     $folder = Folder::create($folderPayload);
                 } else {
                     $folder->update($folderPayload);
-                    $folder->itineraries()->delete();
-                    $folder->passengers()->delete();
-                    $folder->packageCosts()->delete();
-                    $folder->hotelDetails()->delete();
-                    $folder->transportDetails()->delete();
-                    $folder->visaDetails()->delete();
-                    $folder->otherDetails()->delete();
+                    $folder->forceDeleteReplaceableSections();
                 }
 
                 $folder->itineraries()->createMany($validated['itineraries'] ?? []);

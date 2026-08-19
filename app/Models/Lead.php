@@ -4,9 +4,12 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Lead extends Model
 {
+    use SoftDeletes;
+
     public const STATUS_NEW = 'new';
 
     public const STATUS_CONTACTED = 'contacted';
@@ -47,6 +50,7 @@ class Lead extends Model
     protected $casts = [
         'lead_assign_date' => 'datetime',
         'total_passengers' => 'integer',
+        'deleted_at' => 'datetime',
     ];
 
     /**

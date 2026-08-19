@@ -4,9 +4,12 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\SoftDeletes;
 
 class FolderPackageCost extends Model
 {
+    use SoftDeletes;
+
     protected $fillable = [
         'folder_id',
         'ticket_no',
@@ -39,6 +42,6 @@ class FolderPackageCost extends Model
      */
     public function folder(): BelongsTo
     {
-        return $this->belongsTo(Folder::class);
+        return $this->belongsTo(Folder::class)->withTrashed();
     }
 }

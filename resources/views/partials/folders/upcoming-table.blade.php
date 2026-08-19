@@ -178,6 +178,12 @@
                                             d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
                                     </svg>
                                 </a>
+                                @if ($isAdmin && staff_can_delete_records(auth()->user()))
+                                    @include('partials.confirm-delete-button', [
+                                        'action' => portal_route('folders.destroy', $folder),
+                                        'title' => 'Delete this folder?',
+                                    ])
+                                @endif
                             </div>
                         </td>
                     </tr>

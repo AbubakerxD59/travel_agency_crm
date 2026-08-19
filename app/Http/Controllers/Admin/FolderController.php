@@ -33,6 +33,7 @@ class FolderController extends Controller
             'update',
             'saveSectionDraft',
             'toggleLock',
+            'destroy',
         ]);
     }
 
@@ -289,6 +290,29 @@ class FolderController extends Controller
             'folder' => $folder,
             'canManageFolders' => user_is_staff_portal(request()->user()),
         ]);
+    }
+
+    public function destroy(Request $request, Folder $folder): RedirectResponse
+    {
+        if (! staff_can_delete_records($request->user())) {
+            abort(403);
+        }
+
+        if (! staff_can_access_agent_record($request->user(), $folder->agent_id, $folder->company_id)) {
+            abort(404);
+        }
+
+        try {
+            $folder->delete();
+        } catch (Throwable $e) {
+            report($e);
+
+            return back()->with('error', __('Could not delete folder. Please try again.'));
+        }
+
+        return redirect()
+            ->route(portal_route_prefix().'.folders.index')
+            ->with('status', __('Folder deleted successfully.'));
     }
 
     public function toggleLock(Request $request, Folder $folder): RedirectResponse
@@ -586,13 +610,7 @@ class FolderController extends Controller
                     $folder = Folder::create($folderPayload);
                 } else {
                     $folder->update($folderPayload);
-                    $folder->itineraries()->delete();
-                    $folder->passengers()->delete();
-                    $folder->packageCosts()->delete();
-                    $folder->hotelDetails()->delete();
-                    $folder->transportDetails()->delete();
-                    $folder->visaDetails()->delete();
-                    $folder->otherDetails()->delete();
+                    $folder->forceDeleteReplaceableSections();
                 }
 
                 $folder->itineraries()->createMany($validated['itineraries'] ?? []);

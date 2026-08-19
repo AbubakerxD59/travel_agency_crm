@@ -26,6 +26,14 @@
                             Edit folder
                         </a>
                     @endif
+                    @if (staff_can_delete_records(auth()->user()))
+                        @include('partials.confirm-delete-button', [
+                            'action' => portal_route('folders.destroy', $folder),
+                            'title' => 'Delete this folder?',
+                            'variant' => 'text',
+                            'buttonClass' => 'inline-flex shrink-0 items-center justify-center rounded-xl border border-rose-200 bg-white px-4 py-2.5 text-sm font-semibold text-rose-700 shadow-sm transition hover:bg-rose-50',
+                        ])
+                    @endif
                 </div>
             </div>
         </div>

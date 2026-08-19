@@ -122,6 +122,13 @@
                                             </button>
                                         </form>
                                     @endif
+                                    @if (staff_can_delete_records(auth()->user()) && ! $payment->isLocked())
+                                        @include('partials.confirm-delete-button', [
+                                            'action' => portal_route('folder-payments.destroy', $payment),
+                                            'title' => 'Delete this payment?',
+                                            'variant' => 'text',
+                                        ])
+                                    @endif
                                 </div>
                             </td>
                         </tr>

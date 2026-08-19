@@ -4,9 +4,12 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\SoftDeletes;
 
 class FolderPassenger extends Model
 {
+    use SoftDeletes;
+
     /**
      * Allowed title values for passengers (delegates to {@see folder_passenger_titles()}).
      *
@@ -52,6 +55,6 @@ class FolderPassenger extends Model
      */
     public function folder(): BelongsTo
     {
-        return $this->belongsTo(Folder::class);
+        return $this->belongsTo(Folder::class)->withTrashed();
     }
 }

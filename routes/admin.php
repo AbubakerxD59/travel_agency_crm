@@ -28,6 +28,8 @@ Route::prefix('admin')->name('admin.')->middleware('role:super-admin')->group(fu
         ->name('folder-payments.approve');
     Route::post('/folder-payments/{folder_payment}/reject', [FolderPaymentController::class, 'reject'])
         ->name('folder-payments.reject');
+    Route::delete('/folder-payments/{folder_payment}', [FolderPaymentController::class, 'destroy'])
+        ->name('folder-payments.destroy');
 
     Route::get('/dashboard', [DashboardController::class, 'index'])
         ->middleware('can:dashboard.access')
@@ -84,6 +86,7 @@ Route::prefix('admin')->name('admin.')->middleware('role:super-admin')->group(fu
     Route::get('/folders/{folder}/transportation-voucher/download', [FolderTransportationVoucherController::class, 'download'])
         ->name('folders.transportation-voucher.download');
     Route::get('/folders/{folder}', [FolderController::class, 'show'])->name('folders.show');
+    Route::delete('/folders/{folder}', [FolderController::class, 'destroy'])->name('folders.destroy');
 
     Route::resource('companies', CompanyController::class)->only([
         'index',

@@ -166,8 +166,44 @@ function initAdminSidebar() {
     });
 }
 
+function initConfirmDeleteForms() {
+    document.addEventListener('submit', async (event) => {
+        const form = event.target.closest('.js-confirm-delete-form');
+        if (!form || form.dataset.confirmed === '1') {
+            return;
+        }
+
+        event.preventDefault();
+
+        if (typeof window.Swal === 'undefined') {
+            return;
+        }
+
+        const result = await window.Swal.fire({
+            title: form.dataset.title || 'Delete this record?',
+            text: form.dataset.text || 'This action cannot be undone.',
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonText: 'Yes, delete',
+            cancelButtonText: 'Cancel',
+            confirmButtonColor: '#dc2626',
+        });
+
+        if (!result.isConfirmed) {
+            return;
+        }
+
+        form.dataset.confirmed = '1';
+        form.submit();
+    });
+}
+
 if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', initAdminSidebar);
+    document.addEventListener('DOMContentLoaded', () => {
+        initAdminSidebar();
+        initConfirmDeleteForms();
+    });
 } else {
     initAdminSidebar();
+    initConfirmDeleteForms();
 }

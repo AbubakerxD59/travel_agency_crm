@@ -54,6 +54,11 @@ function user_is_staff_portal(?User $user): bool
     return (bool) $user?->hasAnyRole(['super-admin', User::ROLE_MANAGER]);
 }
 
+function staff_can_delete_records(?User $user): bool
+{
+    return (bool) $user?->hasRole('super-admin');
+}
+
 /**
  * Company id forced for managers; null means "no force" (super-admin / others).
  */
@@ -1033,31 +1038,31 @@ function folder_persist_section_rows(
     DB::transaction(function () use ($folder, $section, $rows, $paymentApprovalStatusForNew, $request, &$paymentIds): void {
         switch ($section) {
             case 'itineraries':
-                $folder->itineraries()->delete();
+                $folder->itineraries()->forceDelete();
                 $folder->itineraries()->createMany($rows);
                 break;
             case 'passengers':
-                $folder->passengers()->delete();
+                $folder->passengers()->forceDelete();
                 $folder->passengers()->createMany($rows);
                 break;
             case 'package_costs':
-                $folder->packageCosts()->delete();
+                $folder->packageCosts()->forceDelete();
                 $folder->packageCosts()->createMany($rows);
                 break;
             case 'hotel_details':
-                $folder->hotelDetails()->delete();
+                $folder->hotelDetails()->forceDelete();
                 $folder->hotelDetails()->createMany(folder_hotel_details_for_storage($rows));
                 break;
             case 'transport_details':
-                $folder->transportDetails()->delete();
+                $folder->transportDetails()->forceDelete();
                 $folder->transportDetails()->createMany($rows);
                 break;
             case 'visa_details':
-                $folder->visaDetails()->delete();
+                $folder->visaDetails()->forceDelete();
                 $folder->visaDetails()->createMany($rows);
                 break;
             case 'other_details':
-                $folder->otherDetails()->delete();
+                $folder->otherDetails()->forceDelete();
                 $folder->otherDetails()->createMany(folder_other_details_for_storage($rows));
                 break;
             case 'payments':
@@ -1468,11 +1473,13 @@ function folder_sync_folder_payments(
         $keptUnlockedIds[] = $payment->id;
     }
 
-    $folder->payments()
-        ->whereNull('locked_at')
-        ->when($keptUnlockedIds !== [], fn ($query) => $query->whereNotIn('id', $keptUnlockedIds))
-        ->get()
-        ->each(fn (FolderPayment $payment) => $payment->delete());
+    if (! auth()->user()?->hasRole(User::ROLE_MANAGER)) {
+        $folder->payments()
+            ->whereNull('locked_at')
+            ->when($keptUnlockedIds !== [], fn ($query) => $query->whereNotIn('id', $keptUnlockedIds))
+            ->get()
+            ->each(fn (FolderPayment $payment) => $payment->delete());
+    }
 
     return array_map(
         static fn (int $id): array => ['id' => $id],

@@ -389,7 +389,7 @@ class LeadController extends Controller
 
     public function destroy(Request $request, Lead $lead): RedirectResponse
     {
-        if ($request->user()?->hasRole(User::ROLE_MANAGER)) {
+        if (! staff_can_delete_records($request->user())) {
             abort(403);
         }
 

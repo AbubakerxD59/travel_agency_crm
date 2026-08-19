@@ -20,10 +20,20 @@
                         · {{ $payment->folder?->customer_name ?? '—' }}
                     </p>
                 </div>
-                <a href="{{ portal_route('folder-payments.index', ['folder_id' => $payment->folder_id]) }}"
-                    class="inline-flex shrink-0 items-center justify-center rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-medium text-concierge-navy shadow-sm transition hover:bg-slate-50">
-                    Back to payments
-                </a>
+                <div class="flex flex-wrap items-center gap-2">
+                    <a href="{{ portal_route('folder-payments.index', ['folder_id' => $payment->folder_id]) }}"
+                        class="inline-flex shrink-0 items-center justify-center rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-medium text-concierge-navy shadow-sm transition hover:bg-slate-50">
+                        Back to payments
+                    </a>
+                    @if (staff_can_delete_records(auth()->user()) && ! $payment->isLocked())
+                        @include('partials.confirm-delete-button', [
+                            'action' => portal_route('folder-payments.destroy', $payment),
+                            'title' => 'Delete this payment?',
+                            'variant' => 'text',
+                            'buttonClass' => 'inline-flex shrink-0 items-center justify-center rounded-xl border border-rose-200 bg-white px-4 py-2.5 text-sm font-semibold text-rose-700 shadow-sm transition hover:bg-rose-50',
+                        ])
+                    @endif
+                </div>
             </div>
         </div>
 

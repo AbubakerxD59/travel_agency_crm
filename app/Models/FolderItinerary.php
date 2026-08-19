@@ -4,9 +4,12 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\SoftDeletes;
 
 class FolderItinerary extends Model
 {
+    use SoftDeletes;
+
     protected $fillable = [
         'folder_id',
         'sr_no',
@@ -34,6 +37,6 @@ class FolderItinerary extends Model
      */
     public function folder(): BelongsTo
     {
-        return $this->belongsTo(Folder::class);
+        return $this->belongsTo(Folder::class)->withTrashed();
     }
 }

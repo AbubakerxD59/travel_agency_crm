@@ -3,6 +3,7 @@
 @php
     $isEditMode = (bool) ($isEditMode ?? false);
     $showPaymentStatusColumn = $isEditMode;
+    $canRemoveExistingPayments = ! auth()->user()?->hasRole(\App\Models\User::ROLE_MANAGER);
 @endphp
 
 @section('title', $isEditMode ? 'Edit folder' : 'New folder')
@@ -1208,7 +1209,7 @@
                                     @endif
                                 </tr>
                             </thead>
-                            <tbody id="payment-rows">
+                            <tbody id="payment-rows" data-can-remove-existing="{{ $canRemoveExistingPayments ? '1' : '0' }}">
                                 @foreach ($paymentRows as $i => $row)
                                     @php
                                         $paymentLocked = (bool) data_get($row, 'is_locked', false);
@@ -1225,7 +1226,7 @@
                                             @endif
                                             @if ($paymentLocked)
                                                 @include('partials.folders.payment-locked-icon')
-                                            @else
+                                            @elseif ($canRemoveExistingPayments || ! data_get($row, 'id'))
                                                 <button type="button"
                                                     class="remove-payment-row inline-flex cursor-pointer items-center justify-center rounded-md border border-rose-200 px-2 py-1 text-xs font-medium text-rose-700 hover:bg-rose-50">
                                                     X

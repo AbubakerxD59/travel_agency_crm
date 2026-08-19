@@ -64,7 +64,6 @@ Route::prefix('manager')->name('manager.')->middleware('role:manager')->group(fu
     Route::get('/leads/{lead}/edit', [LeadController::class, 'edit'])->name('leads.edit');
     Route::post('/leads', [LeadController::class, 'store'])->name('leads.store');
     Route::patch('/leads/{lead}', [LeadController::class, 'update'])->name('leads.update');
-    Route::delete('/leads/{lead}', [LeadController::class, 'destroy'])->name('leads.destroy');
     Route::get('/folders', [FolderController::class, 'index'])->name('folders.index');
     Route::get('/folders/upcoming', [FolderController::class, 'upcoming'])->name('folders.upcoming');
     Route::get('/folders/create', [FolderController::class, 'create'])->name('folders.create');

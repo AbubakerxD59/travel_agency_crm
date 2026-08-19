@@ -5,9 +5,12 @@ namespace App\Models;
 use App\Support\FolderPaymentImageStorage;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\SoftDeletes;
 
 class FolderPayment extends Model
 {
+    use SoftDeletes;
+
     public const STATUS_PENDING = 'pending';
 
     public const STATUS_APPROVED = 'approved';
@@ -32,6 +35,7 @@ class FolderPayment extends Model
             'amount' => 'decimal:2',
             'payment_date' => 'date',
             'locked_at' => 'datetime',
+            'deleted_at' => 'datetime',
         ];
     }
 
@@ -44,11 +48,15 @@ class FolderPayment extends Model
         });
 
         static::deleting(function (FolderPayment $payment): bool {
+            if ($payment->isForceDeleting()) {
+                $payment->deleteStoredImage();
+
+                return true;
+            }
+
             if ($payment->locked_at !== null) {
                 return false;
             }
-
-            $payment->deleteStoredImage();
 
             return true;
         });
@@ -74,7 +82,7 @@ class FolderPayment extends Model
      */
     public function folder(): BelongsTo
     {
-        return $this->belongsTo(Folder::class);
+        return $this->belongsTo(Folder::class)->withTrashed();
     }
 
     /**

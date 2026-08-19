@@ -6,9 +6,12 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Folder extends Model
 {
+    use SoftDeletes;
+
     public const UPCOMING_TRAVEL_DATE_WINDOW_DAYS = 20;
 
     /**
@@ -78,11 +81,80 @@ class Folder extends Model
         return $query->orderByDesc('is_incomplete_booking');
     }
 
+    /**
+     * @return list<string>
+     */
+    private static function relatedRecordRelations(): array
+    {
+        return [
+            'itineraries',
+            'passengers',
+            'packageCosts',
+            'hotelDetails',
+            'transportDetails',
+            'visaDetails',
+            'otherDetails',
+            'payments',
+        ];
+    }
+
+    /**
+     * Permanently remove replaceable section rows before recreating them on save.
+     */
+    public function forceDeleteReplaceableSections(): void
+    {
+        $this->itineraries()->forceDelete();
+        $this->passengers()->forceDelete();
+        $this->packageCosts()->forceDelete();
+        $this->hotelDetails()->forceDelete();
+        $this->transportDetails()->forceDelete();
+        $this->visaDetails()->forceDelete();
+        $this->otherDetails()->forceDelete();
+    }
+
     protected static function booted(): void
     {
         static::saving(function (Folder $folder): void {
             if ($folder->isDirty('agent_id')) {
                 folder_sync_agent_name_from_user($folder);
+            }
+        });
+
+        static::deleting(function (Folder $folder): void {
+            if (! $folder->isForceDeleting()) {
+                return;
+            }
+
+            foreach (self::relatedRecordRelations() as $relation) {
+                if ($relation === 'payments') {
+                    $folder->payments()->withTrashed()->get()->each(
+                        fn (FolderPayment $payment) => $payment->forceDelete(),
+                    );
+
+                    continue;
+                }
+
+                $folder->{$relation}()->withTrashed()->forceDelete();
+            }
+        });
+
+        static::deleted(function (Folder $folder): void {
+            if ($folder->isForceDeleting()) {
+                return;
+            }
+
+            $deletedAt = $folder->deleted_at;
+
+            foreach (self::relatedRecordRelations() as $relation) {
+                $folder->{$relation}()->update(['deleted_at' => $deletedAt]);
+            }
+        });
+
+        static::restoring(function (Folder $folder): void {
+            $deletedAt = $folder->deleted_at;
+
+            foreach (self::relatedRecordRelations() as $relation) {
+                $folder->{$relation}()->onlyTrashed()->where('deleted_at', $deletedAt)->restore();
             }
         });
     }
@@ -116,6 +188,7 @@ class Folder extends Model
             'makkah_ziarat' => 'boolean',
             'madinah_ziarat' => 'boolean',
             'lock' => 'boolean',
+            'deleted_at' => 'datetime',
         ];
     }
 

@@ -276,22 +276,11 @@
                                                     d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
                                             </svg>
                                         </a>
-                                        @if ($canCreateLeads && ! $isManager)
-                                            <form method="POST" action="{{ portal_route('leads.destroy', $lead) }}"
-                                                class="js-lead-delete-form">
-                                                @csrf
-                                                @method('DELETE')
-                                                <button type="submit"
-                                                    class="lead-row-action cursor-pointer rounded-lg p-2 text-concierge-muted transition hover:bg-slate-100 hover:text-rose-600"
-                                                    title="Delete" aria-label="Delete">
-                                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5"
-                                                        fill="none" viewBox="0 0 24 24" stroke="currentColor"
-                                                        stroke-width="1.5" aria-hidden="true">
-                                                        <path stroke-linecap="round" stroke-linejoin="round"
-                                                            d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0" />
-                                                    </svg>
-                                                </button>
-                                            </form>
+                                        @if (staff_can_delete_records(auth()->user()))
+                                            @include('partials.confirm-delete-button', [
+                                                'action' => portal_route('leads.destroy', $lead),
+                                                'title' => 'Delete this lead?',
+                                            ])
                                         @endif
                                     </div>
                                 </td>
@@ -656,34 +645,6 @@
 
         assignLeadForm?.addEventListener('submit', () => {
             setButtonLoading(assignLeadSubmitBtn, true);
-        });
-
-        document.addEventListener('submit', async function(event) {
-            const form = event.target.closest('.js-lead-delete-form');
-            if (!form || form.dataset.confirmed === '1') {
-                return;
-            }
-
-            event.preventDefault();
-
-            if (typeof window.Swal === 'undefined') {
-                return;
-            }
-
-            const result = await window.Swal.fire({
-                title: 'Delete this lead?',
-                text: 'This action cannot be undone.',
-                icon: 'warning',
-                showCancelButton: true,
-                confirmButtonText: 'Yes, delete',
-                cancelButtonText: 'Cancel',
-                confirmButtonColor: '#dc2626',
-            });
-
-            if (result.isConfirmed) {
-                form.dataset.confirmed = '1';
-                form.submit();
-            }
         });
     </script>
 @endpush
