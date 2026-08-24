@@ -13,14 +13,14 @@ return [
     /*
     | Default legal entity name used in invoice terms & conditions (Haram Travels).
     */
-    'terms_legal_name' => env('INVOICE_TERMS_LEGAL_NAME', 'Bukhari Travel Ltd T/A Haram Travel'),
+    'terms_legal_name' => env('INVOICE_TERMS_LEGAL_NAME', 'Haram Travel'),
 
     /*
     | Company-specific legal names for terms & conditions.
     | Keys must match the company name on the folder (case-insensitive).
     */
     'terms_legal_names' => [
-        'Haram Travels' => env('INVOICE_TERMS_LEGAL_NAME', 'Bukhari Travel Ltd T/A Haram Travel'),
+        'Haram Travels' => env('INVOICE_TERMS_LEGAL_NAME', 'Haram Travel'),
         'Al Kabir Travel' => env('INVOICE_AL_KABIR_TERMS_LEGAL_NAME', 'GM Tours & Travels T/A Al Kabir Travel'),
     ],
 
@@ -42,7 +42,7 @@ return [
         'Haram Travels' => [
             'intro' => [
                 'For your security, please ensure all payments are made only to the company bank account listed Below.',
-                'Bukhari Travel T/A Haram Travel will not accept responsibility for payments made to any personal bank account or third party unless officially confirmed in writing by the company.',
+                'Haram Travel will not accept responsibility for payments made to any personal bank account or third party unless officially confirmed in writing by the company.',
             ],
             'bank_details' => [
                 ['label' => 'Bank Name', 'value' => 'HSBC'],

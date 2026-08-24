@@ -1831,7 +1831,7 @@ function invoice_terms_and_conditions_view(?string $companyName): string
  */
 function invoice_terms_legal_name(?string $companyName): string
 {
-    $default = (string) config('invoice.terms_legal_name', 'Bukhari Travel Ltd T/A Haram Travel');
+    $default = (string) config('invoice.terms_legal_name', 'Haram Travel');
     $names = config('invoice.terms_legal_names', []);
 
     if ($companyName === null || trim($companyName) === '' || ! is_array($names)) {
