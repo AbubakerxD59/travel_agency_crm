@@ -244,7 +244,9 @@
                                                 data-city="{{ $lead->city ?? '' }}"
                                                 data-total-passengers="{{ $lead->total_passengers !== null ? (int) $lead->total_passengers : '' }}"
                                                 data-source="{{ $lead->source ?? '' }}"
-                                                data-notes="{{ $lead->notes ?? '' }}" title="Edit" aria-label="Edit">
+                                                data-notes="{{ $lead->notes ?? '' }}"
+                                                data-status="{{ $lead->status ?? '' }}"
+                                                data-not-converted-reason="{{ $lead->not_converted_reason ?? '' }}" title="Edit" aria-label="Edit">
                                                 <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none"
                                                     viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5"
                                                     aria-hidden="true">
@@ -328,7 +330,8 @@
                     data-lead-duplicate-create="1" data-lead-duplicate-submit="#assign-lead-submit-btn"
                     class="space-y-4 px-6 py-5">
                     @csrf
-                    <input type="hidden" name="_method" id="assign_lead_form_method" value="">
+                    <input type="hidden" name="_method" id="assign_lead_form_method" value="{{ old('_method', '') }}">
+                    <input type="hidden" name="editing_lead_id" id="assign_editing_lead_id" value="{{ old('editing_lead_id', '') }}">
                     <input type="hidden" name="confirm_duplicate" value="0">
                     <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
                         <div>
@@ -407,6 +410,33 @@
                             </select>
                         </div>
                     </div>
+                    @if ($isManager)
+                        <div id="assign-lead-status-fields" class="hidden">
+                            <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                                <div>
+                                    <label for="assign_status" class="block text-sm font-medium text-concierge-navy">Status
+                                        <span class="text-rose-600">*</span></label>
+                                    <select id="assign_status" name="status" disabled
+                                        class="mt-1.5 w-full rounded-xl border border-slate-200 bg-slate-50/80 px-4 py-2.5 text-sm focus:border-concierge-accent focus:bg-white focus:outline-none focus:ring-2 focus:ring-concierge-accent/20">
+                                        <option value="" disabled @selected(old('status') === null || old('status') === '')>Select status</option>
+                                        @foreach ($statuses as $statusKey => $statusLabel)
+                                            <option value="{{ $statusKey }}" @selected((string) old('status') === (string) $statusKey)>
+                                                {{ $statusLabel }}</option>
+                                        @endforeach
+                                    </select>
+                                </div>
+                                <div id="assign-lead-not-converted-reason-field" class="hidden sm:col-span-2">
+                                    <label for="assign_not_converted_reason"
+                                        class="block text-sm font-medium text-concierge-navy">Not converted reason
+                                        <span class="text-rose-600">*</span></label>
+                                    <textarea id="assign_not_converted_reason" name="not_converted_reason" rows="3" maxlength="1000"
+                                        disabled
+                                        class="mt-1.5 w-full rounded-xl border border-slate-200 bg-slate-50/80 px-4 py-2.5 text-sm focus:border-concierge-accent focus:bg-white focus:outline-none focus:ring-2 focus:ring-concierge-accent/20"
+                                        placeholder="e.g. Customer chose another agency, budget constraints…">{{ old('not_converted_reason') }}</textarea>
+                                </div>
+                            </div>
+                        </div>
+                    @endif
                     <div>
                         <label for="assign_notes" class="block text-sm font-medium text-concierge-navy">Notes</label>
                         <textarea id="assign_notes" name="notes" rows="4"
@@ -491,6 +521,7 @@
         const assignLeadModalTitle = document.getElementById('assign-lead-modal-title');
         const assignLeadFormMethod = document.getElementById('assign_lead_form_method');
         const assignLeadSubmitBtn = document.getElementById('assign-lead-submit-btn');
+        const assignEditingLeadIdInput = document.getElementById('assign_editing_lead_id');
         const assignLeadUpdateUrlTemplate = "{{ url('/'.portal_route_prefix().'/leads') }}/__LEAD_ID__/assign";
 
         function setButtonLoading(button, isLoading) {
@@ -520,6 +551,41 @@
 
         const assignCompanySelect = document.getElementById('assign_company_id');
         const assignAgentSelect = document.getElementById('assign_agent_id');
+        const assignStatusFields = document.getElementById('assign-lead-status-fields');
+        const assignStatusSelect = document.getElementById('assign_status');
+        const assignNotConvertedReasonField = document.getElementById('assign-lead-not-converted-reason-field');
+        const assignNotConvertedReasonInput = document.getElementById('assign_not_converted_reason');
+        const currentUserId = @json((string) auth()->id());
+        const isManager = @json((bool) $isManager);
+        const STATUS_NOT_CONVERTED = @json(\App\Models\Lead::STATUS_NOT_CONVERTED);
+
+        function syncAssignLeadNotConvertedReasonField() {
+            const showReason = Boolean(
+                assignStatusSelect
+                && !assignStatusSelect.disabled
+                && assignStatusSelect.value === STATUS_NOT_CONVERTED
+            );
+
+            assignNotConvertedReasonField?.classList.toggle('hidden', !showReason);
+            if (assignNotConvertedReasonInput) {
+                assignNotConvertedReasonInput.disabled = !showReason;
+                assignNotConvertedReasonInput.required = showReason;
+            }
+        }
+
+        function syncAssignLeadStatusFields() {
+            const isEdit = assignLeadFormMethod?.value === 'PATCH';
+            const assignedToSelf = (assignAgentSelect?.value ?? '') === currentUserId;
+            const showStatus = isManager && isEdit && assignedToSelf;
+
+            assignStatusFields?.classList.toggle('hidden', !showStatus);
+            if (assignStatusSelect) {
+                assignStatusSelect.disabled = !showStatus;
+                assignStatusSelect.required = showStatus;
+            }
+
+            syncAssignLeadNotConvertedReasonField();
+        }
 
         function filterAssignLeadAgents(preserveSelection = true) {
             if (!assignAgentSelect) {
@@ -545,6 +611,7 @@
             );
 
             assignAgentSelect.value = selectedStillValid ? selectedAgentId : '';
+            syncAssignLeadStatusFields();
         }
 
         function resetAssignLeadModalToCreate() {
@@ -554,6 +621,9 @@
             assignLeadForm.action = "{{ portal_route('leads.assign') }}";
             if (assignLeadFormMethod) {
                 assignLeadFormMethod.value = '';
+            }
+            if (assignEditingLeadIdInput) {
+                assignEditingLeadIdInput.value = '';
             }
             if (assignLeadModalTitle) {
                 assignLeadModalTitle.textContent = 'Assign Lead';
@@ -565,6 +635,7 @@
             assignLeadForm.reset();
             assignLeadForm.dispatchEvent(new CustomEvent('lead-duplicate-reset'));
             filterAssignLeadAgents(false);
+            syncAssignLeadStatusFields();
         }
 
         function openAssignLeadModal() {
@@ -610,6 +681,9 @@
                 if (assignLeadFormMethod) {
                     assignLeadFormMethod.value = 'PATCH';
                 }
+                if (assignEditingLeadIdInput) {
+                    assignEditingLeadIdInput.value = leadId;
+                }
                 if (assignLeadModalTitle) {
                     assignLeadModalTitle.textContent = 'Edit Lead';
                 }
@@ -628,6 +702,13 @@
                 document.getElementById('assign_total_passengers').value = button.dataset.totalPassengers ?? '';
                 document.getElementById('assign_source').value = button.dataset.source ?? '';
                 document.getElementById('assign_notes').value = button.dataset.notes ?? '';
+                if (assignStatusSelect) {
+                    assignStatusSelect.value = button.dataset.status ?? '';
+                }
+                if (assignNotConvertedReasonInput) {
+                    assignNotConvertedReasonInput.value = button.dataset.notConvertedReason ?? '';
+                }
+                syncAssignLeadStatusFields();
 
                 openAssignLeadModal();
             });
@@ -637,10 +718,33 @@
         });
 
         assignCompanySelect?.addEventListener('change', () => filterAssignLeadAgents(false));
+        assignAgentSelect?.addEventListener('change', () => syncAssignLeadStatusFields());
+        assignStatusSelect?.addEventListener('change', () => syncAssignLeadNotConvertedReasonField());
 
         @if ($errors->any() || (session('error') && old('phone_number')))
             openAssignLeadModal();
             filterAssignLeadAgents();
+            @if (old('_method') === 'PATCH' && old('editing_lead_id'))
+                if (assignLeadFormMethod) {
+                    assignLeadFormMethod.value = 'PATCH';
+                }
+                if (assignEditingLeadIdInput) {
+                    assignEditingLeadIdInput.value = @json((string) old('editing_lead_id'));
+                }
+                if (assignLeadForm) {
+                    assignLeadForm.action = assignLeadUpdateUrlTemplate.replace(
+                        '__LEAD_ID__',
+                        @json((string) old('editing_lead_id')),
+                    );
+                }
+                if (assignLeadModalTitle) {
+                    assignLeadModalTitle.textContent = 'Edit Lead';
+                }
+                if (assignLeadSubmitBtn) {
+                    assignLeadSubmitBtn.textContent = 'Update Lead';
+                }
+            @endif
+            syncAssignLeadStatusFields();
         @endif
 
         assignLeadForm?.addEventListener('submit', () => {

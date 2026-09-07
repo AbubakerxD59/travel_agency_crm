@@ -12,6 +12,7 @@ use App\Support\FolderPaymentImageStorage;
 use Carbon\Carbon;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\Request;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Collection;
@@ -41,8 +42,6 @@ function portal_route_prefix(?Request $request = null): string
 
 /**
  * Generate a named route under the current portal prefix.
- *
- * @param  mixed  $parameters
  */
 function portal_route(string $name, mixed $parameters = [], bool $absolute = true): string
 {
@@ -85,7 +84,7 @@ function resolve_staff_company_filter(?User $viewer, ?int $requestedCompanyId): 
 }
 
 /**
- * @param  Builder<\Illuminate\Database\Eloquent\Model>  $query
+ * @param  Builder<Model>  $query
  */
 function apply_staff_company_scope(Builder $query, ?User $viewer, string $column = 'company_id'): void
 {
@@ -106,7 +105,7 @@ function apply_staff_company_scope(Builder $query, ?User $viewer, string $column
 /**
  * Scope lead/folder listings for managers to their own records and their company agents'.
  *
- * @param  Builder<\Illuminate\Database\Eloquent\Model>  $query
+ * @param  Builder<Model>  $query
  */
 function apply_staff_company_records_scope(Builder $query, ?User $viewer, string $table): void
 {
@@ -164,6 +163,17 @@ function staff_can_access_agent_record(?User $viewer, mixed $agentId, mixed $com
 }
 
 /**
+ * Whether a manager may change lead status because the lead is assigned to them.
+ */
+function manager_can_update_own_lead_status(?User $viewer, mixed $assigneeId): bool
+{
+    return (bool) $viewer?->hasRole(User::ROLE_MANAGER)
+        && $assigneeId !== null
+        && $assigneeId !== ''
+        && (int) $assigneeId === (int) $viewer->id;
+}
+
+/**
  * Companies visible in staff portal filters/forms.
  *
  * @return Builder<Company>
@@ -187,7 +197,7 @@ function companies_visible_to_staff(?User $viewer): Builder
 /**
  * Fail validation when a manager tries to use another company's id.
  */
-function assert_staff_company_allowed(?User $viewer, mixed $companyId, \Closure $fail): void
+function assert_staff_company_allowed(?User $viewer, mixed $companyId, Closure $fail): void
 {
     if (! $viewer?->hasRole(User::ROLE_MANAGER)) {
         return;
@@ -202,7 +212,7 @@ function assert_staff_company_allowed(?User $viewer, mixed $companyId, \Closure 
 /**
  * Fail validation when a manager selects an agent outside their company.
  */
-function assert_staff_agent_allowed(?User $viewer, mixed $agentId, \Closure $fail): void
+function assert_staff_agent_allowed(?User $viewer, mixed $agentId, Closure $fail): void
 {
     if ($agentId === null || $agentId === '') {
         return;
@@ -453,7 +463,7 @@ function buildClosedLeadsChartData(
         ->orderBy('bucket')
         ->get();
 
-    /** @var \Illuminate\Support\Collection<string, int> $totalLeadsBySource */
+    /** @var Collection<string, int> $totalLeadsBySource */
     $totalLeadsBySource = (clone $totalLeadsQuery)
         ->selectRaw("COALESCE(source, '') as source_key, COUNT(*) as total")
         ->groupBy('source_key')
@@ -1024,7 +1034,7 @@ function folder_put_draft_section(Request $request, ?int $folderId, string $sect
  * Used for AJAX section saves while editing an existing folder.
  *
  * @param  list<array<string, mixed>>  $rows
- * @return list<array{id: int}>|null Payment IDs when section is payments; otherwise null.
+ * @return list<array{id: int, approval_status: string}>|null Payment IDs when section is payments; otherwise null.
  */
 function folder_persist_section_rows(
     Folder $folder,
@@ -1074,7 +1084,7 @@ function folder_persist_section_rows(
                 );
                 break;
             default:
-                throw new \InvalidArgumentException("Unsupported folder section [{$section}].");
+                throw new InvalidArgumentException("Unsupported folder section [{$section}].");
         }
     });
 
@@ -1406,7 +1416,7 @@ function folder_payment_merge_image_attributes(
  * Replace unlocked payments on a folder; locked payments are never deleted or updated.
  *
  * @param  list<array<string, mixed>>  $rows
- * @return list<array{id: int}> Payment IDs in the same order as storable submitted rows.
+ * @return list<array{id: int, approval_status: string}> Payment IDs in the same order as storable submitted rows.
  */
 function folder_sync_folder_payments(
     Folder $folder,
@@ -1420,6 +1430,7 @@ function folder_sync_folder_payments(
     $rows = folder_filter_non_empty_payment_rows($rows);
 
     $keptUnlockedIds = [];
+    $syncedPayments = [];
 
     foreach ($rows as $index => $row) {
         if (! is_array($row)) {
@@ -1461,6 +1472,10 @@ function folder_sync_folder_payments(
             }
 
             $keptUnlockedIds[] = $payment->id;
+            $syncedPayments[] = [
+                'id' => $payment->id,
+                'approval_status' => $payment->approval_status,
+            ];
 
             continue;
         }
@@ -1471,6 +1486,10 @@ function folder_sync_folder_payments(
 
         $payment = $folder->payments()->create($attrs);
         $keptUnlockedIds[] = $payment->id;
+        $syncedPayments[] = [
+            'id' => $payment->id,
+            'approval_status' => $payment->approval_status,
+        ];
     }
 
     if (! auth()->user()?->hasRole(User::ROLE_MANAGER)) {
@@ -1481,10 +1500,7 @@ function folder_sync_folder_payments(
             ->each(fn (FolderPayment $payment) => $payment->delete());
     }
 
-    return array_map(
-        static fn (int $id): array => ['id' => $id],
-        $keptUnlockedIds,
-    );
+    return $syncedPayments;
 }
 
 /**

@@ -352,6 +352,8 @@
 
         @include('agent.folders._show-cost-summary', ['folder' => $folder])
 
+        @include('agent.folders._show-payment-summary', ['folder' => $folder])
+
         <div class="mt-6 rounded-2xl border border-slate-200/80 bg-white p-6 shadow-sm">
             <h2 class="text-base font-semibold text-concierge-navy">Payments</h2>
             <div class="mt-4 overflow-x-auto">

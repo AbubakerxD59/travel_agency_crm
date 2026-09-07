@@ -1165,6 +1165,38 @@
                     </div>
                 </div>
 
+                <div class="space-y-3 rounded-2xl border border-slate-200/80 bg-slate-50/40 p-4 sm:p-5" id="folder-payment-summary">
+                    <h2 class="text-base font-semibold text-concierge-navy">Payment summary</h2>
+                    <div class="overflow-x-auto">
+                        <table class="min-w-[640px] w-full border-collapse text-xs sm:text-sm">
+                            <thead>
+                                <tr class="bg-slate-100 text-left text-concierge-muted">
+                                    <th class="border border-slate-200 px-3 py-2">Total sale</th>
+                                    <th class="border border-slate-200 px-3 py-2">Amount paid</th>
+                                    <th class="border border-slate-200 px-3 py-2">Remaining amount</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr class="bg-white">
+                                    <td class="folder-cost-text-emerald-600 border border-slate-200 px-3 py-2 text-sm font-semibold tabular-nums"
+                                        data-folder-payment-summary="total-sale">—</td>
+                                    <td class="folder-cost-text-emerald-600 border border-slate-200 px-3 py-2 text-sm font-semibold tabular-nums"
+                                        data-folder-payment-summary="amount-paid">—</td>
+                                    <td class="border border-slate-200 px-3 py-2 text-sm font-semibold tabular-nums text-amber-700"
+                                        data-folder-payment-summary="remaining-amount">—</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    <div data-folder-payment-transactions-wrap class="hidden">
+                        <p class="text-sm font-medium text-concierge-navy">Approved payments</p>
+                        <ol data-folder-payment-transactions
+                            class="mt-2 list-decimal space-y-1 pl-5 text-sm text-concierge-navy"></ol>
+                    </div>
+                    <p class="text-xs text-concierge-muted">Remaining amount is total sale minus approved payments. Pending
+                        and rejected payments are not deducted.</p>
+                </div>
+
                 <div class="space-y-3 rounded-2xl border border-slate-200/80 bg-slate-50/40 p-4 sm:p-5">
                     <div class="flex flex-wrap items-center justify-between gap-3">
                         <div class="inline-flex items-center gap-2">
@@ -1218,7 +1250,8 @@
                                             $paymentStatus = 'pending';
                                         }
                                     @endphp
-                                    <tr class="payment-row bg-white" data-locked="{{ $paymentLocked ? '1' : '0' }}">
+                                    <tr class="payment-row bg-white" data-locked="{{ $paymentLocked ? '1' : '0' }}"
+                                        data-approval-status="{{ $paymentStatus }}">
                                         <td class="border border-slate-200 px-2 py-2 align-top">
                                             @if (data_get($row, 'id'))
                                                 <input type="hidden" name="payments[{{ $i }}][id]"
@@ -2513,6 +2546,8 @@
             function createRow(index) {
                 const row = document.createElement('tr');
                 row.className = 'payment-row bg-white';
+                row.dataset.locked = '0';
+                row.dataset.approvalStatus = '';
 
                 const actionCell = document.createElement('td');
                 actionCell.className = 'border border-slate-200 px-2 py-2 align-top';
@@ -2621,12 +2656,14 @@
                     tableBody.appendChild(createRow(0));
                 }
                 renumberRows();
+                document.dispatchEvent(new CustomEvent('folder-margin-recalc'));
             }
 
             addButton.addEventListener('click', () => {
                 const nextIndex = tableBody.querySelectorAll('.payment-row').length;
                 tableBody.appendChild(createRow(nextIndex));
                 renumberRows();
+                document.dispatchEvent(new CustomEvent('folder-margin-recalc'));
             });
 
             tableBody.addEventListener('click', (event) => {
@@ -2855,6 +2892,76 @@
                     cell.className = `${base} font-medium text-rose-600`;
                 }
 
+                function applyPaymentSummaryCellStyle(cell, key, numericValue) {
+                    if (!cell) {
+                        return;
+                    }
+                    const base = 'border border-slate-200 px-3 py-2 text-sm font-semibold tabular-nums';
+                    if (key === 'remaining-amount') {
+                        const due = Number.isFinite(numericValue) && numericValue > 0;
+                        cell.className = `${base} ${due ? 'text-amber-700' : 'folder-cost-text-emerald-600'}`;
+                        return;
+                    }
+                    cell.className = `${base} folder-cost-text-emerald-600`;
+                }
+
+                function syncFolderPaymentSummary(totalSale) {
+                    let amountPaid = 0;
+                    const items = [];
+
+                    form.querySelectorAll('#payment-rows .payment-row').forEach((row) => {
+                        if (row.dataset.approvalStatus !== 'approved') {
+                            return;
+                        }
+
+                        const amount = parseMoneyInput(row.querySelector(
+                            'input[name^="payments["][name$="[amount]"]'));
+                        if (amount !== null) {
+                            amountPaid += amount;
+                        }
+
+                        items.push({
+                            amount: amount ?? 0,
+                            date: String(row.querySelector(
+                                'input[name^="payments["][name$="[payment_date]"]')?.value ?? '').trim(),
+                        });
+                    });
+
+                    const remainingAmount = Math.max(totalSale - amountPaid, 0);
+                    const cells = {
+                        'total-sale': totalSale,
+                        'amount-paid': amountPaid,
+                        'remaining-amount': remainingAmount,
+                    };
+                    Object.entries(cells).forEach(([key, value]) => {
+                        const cell = form.querySelector(`[data-folder-payment-summary="${key}"]`);
+                        if (cell) {
+                            cell.textContent = formatSummaryCell(value);
+                            applyPaymentSummaryCellStyle(cell, key, value);
+                        }
+                    });
+
+                    const wrap = form.querySelector('[data-folder-payment-transactions-wrap]');
+                    const list = form.querySelector('[data-folder-payment-transactions]');
+                    if (wrap instanceof HTMLElement && list instanceof HTMLOListElement) {
+                        list.replaceChildren();
+                        items.forEach((item) => {
+                            const li = document.createElement('li');
+                            const amountSpan = document.createElement('span');
+                            amountSpan.className = 'font-medium tabular-nums';
+                            amountSpan.textContent = formatSummaryCell(item.amount);
+                            li.appendChild(amountSpan);
+                            li.appendChild(document.createTextNode(' '));
+                            const dateSpan = document.createElement('span');
+                            dateSpan.className = 'text-concierge-muted';
+                            dateSpan.textContent = item.date || '—';
+                            li.appendChild(dateSpan);
+                            list.appendChild(li);
+                        });
+                        wrap.classList.toggle('hidden', items.length === 0);
+                    }
+                }
+
                 function syncFolderCostSummary() {
                     const totalSale = sumMoneyInputs('input[name^="package_costs["][name$="[sell]"]');
                     const flightCost = sumMoneyInputs('input[name^="package_costs["][name$="[total_cost]"]');
@@ -2880,6 +2987,7 @@
                             applyFolderSummaryCellStyle(cell, key, value);
                         }
                     });
+                    syncFolderPaymentSummary(totalSale);
                 }
 
                 function onCostOrSellInput(ev) {
@@ -3154,6 +3262,10 @@
                     const rowIndex = rowIndexMatch ? rowIndexMatch[1] : String(index);
                     idInput.name = `payments[${rowIndex}][id]`;
                     idInput.value = String(paymentId);
+
+                    if (typeof payment.approval_status === 'string' && payment.approval_status !== '') {
+                        row.dataset.approvalStatus = payment.approval_status;
+                    }
                 });
             }
 
@@ -3201,6 +3313,7 @@
                     @if ($isEditMode)
                         if (isPayments && Array.isArray(data.payments)) {
                             applySavedPaymentIds(data.payments);
+                            document.dispatchEvent(new CustomEvent('folder-margin-recalc'));
                         }
                     @endif
 

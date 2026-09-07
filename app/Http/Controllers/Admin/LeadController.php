@@ -195,7 +195,7 @@ class LeadController extends Controller
 
         $nextAgentName = User::withTrashed()->whereKey($nextAgentId)->value('name');
 
-        $lead->update([
+        $payload = [
             'agent_id' => $nextAgentId,
             'agent_name' => $nextAgentName,
             'lead_assign_date' => (int) $lead->agent_id !== $nextAgentId ? now() : $lead->lead_assign_date,
@@ -207,7 +207,16 @@ class LeadController extends Controller
             'total_passengers' => $data['total_passengers'] ?? null,
             'source' => $data['source'],
             'notes' => $data['notes'] ?? null,
-        ]);
+        ];
+
+        if (manager_can_update_own_lead_status($request->user(), $nextAgentId) && ! empty($data['status'])) {
+            $payload['status'] = $data['status'];
+            $payload['not_converted_reason'] = $data['status'] === Lead::STATUS_NOT_CONVERTED
+                ? ($data['not_converted_reason'] ?? null)
+                : null;
+        }
+
+        $lead->update($payload);
         $lead->refresh();
 
         $notificationWarning = null;

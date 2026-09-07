@@ -7,6 +7,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Support\Collection;
 
 class Folder extends Model
 {
@@ -308,6 +309,33 @@ class Folder extends Model
             'visa_cost' => $visaCost,
             'others_cost' => $othersCost,
             'margin' => $margin,
+        ];
+    }
+
+    /**
+     * Invoice-style payment totals: remaining amount is total sale minus approved payments only.
+     *
+     * @return array{total_sale: float, amount_paid: float, remaining_amount: float, approved_payments: Collection<int, FolderPayment>}
+     */
+    public function paymentSummary(): array
+    {
+        $totalSale = $this->costSummary()['total_sale'];
+        $approvedPayments = $this->payments
+            ->where('approval_status', FolderPayment::STATUS_APPROVED)
+            ->sortBy([
+                ['payment_date', 'asc'],
+                ['id', 'asc'],
+            ])
+            ->values();
+
+        $amountPaid = (float) $approvedPayments->sum(fn (FolderPayment $payment) => (float) ($payment->amount ?? 0));
+        $remainingAmount = max($totalSale - $amountPaid, 0.0);
+
+        return [
+            'total_sale' => $totalSale,
+            'amount_paid' => $amountPaid,
+            'remaining_amount' => $remainingAmount,
+            'approved_payments' => $approvedPayments,
         ];
     }
 

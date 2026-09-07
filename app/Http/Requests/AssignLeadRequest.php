@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests;
 
+use App\Models\Lead;
 use App\Models\User;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
@@ -15,8 +16,12 @@ class AssignLeadRequest extends FormRequest
         }
 
         $total = $this->input('total_passengers');
+        $status = $this->input('status');
+        $reason = $this->input('not_converted_reason');
         $this->merge([
             'total_passengers' => $total === '' || $total === null ? null : $total,
+            'status' => $status === '' ? null : $status,
+            'not_converted_reason' => is_string($reason) ? trim($reason) : $reason,
         ]);
     }
 
@@ -61,6 +66,20 @@ class AssignLeadRequest extends FormRequest
             'total_passengers' => ['nullable', 'integer', 'min:1', 'max:500'],
             'source' => ['required', 'string', Rule::in(array_keys(getSources()))],
             'notes' => ['nullable', 'string'],
+            'status' => [
+                Rule::requiredIf(fn () => $this->isMethod('patch')
+                    && manager_can_update_own_lead_status($this->user(), $this->input('agent_id'))),
+                'nullable',
+                'string',
+                Rule::in(Lead::statusKeys()),
+            ],
+            'not_converted_reason' => [
+                'nullable',
+                'string',
+                'max:1000',
+                Rule::requiredIf(fn () => $this->input('status') === Lead::STATUS_NOT_CONVERTED
+                    && manager_can_update_own_lead_status($this->user(), $this->input('agent_id'))),
+            ],
             'confirm_duplicate' => ['sometimes', 'boolean'],
         ];
     }
@@ -76,6 +95,7 @@ class AssignLeadRequest extends FormRequest
             'phone_number' => 'phone number',
             'company_id' => 'company',
             'total_passengers' => 'total passengers',
+            'not_converted_reason' => 'not converted reason',
         ];
     }
 }
