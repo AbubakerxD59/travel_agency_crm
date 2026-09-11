@@ -76,8 +76,9 @@ function companiesTableActionsColspan() {
 
 function companySearchTextFromPayload(company) {
     const country = company.country_name != null ? String(company.country_name) : '';
+    const currency = company.currency_label != null ? String(company.currency_label) : '';
     const website = company.website_link != null ? String(company.website_link) : '';
-    return `${company.name ?? ''} ${country} ${website}`.trim().toLowerCase();
+    return `${company.name ?? ''} ${country} ${currency} ${website}`.trim().toLowerCase();
 }
 
 function companyWebsiteLabel(url) {
@@ -409,6 +410,10 @@ function buildCompanyRow(company) {
     pill.textContent = company.country_name ?? '—';
     tdCountry.appendChild(pill);
 
+    const tdCurrency = document.createElement('td');
+    tdCurrency.className = 'px-6 py-4 text-sm font-medium text-concierge-navy';
+    tdCurrency.textContent = company.currency_label ?? '—';
+
     const tdWebsite = document.createElement('td');
     tdWebsite.className = 'px-6 py-4 text-sm';
     tdWebsite.innerHTML = companyWebsiteCellHtml(company.website_link ?? null);
@@ -417,7 +422,7 @@ function buildCompanyRow(company) {
     tdAdded.className = 'px-6 py-4 text-sm text-concierge-muted';
     tdAdded.textContent = company.created_at ?? '';
 
-    tr.append(tdImage, tdName, tdCountry, tdWebsite, tdAdded);
+    tr.append(tdImage, tdName, tdCountry, tdCurrency, tdWebsite, tdAdded);
 
     if (canManageCompanies()) {
         const tdAct = document.createElement('td');
@@ -442,7 +447,7 @@ function updateCompanyRowFromPayload(company) {
     }
     tr.dataset.searchText = companySearchTextFromPayload(company);
     const cells = tr.querySelectorAll('td');
-    if (cells.length < 5) {
+    if (cells.length < 6) {
         return;
     }
     cells[0].innerHTML = companyImageCellHtml(company.image_url ?? null);
@@ -451,8 +456,9 @@ function updateCompanyRowFromPayload(company) {
     if (pill) {
         pill.textContent = company.country_name ?? '—';
     }
-    cells[3].innerHTML = companyWebsiteCellHtml(company.website_link ?? null);
-    cells[4].textContent = company.created_at ?? '';
+    cells[3].textContent = company.currency_label ?? '—';
+    cells[4].innerHTML = companyWebsiteCellHtml(company.website_link ?? null);
+    cells[5].textContent = company.created_at ?? '';
 }
 
 function appendCompanyRowFromPayload(company) {

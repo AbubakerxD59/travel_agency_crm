@@ -38,7 +38,7 @@
     ]
   },
   "resources/css/app.css": {
-    "file": "assets/app-C90HYh3b.css",
+    "file": "assets/app-Ng8MThYx.css",
     "src": "resources/css/app.css",
     "isEntry": true,
     "name": "app",
@@ -122,7 +122,7 @@
     ]
   },
   "resources/js/app.js": {
-    "file": "assets/app-DrMet-7S.js",
+    "file": "assets/app-CfOXJt6s.js",
     "name": "app",
     "src": "resources/js/app.js",
     "isEntry": true,
@@ -131,7 +131,7 @@
     ]
   },
   "resources/js/companies.js": {
-    "file": "assets/companies-D1KXUVZH.js",
+    "file": "assets/companies-B4eNdhHF.js",
     "name": "companies",
     "src": "resources/js/companies.js",
     "isEntry": true,

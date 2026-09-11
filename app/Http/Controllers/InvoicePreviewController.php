@@ -32,6 +32,8 @@ class InvoicePreviewController extends Controller
             'direct_line' => config('invoice.company.phone'),
             'agent_email' => config('invoice.company.email'),
             'company' => config('invoice.company'),
+            'currency_code' => 'GBP',
+            'currency_symbol' => '£',
             'booking_date' => format_invoice_date(Carbon::parse('2026-02-08')),
             'invoice_number' => '4109',
             'agent_name' => 'Muhammad Zain',

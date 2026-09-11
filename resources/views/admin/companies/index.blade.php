@@ -6,7 +6,7 @@
     <div id="js-companies-config" class="hidden"
          data-url-base="{{ portal_route('companies.index') }}"
          data-can-manage="{{ $canManageCompanies ? '1' : '0' }}"
-         data-actions-colspan="{{ $canManageCompanies ? 6 : 5 }}"></div>
+         data-actions-colspan="{{ $canManageCompanies ? 7 : 6 }}"></div>
 
     <div class="mx-auto max-w-8xl">
         <div class="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
@@ -24,7 +24,7 @@
 
         <div class="mt-6">
             <label for="company-list-filter" class="block text-sm font-medium text-concierge-navy">Search companies</label>
-            <input id="company-list-filter" type="search" placeholder="Filter by name or country…" autocomplete="off"
+            <input id="company-list-filter" type="search" placeholder="Filter by name, country, or currency…" autocomplete="off"
                    class="mt-1.5 w-full rounded-xl border border-slate-200 bg-slate-50/80 px-4 py-2.5 text-sm text-slate-800 placeholder:text-slate-400 focus:border-concierge-accent focus:bg-white focus:outline-none focus:ring-2 focus:ring-concierge-accent/20">
         </div>
 
@@ -36,6 +36,7 @@
                             <th class="px-6 py-4">Image</th>
                             <th class="px-6 py-4">Name</th>
                             <th class="px-6 py-4">Country</th>
+                            <th class="px-6 py-4">Currency</th>
                             <th class="px-6 py-4">Website</th>
                             <th class="px-6 py-4">Added</th>
                             @if ($canManageCompanies)
@@ -47,7 +48,7 @@
                         @forelse ($companies as $company)
                             <tr class="hover:bg-slate-50/50"
                                 data-company-id="{{ $company->id }}"
-                                data-search-text="{{ e(mb_strtolower($company->name.' '.($company->country?->name ?? '').' '.($company->website_link ?? ''), 'UTF-8')) }}">
+                                data-search-text="{{ e(mb_strtolower($company->name.' '.($company->country?->name ?? '').' '.$company->currencyLabel().' '.($company->website_link ?? ''), 'UTF-8')) }}">
                                 <td class="px-6 py-4">
                                     @if ($company->imageUrl())
                                         <img src="{{ $company->imageUrl() }}" alt="" class="h-10 w-10 rounded-lg border border-slate-200 object-cover">
@@ -59,6 +60,7 @@
                                 <td class="px-6 py-4">
                                     <span class="concierge-pill concierge-pill-meta">{{ $company->country?->name ?? '—' }}</span>
                                 </td>
+                                <td class="px-6 py-4 text-sm font-medium text-concierge-navy">{{ $company->currencyLabel() }}</td>
                                 <td class="px-6 py-4 text-sm">
                                     @if ($company->website_link)
                                         <a href="{{ $company->website_link }}" target="_blank" rel="noopener noreferrer"
@@ -93,7 +95,7 @@
                             </tr>
                         @empty
                             <tr class="companies-index-empty">
-                                <td colspan="{{ $canManageCompanies ? 6 : 5 }}" class="px-6 py-10 text-center text-sm text-concierge-muted">
+                                <td colspan="{{ $canManageCompanies ? 7 : 6 }}" class="px-6 py-10 text-center text-sm text-concierge-muted">
                                     No companies yet. Use “Add new” to create one.
                                 </td>
                             </tr>

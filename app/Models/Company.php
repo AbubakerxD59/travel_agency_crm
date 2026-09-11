@@ -17,8 +17,8 @@ class Company extends Model
     ];
 
     protected $companies = [
-        "Al Kabir Travel",
-        "Haram Travels"
+        'Al Kabir Travel',
+        'Haram Travels',
     ];
 
     protected static function booted(): void
@@ -44,6 +44,24 @@ class Company extends Model
     public function country(): BelongsTo
     {
         return $this->belongsTo(Country::class);
+    }
+
+    /**
+     * @return array{code: string, symbol: string, label: string}
+     */
+    public function currency(): array
+    {
+        return currency_for_country($this->country?->name);
+    }
+
+    public function currencyLabel(): string
+    {
+        return $this->currency()['label'];
+    }
+
+    public function currencySymbol(): string
+    {
+        return $this->currency()['symbol'];
     }
 
     /**

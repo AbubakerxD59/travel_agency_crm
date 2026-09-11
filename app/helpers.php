@@ -1786,6 +1786,50 @@ function folder_normalized_payments_for_storage(array $rows, string $approvalSta
 }
 
 /**
+ * Currency for a company country name (USA → USD, UK → GBP).
+ *
+ * @return array{code: string, symbol: string, label: string}
+ */
+function currency_for_country(?string $countryName): array
+{
+    $key = strtolower(trim((string) $countryName));
+    $key = preg_replace('/[^a-z]+/', ' ', $key) ?? $key;
+    $key = trim(preg_replace('/\s+/', ' ', $key) ?? $key);
+
+    $usdKeys = ['usa', 'us', 'united states', 'united states of america'];
+    $gbpKeys = ['uk', 'gb', 'united kingdom', 'great britain', 'britain'];
+
+    if (in_array($key, $usdKeys, true)) {
+        return [
+            'code' => 'USD',
+            'symbol' => '$',
+            'label' => 'USD ($)',
+        ];
+    }
+
+    if (in_array($key, $gbpKeys, true)) {
+        return [
+            'code' => 'GBP',
+            'symbol' => '£',
+            'label' => 'GBP (£)',
+        ];
+    }
+
+    return [
+        'code' => 'GBP',
+        'symbol' => '£',
+        'label' => 'GBP (£)',
+    ];
+}
+
+function format_currency_amount(float|int $amount, ?string $countryName, int $decimals = 0): string
+{
+    $currency = currency_for_country($countryName);
+
+    return $currency['symbol'].' '.number_format((float) $amount, $decimals);
+}
+
+/**
  * Invoice date format, e.g. 6th May, 2026.
  */
 function format_invoice_date(mixed $date): string

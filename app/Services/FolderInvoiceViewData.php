@@ -22,7 +22,7 @@ class FolderInvoiceViewData
     {
         $folder->load([
             'agent',
-            'company',
+            'company.country',
             'destination',
             'passengers',
             'packageCosts',
@@ -52,6 +52,8 @@ class FolderInvoiceViewData
         $amountDue = max($invoiceTotal - (int) round($amountPaid), 0);
 
         $companyConfig = config('invoice.company');
+        $countryName = $folder->company?->country?->name;
+        $currency = currency_for_country($countryName);
 
         $hotelDetails = $this->filterModelsWithInvoiceData($folder->hotelDetails, [
             'sr_no', 'supplier', 'hotel_name', 'guest_name', 'rooms', 'type', 'meals',
@@ -76,6 +78,8 @@ class FolderInvoiceViewData
                 'website' => $folder->company?->website_link ?? $companyConfig['website'],
                 'logo_url' => $folder->company?->imageUrl() ?? $companyConfig['logo_url'],
             ],
+            'currency_code' => $currency['code'],
+            'currency_symbol' => $currency['symbol'],
             'booking_date' => format_invoice_date($folder->booking_date ?? $folder->created_at ?? now()),
             'invoice_number' => $folder->vendor_reference ?: (string) $folder->id,
             'agent_name' => folder_agent_display_name($folder),
@@ -101,7 +105,7 @@ class FolderInvoiceViewData
                 ])
                 ->values()
                 ->map(fn ($payment) => [
-                    'amount_formatted' => '£ '.number_format((float) ($payment->amount ?? 0), 0),
+                    'amount_formatted' => format_currency_amount((float) ($payment->amount ?? 0), $countryName, 0),
                     'payment_date' => format_invoice_date($payment->payment_date),
                 ])
                 ->all(),

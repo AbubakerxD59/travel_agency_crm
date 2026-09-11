@@ -782,7 +782,7 @@
                         <td>{{ $formatPassengerName($passenger['last_name'] ?? '') }}</td>
                         <td>{{ $passenger['flight_details'] }}</td>
                         <td>{{ $passenger['type'] }}</td>
-                        <td class="price">£ {{ number_format($passenger['price'], 0) }}</td>
+                        <td class="price">{{ $currency_symbol ?? '£' }} {{ number_format($passenger['price'], 0) }}</td>
                     </tr>
                 @endforeach
                 <tr>
@@ -806,7 +806,7 @@
                 <tr>
                     <td colspan="4"></td>
                     <td colspan="2">Invoice Total:</td>
-                    <td class="price">£ {{ number_format($invoice_total, 0) }}</td>
+                    <td class="price">{{ $currency_symbol ?? '£' }} {{ number_format($invoice_total, 0) }}</td>
                 </tr>
                 @if (!empty($approved_payments))
                     <tr>
@@ -828,7 +828,7 @@
                 <tr>
                     <td colspan="4"></td>
                     <td colspan="2">Amount Due:</td>
-                    <td class="price">£ {{ number_format($amount_due, 0) }}</td>
+                    <td class="price">{{ $currency_symbol ?? '£' }} {{ number_format($amount_due, 0) }}</td>
                 </tr>
                 <tr>
                     <td colspan="4"></td>
